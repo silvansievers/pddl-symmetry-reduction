@@ -83,7 +83,7 @@ class SymmetryGraph:
     TYPE_INIT = 2
     TYPE_GOAL = 3
     TYPE_OPERATOR = 4
-    TYPE_OP_CONDITION = 5
+    TYPE_CONDITION = 5
 
     def __init__(self, task):
         self.graph = Digraph()
@@ -121,13 +121,13 @@ class SymmetryGraph:
         # name is only relevant for the dot output
         return (self.TYPE_GOAL, goal_index, arg_index, name) 
     
-    def _get_operator_node(self, operator_name, param_name=None):
+    def _get_operator_node(self, index, operator_name, param_name=None):
         # TODO include operator index because there could be several with the
         # same name
         return (self.TYPE_OPERATOR, operator_name, param_name) 
     
-    def _get_op_condition_node(self, op_index, cond_index, param_index, name):
-        return (self.TYPE_OP_CONDITION, op_index, cond_index, param_index, name) 
+    def _get_condition_node(self, op_index, eff_index, cond_index, param_index, name):
+        return (self.TYPE_CONDITION, op_index, eff_index, cond_index, param_index, name) 
     
 
     def _dot_label(self, node):
@@ -147,7 +147,7 @@ class SymmetryGraph:
                 return node[2]
             else:
                 return node[1]
-        if node[0] == self.TYPE_OP_CONDITION:
+        if node[0] == self.TYPE_CONDITION:
             return node[-1]
 
     def _add_objects(self, task):
@@ -227,68 +227,73 @@ class SymmetryGraph:
                 self.graph.add_edge(prev_node, arg_node)
                 self.graph.add_edge(arg_node, self._get_obj_node(arg))
                 prev_node = arg_node
-    
+   
+    def _add_condition(self, literal, cond_index, base_node, op_index, op_args,
+                       eff_index = -1, eff_args=dict()):
+        # base node is operator node for preconditions and effect node for
+        # effect conditions
+        pred_name = literal.predicate
+        if literal.negated:
+            pred_node = self._get_inv_pred_node(pred_name)
+            label = "not %s" % pred_name
+        else:
+            pred_node = self._get_pred_node(pred_name)
+            label = pred_name
+        cond_node = self._get_condition_node(op_index, eff_index, cond_index, 0, label)
+        self.graph.add_vertex(cond_node, self._condition_color)
+        self.graph.add_edge(cond_node, base_node)
+        self.graph.add_edge(pred_node, cond_node)
+        prev_node = cond_node
+        for arg_no, arg in enumerate(literal.args):  
+            arg_node = self._get_condition_node(op_index, eff_index, cond_index, arg_no+1, arg)
+            self.graph.add_vertex(arg_node, self._condition_color)
+            self.graph.add_edge(prev_node, arg_node)
+            prev_node = arg_node
+            # edge argument to respective parameter or constant
+            if arg[0] == "?":
+                if arg in eff_args:
+                    self.graph.add_edge(arg_node, eff_args[arg])
+                else:
+                    self.graph.add_edge(arg_node, op_args[arg])
+            else:
+                self.graph.add_edge(arg_node, self._get_obj_node(arg))
+
+    def _add_preconditions(self, op, op_index, op_node, op_args): 
+        pre_index = 0
+        if isinstance(op.precondition, pddl.Literal):
+            self._add_condition(op.precondition, pre_index, op_node,
+                                op_index, op_args)
+            pre_index += 1
+        else:
+            assert isinstance(op.precondition, pddl.Conjunction)
+            for literal in op.precondition.parts:
+                self._add_condition(literal, pre_index, op_node,
+                                    op_index, op_args)
+                pre_index += 1
+        
+        # precondition from types
+        type_dict = dict((type.name, type) for type in task.types)
+        for param in op.parameters:
+            if param.type_name != "object":
+                pred_name = type_dict[param.type_name].get_predicate_name()
+                literal = pddl.Atom(pred_name, (param.name,))
+                self._add_condition(literal, pre_index, op_node,
+                                    op_index, op_args)
+                pre_index += 1
+
     def _add_operators(self, task):
         for op_index, op in enumerate(task.actions):
-            op_node = self._get_operator_node(op.name)
+            op_node = self._get_operator_node(op_index, op.name)
             self.graph.add_vertex(op_node, self._operator_color)
-            pre_index = 0
+            op_args = dict()
             for param in op.parameters:
                 # parameter node
                 param_node = self._get_operator_node(op.name, param.name)
+                op_args[param.name] = param_node
                 self.graph.add_vertex(param_node, self._operator_color)
                 self.graph.add_edge(op_node, param_node)
 
-                # type precondition
-                type_dict = dict((type.name, type) for type in task.types)
-                if param.type_name != "object":
-                    pred_name = type_dict[param.type_name].get_predicate_name()
-                    cond_node = self._get_op_condition_node(op_index, pre_index,
-                    0, pred_name)
-                    self.graph.add_vertex(cond_node, self._condition_color)
-                    self.graph.add_edge(cond_node, op_node)
-                    arg_node = self._get_op_condition_node(op_index, pre_index, 1, param.name)
-                    self.graph.add_vertex(arg_node, self._condition_color)
-                    self.graph.add_edge(cond_node, arg_node)
-                    self.graph.add_edge(arg_node, param_node)
-                    pred_node = self._get_pred_node(pred_name)
-                    self.graph.add_edge(pred_node, cond_node)
-                    pre_index += 1
-
-            def add_condition_literal(literal, pre_index, base_node):
-                pred_name = literal.predicate
-                if literal.negated:
-                    pred_node = self._get_inv_pred_node(pred_name)
-                    label = "not %s" % pred_name
-                else:
-                    pred_node = self._get_pred_node(pred_name)
-                    label = pred_name
-                cond_node = self._get_op_condition_node(op_index, pre_index, 0, label)
-                self.graph.add_vertex(cond_node, self._condition_color)
-                self.graph.add_edge(cond_node, base_node)
-                self.graph.add_edge(pred_node, cond_node)
-                prev_node = cond_node
-                for arg_no, arg in enumerate(literal.args):  
-                    arg_node = self._get_op_condition_node(op_index, pre_index,
-                                                           arg_no, arg)
-                    self.graph.add_vertex(arg_node, self._condition_color)
-                    self.graph.add_edge(prev_node, arg_node)
-                    prev_node = arg_node
-                    # edge argument to respective parameter or constant
-                    if arg[0] == "?":
-                        corr_node = self._get_operator_node(op.name, arg)
-                    else:
-                        corr_node = self._get_obj_node(arg)
-                    self.graph.add_edge(arg_node, corr_node)
-
-            if isinstance(op.precondition, pddl.Literal):
-                add_condition_literal(op.precondition, pre_index, op_node)
-                pre_index += 1
-            else:
-                assert isinstance(op.precondition, pddl.Conjunction)
-                for literal in op.precondition.parts:
-                    add_condition_literal(literal, pre_index, op_node)
-                    pre_index += 1
+            self._add_preconditions(op, op_index, op_node, op_args) 
                
 
     def write_dot(self, file):
