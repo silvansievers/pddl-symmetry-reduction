@@ -121,10 +121,9 @@ class SymmetryGraph:
         # name is only relevant for the dot output
         return (self.TYPE_GOAL, goal_index, arg_index, name) 
     
-    def _get_operator_node(self, index, operator_name, param_name=None):
-        # TODO include operator index because there could be several with the
-        # same name
-        return (self.TYPE_OPERATOR, operator_name, param_name) 
+    def _get_operator_node(self, index, name):
+        # name is either operator name or argument name
+        return (self.TYPE_OPERATOR, index, name) 
     
     def _get_condition_node(self, op_index, eff_index, cond_index, param_index, name):
         return (self.TYPE_CONDITION, op_index, eff_index, cond_index, param_index, name) 
@@ -143,10 +142,7 @@ class SymmetryGraph:
         if node[0] in (self.TYPE_INIT, self.TYPE_GOAL):
             return node[3]
         if node[0] == self.TYPE_OPERATOR:
-            if node[2] is not None:
-                return node[2]
-            else:
-                return node[1]
+            return node[-1]
         if node[0] == self.TYPE_CONDITION:
             return node[-1]
 
@@ -288,7 +284,7 @@ class SymmetryGraph:
             op_args = dict()
             for param in op.parameters:
                 # parameter node
-                param_node = self._get_operator_node(op.name, param.name)
+                param_node = self._get_operator_node(op_index, param.name)
                 op_args[param.name] = param_node
                 self.graph.add_vertex(param_node, self._operator_color)
                 self.graph.add_edge(op_node, param_node)
