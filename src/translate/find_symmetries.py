@@ -36,19 +36,6 @@ class Digraph:
         self.id_to_vertex.append(vertex)
         return len(self.id_to_vertex) - 1
 
-    def _in(self, name):
-        return "%s_i" % name
-
-    def _from_in(self, name):
-        return name[0:-2]
-    
-    def _out(self, name):
-        return "%s_o" % name
-
-    def _edge(self, n1, n2):
-        return "_%s_%s_0" % (n1, n2), "_%s_%s_1" % (n1, n2) 
-        # TODO this is dangerous because n1 and n2 could contain underscores
-
     def get_color(self, vertex):
         v_out = self.vertices[vertex][1]
         vertex = self.graph._vertices[v_out]
@@ -104,7 +91,6 @@ class SymmetryGraph:
         self._first_predicate_color = 1
         self._add_objects(task)
         max_predicate_color = self._add_predicates(task)
-        print ("max predicate color", max_predicate_color)
         self._init_color = max_predicate_color + 1
         self._goal_color = max_predicate_color + 2
         self._operator_color = max_predicate_color + 3
@@ -112,8 +98,7 @@ class SymmetryGraph:
         self._add_init(task)
         self._add_goal(task)
         self._add_operators(task)
-        test = self.graph.get_autiomorphism_generators()
-        for generator in test:
+        for generator in self.graph.get_autiomorphism_generators():
             print("generator:")
             for a,b in generator.iteritems():
                 if a != b:
