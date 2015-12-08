@@ -189,33 +189,28 @@ class SymmetryGraph:
         return max_predicate_color 
 
     def _add_init(self, task):
-        for no, fact in enumerate(task.init):
-            pred_node = self._get_pred_node(fact.predicate)
-            init_node = self._get_init_node(fact.predicate, no)
+        def add_fact(predicate, args, counter):
+            pred_node = self._get_pred_node(predicate)
+            init_node = self._get_init_node(predicate, counter)
             self.graph.add_vertex(init_node, self._init_color)
             self.graph.add_edge(init_node, pred_node)
             prev_node = init_node
-            for num, arg in enumerate(fact.args):
-                arg_node = self._get_init_node(arg, no, num + 1)
+            for num, arg in enumerate(args):
+                arg_node = self._get_init_node(arg, counter, num + 1)
                 self.graph.add_vertex(arg_node, self._init_color)
                 self.graph.add_edge(prev_node, arg_node)
                 self.graph.add_edge(arg_node, self._get_obj_node(arg))
                 prev_node = arg_node
+
+        for no, fact in enumerate(task.init):
+            add_fact(fact.predicate, fact.args, no)
         counter = len(task.init)
         type_dict = dict((type.name, type) for type in task.types)
-        for no, o in enumerate(task.objects):
+        for o in task.objects:
             obj_node = self._get_obj_node(o.name)
             type = type_dict[o.type_name]
             while type.name != "object":
-                pred_name = type.get_predicate_name()
-                init_node = self._get_init_node(pred_name, counter)
-                self.graph.add_vertex(init_node, self._init_color)
-                pred_node = self._get_pred_node(pred_name)
-                self.graph.add_edge(init_node, pred_node)
-                arg_node = self._get_init_node(o.name, counter, 1)
-                self.graph.add_vertex(arg_node, self._init_color)
-                self.graph.add_edge(init_node, arg_node)
-                self.graph.add_edge(arg_node, obj_node)
+                add_fact(type.get_predicate_name(), [o.name], counter)
                 counter += 1
                 type = type_dict[type.basetype_name]
     
