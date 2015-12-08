@@ -154,35 +154,38 @@ class SymmetryGraph:
         for o in task.objects:
             self.graph.add_vertex(self._get_obj_node(o.name), self._object_color)
 
-    def _add_predicates(self, task):
-        assert(not task.axioms) # TODO support axioms
+    def _fluent_predicates(self, task):
         fluent_predicates = set()
         for action in task.actions:
             for effect in action.effects:
                 fluent_predicates.add(effect.literal.predicate)
         for axiom in task.axioms:
             fluent_predicates.add(axiom.name)
+        return fluent_predicates
 
-        max_predicate_color = self._first_predicate_color
-        for pred in task.predicates:
-            pred_node = self._get_pred_node(pred.name)
-            is_fluent = pred.name in fluent_predicates
-            color = self._first_predicate_color + len(pred.arguments)
-            if color > max_predicate_color:
-                max_predicate_color = color
+    def _add_predicates(self, task):
+        assert(not task.axioms) # TODO support axioms
+        fluent_predicates = self._fluent_predicates(task)
+
+        def add_predicate(pred_name, arity):
+            pred_node = self._get_pred_node(pred_name)
+            color = self._first_predicate_color + arity 
             self.graph.add_vertex(pred_node, color)
-            if is_fluent:
-                inv_pred_node = self._get_inv_pred_node(pred.name)
+            if pred.name in fluent_predicates:
+                inv_pred_node = self._get_inv_pred_node(pred_name)
                 self.graph.add_vertex(inv_pred_node, color)
                 self.graph.add_edge(inv_pred_node, pred_node)
                 self.graph.add_edge(pred_node, inv_pred_node)
+            return color
+
+        max_predicate_color = self._first_predicate_color
+        for pred in task.predicates:
+            color = add_predicate(pred.name, len(pred.arguments)) 
+            max_predicate_color = max(max_predicate_color, color)
         for type in task.types:
             if type.name != "object":
-                color = self._first_predicate_color + 1
-                if color > max_predicate_color:
-                    max_predicate_color = color
-                pred_node = self._get_pred_node(type.get_predicate_name())
-                self.graph.add_vertex(pred_node, color)
+                color = add_predicate(type.get_predicate_name(), 1) 
+                max_predicate_color = max(max_predicate_color, color)
         return max_predicate_color 
 
     def _add_init(self, task):
