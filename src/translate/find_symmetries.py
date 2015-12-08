@@ -158,7 +158,6 @@ class SymmetryGraph:
             self.graph.add_vertex(self._get_obj_node(o.name), OBJECT_COLOR)
 
     def _add_predicates(self, task):
-        # XXX TODO what about types?  
         assert(not task.axioms) # TODO support axioms
         fluent_predicates = set()
         for action in task.actions:
@@ -184,6 +183,14 @@ class SymmetryGraph:
             if is_fluent:
                 self.graph.add_edge(inv_pred_node, self._get_pred_node(pred.name, 1))
                 # TODO this does not work if the predicate has arity 0
+        for type in task.types:
+            if type.name != "object":
+                pred_node = self._get_pred_node(type.get_predicate_name())
+                self.graph.add_vertex(pred_node, CONST_PREDICATE_COLOR)
+                argnode = self._get_pred_node(type.get_predicate_name(), 1)
+                self.graph.add_vertex(argnode, CONST_PREDICATE_COLOR)
+                self.graph.add_edge(pred_node, argnode)
+            
 
     def _add_init(self, task):
         for no, fact in enumerate(task.init):
@@ -198,6 +205,23 @@ class SymmetryGraph:
                 self.graph.add_edge(prev_node, arg_node)
                 self.graph.add_edge(arg_node, self._get_obj_node(arg))
                 prev_node = arg_node
+        counter = len(task.init)
+        type_dict = dict((type.name, type) for type in task.types)
+        for no, o in enumerate(task.objects):
+            obj_node = self._get_obj_node(o.name)
+            type = type_dict[o.type_name]
+            while type.name != "object":
+                pred_name = type.get_predicate_name()
+                init_node = self._get_init_node(pred_name, counter)
+                self.graph.add_vertex(init_node, INIT_COLOR)
+                pred_node = self._get_pred_node(pred_name)
+                self.graph.add_edge(init_node, pred_node)
+                arg_node = self._get_init_node(o.name, counter, 1)
+                self.graph.add_vertex(arg_node, INIT_COLOR)
+                self.graph.add_edge(init_node, arg_node)
+                self.graph.add_edge(arg_node, obj_node)
+                counter += 1
+                type = type_dict[type.basetype_name]
     
     def _add_goal(self, task):
         for no, fact in enumerate(task.goal.parts):
