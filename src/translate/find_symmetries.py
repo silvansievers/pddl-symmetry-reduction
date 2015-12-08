@@ -8,20 +8,6 @@ sys.path.append('/home/roeger/PyBliss-0.50beta')
 sys.path.append('/home/roeger/PyBliss-0.50beta/lib/python')
 import PyBliss
 
-OBJECT_COLOR = 0
-PREDICATE_COLOR = 1
-CONST_PREDICATE_COLOR = 2
-INIT_COLOR = 3
-GOAL_COLOR = 4
-
-colors = {
-        OBJECT_COLOR: "blue",
-        PREDICATE_COLOR: "skyblue",
-        CONST_PREDICATE_COLOR: "lightskyblue",
-        INIT_COLOR: "lightyellow",
-        GOAL_COLOR: "yellow",
-    }
-
 
 class Digraph:
     def __init__(self):
@@ -112,8 +98,13 @@ class SymmetryGraph:
 
     def __init__(self, task):
         self.graph = Digraph()
+        self._object_color = 0
+        self._first_predicate_color = 1
         self._add_objects(task)
-        self._add_predicates(task)
+        max_predicate_color = self._add_predicates(task)
+        print ("max predicate color", max_predicate_color)
+        self._init_color = max_predicate_color + 1
+        self._goal_color = max_predicate_color + 2
         self._add_init(task)
         self._add_goal(task)
         test = self.graph.get_autiomorphism_generators()
@@ -155,7 +146,7 @@ class SymmetryGraph:
 
     def _add_objects(self, task):
         for o in task.objects:
-            self.graph.add_vertex(self._get_obj_node(o.name), OBJECT_COLOR)
+            self.graph.add_vertex(self._get_obj_node(o.name), self._object_color)
 
     def _add_predicates(self, task):
         assert(not task.axioms) # TODO support axioms
@@ -166,42 +157,38 @@ class SymmetryGraph:
         for axiom in task.axioms:
             fluent_predicates.add(axiom.name)
 
+        max_predicate_color = self._first_predicate_color
         for pred in task.predicates:
             pred_node = self._get_pred_node(pred.name)
             is_fluent = pred.name in fluent_predicates
-            color = PREDICATE_COLOR  if is_fluent else CONST_PREDICATE_COLOR
+            color = self._first_predicate_color + len(pred.arguments)
+            if color > max_predicate_color:
+                max_predicate_color = color
             self.graph.add_vertex(pred_node, color)
             if is_fluent:
                 inv_pred_node = self._get_inv_pred_node(pred.name)
                 self.graph.add_vertex(inv_pred_node, color)
-            prev_node = pred_node
-            for num, arg in enumerate(pred.arguments):
-                node = self._get_pred_node(pred.name, num + 1)
-                self.graph.add_vertex(node, color)
-                self.graph.add_edge(prev_node, node)
-                prev_node = node
-            if is_fluent:
-                self.graph.add_edge(inv_pred_node, self._get_pred_node(pred.name, 1))
-                # TODO this does not work if the predicate has arity 0
+                self.graph.add_edge(inv_pred_node, pred_node)
+                self.graph.add_edge(pred_node, inv_pred_node)
         for type in task.types:
             if type.name != "object":
+                color = self._first_predicate_color + 1
+                if color > max_predicate_color:
+                    max_predicate_color = color
                 pred_node = self._get_pred_node(type.get_predicate_name())
-                self.graph.add_vertex(pred_node, CONST_PREDICATE_COLOR)
-                argnode = self._get_pred_node(type.get_predicate_name(), 1)
-                self.graph.add_vertex(argnode, CONST_PREDICATE_COLOR)
-                self.graph.add_edge(pred_node, argnode)
-            
+                self.graph.add_vertex(pred_node, color)
+        return max_predicate_color 
 
     def _add_init(self, task):
         for no, fact in enumerate(task.init):
             pred_node = self._get_pred_node(fact.predicate)
             init_node = self._get_init_node(fact.predicate, no)
-            self.graph.add_vertex(init_node, INIT_COLOR)
+            self.graph.add_vertex(init_node, self._init_color)
             self.graph.add_edge(init_node, pred_node)
             prev_node = init_node
             for num, arg in enumerate(fact.args):
                 arg_node = self._get_init_node(arg, no, num + 1)
-                self.graph.add_vertex(arg_node, INIT_COLOR)
+                self.graph.add_vertex(arg_node, self._init_color)
                 self.graph.add_edge(prev_node, arg_node)
                 self.graph.add_edge(arg_node, self._get_obj_node(arg))
                 prev_node = arg_node
@@ -213,11 +200,11 @@ class SymmetryGraph:
             while type.name != "object":
                 pred_name = type.get_predicate_name()
                 init_node = self._get_init_node(pred_name, counter)
-                self.graph.add_vertex(init_node, INIT_COLOR)
+                self.graph.add_vertex(init_node, self._init_color)
                 pred_node = self._get_pred_node(pred_name)
                 self.graph.add_edge(init_node, pred_node)
                 arg_node = self._get_init_node(o.name, counter, 1)
-                self.graph.add_vertex(arg_node, INIT_COLOR)
+                self.graph.add_vertex(arg_node, self._init_color)
                 self.graph.add_edge(init_node, arg_node)
                 self.graph.add_edge(arg_node, obj_node)
                 counter += 1
@@ -227,25 +214,36 @@ class SymmetryGraph:
         for no, fact in enumerate(task.goal.parts):
             pred_node = self._get_pred_node(fact.predicate)
             goal_node = self._get_goal_node(fact.predicate, no)
-            self.graph.add_vertex(goal_node, GOAL_COLOR)
+            self.graph.add_vertex(goal_node, self._goal_color)
             self.graph.add_edge(goal_node, pred_node)
             prev_node = goal_node
             for num, arg in enumerate(fact.args):
                 arg_node = self._get_goal_node(arg, no, num + 1)
-                self.graph.add_vertex(arg_node, GOAL_COLOR)
+                self.graph.add_vertex(arg_node, self._goal_color)
                 self.graph.add_edge(prev_node, arg_node)
                 self.graph.add_edge(arg_node, self._get_obj_node(arg))
                 prev_node = arg_node
 
-    def write_dot(self, file, colors):
+    def write_dot(self, file):
         """
         Write the graph into a file in the graphviz dot format.
         """
+
+
+        colors = {
+                self._object_color: ("X11","blue"),
+                self._init_color: ("X11", "lightyellow"),
+                self._goal_color: ("X11", "yellow"),
+            }
+        different_pred_colors = self._init_color - self._first_predicate_color
+        for c in range(self._first_predicate_color, self._init_color):
+            colors[c] = ("blues%i" % different_pred_colors, 
+                         "%i" %  c )
         file.write("digraph g {\n")
         for vertex in self.graph.get_vertices():
             color = self.graph.get_color(vertex)
-            file.write("\"%s\" [style=filled, label=\"%s\", fillcolor=%s];\n" %
-                (vertex, self._dot_label(vertex), colors[color]))
+            file.write("\"%s\" [style=filled, label=\"%s\", colorscheme=%s, fillcolor=%s];\n" %
+                (vertex, self._dot_label(vertex), colors[color][0], colors[color][1]))
         for vertex in self.graph.get_vertices():
             for succ in self.graph.get_successors(vertex):
                 file.write("\"%s\" -> \"%s\";\n" % (vertex, succ))
@@ -260,4 +258,4 @@ if __name__ == "__main__":
     task.dump()
     G = SymmetryGraph(task)
     f = open('out.dot', 'w')
-    G.write_dot(f, colors)
+    G.write_dot(f)
