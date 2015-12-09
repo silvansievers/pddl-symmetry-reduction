@@ -196,36 +196,38 @@ class SymmetryGraph:
         for no, fact in enumerate(task.goal.parts):
             self._add_literal(NodeType.goal, Color.goal, fact, (no,))
    
-    def _add_condition(self, literal, cond_index, base_node, op_index, op_args,
-                       eff_index = -1, eff_args=dict()):
+    def _add_condition(self, literal, id_indices, base_node, op_args,
+                       eff_args=dict()):
         # base node is operator node for preconditions and effect node for
         # effect conditions
         first_node = self._add_literal(NodeType.condition, Color.condition,
-                                       literal, (op_index, eff_index,
-                                       cond_index), (eff_args, op_args)) 
-        self.graph.add_edge(base_node, first_node) # FEHLT
+                                       literal, id_indices, (eff_args, op_args)) 
+        self.graph.add_edge(base_node, first_node)
 
-    def _add_preconditions(self, op, op_index, op_node, op_args): 
+    def _add_conditions(self, params, condition, id_indices, base_node, op_args,
+        eff_args=dict()): 
         pre_index = 0
-        if isinstance(op.precondition, pddl.Literal):
-            self._add_condition(op.precondition, pre_index, op_node,
-                                op_index, op_args)
+        if isinstance(condition, pddl.Literal):
+            self._add_condition(condition, id_indices + (pre_index,), base_node,
+                                op_args, eff_args)
             pre_index += 1
-        else:
-            assert isinstance(op.precondition, pddl.Conjunction)
-            for literal in op.precondition.parts:
-                self._add_condition(literal, pre_index, op_node,
-                                    op_index, op_args)
+        elif isinstance(condition, pddl.Conjunction):
+            assert isinstance(condition, pddl.Conjunction)
+            for literal in condition.parts:
+                self._add_condition(literal, id_indices + (pre_index,),
+                                    base_node, op_args, eff_args)
                 pre_index += 1
+        else:
+            assert isinstance(condition, pddl.Truth)
         
-        # precondition from types
+        # condition from types
         type_dict = dict((type.name, type) for type in task.types)
-        for param in op.parameters:
+        for param in params:
             if param.type_name != "object":
                 pred_name = type_dict[param.type_name].get_predicate_name()
                 literal = pddl.Atom(pred_name, (param.name,))
-                self._add_condition(literal, pre_index, op_node,
-                                    op_index, op_args)
+                self._add_condition(literal, id_indices + (pre_index,), base_node,
+                                    op_args, eff_args)
                 pre_index += 1
 
     def _add_effect(self, op_index, op_node, op_args, eff_index, eff):
@@ -239,34 +241,16 @@ class SymmetryGraph:
             self.graph.add_vertex(param_node, Color.effect); 
             eff_args[param.name] = param_node
             self.graph.add_edge(eff_node, param_node)
-        
-        pre_index = 0
-        if isinstance(eff.condition, pddl.Literal):
-            self._add_condition(eff.condition, pre_index, eff_node,
-                                op_index, op_args, eff_index, eff_args)
-            pre_index += 1
-        elif isinstance(eff.condition, pddl.Conjunction):
-            for literal in eff.condition.parts:
-                self._add_condition(literal, pre_index, eff_node,
-                                    op_index, op_args, eff_index, eff_args)
-                pre_index += 1
-        else:
-            assert isinstance(eff.condition, pddl.Truth)
-        # effect condition from types
-        type_dict = dict((type.name, type) for type in task.types)
-        for param in eff.parameters:
-            if param.type_name != "object":
-                pred_name = type_dict[param.type_name].get_predicate_name()
-                literal = pddl.Atom(pred_name, (param.name,))
-                self._add_condition(literal, pre_index, eff_node,
-                                    op_index, op_args, eff_index, eff_args)
-                pre_index += 1
+
+        # effect conditions (also from parameter types)
+        self._add_conditions(eff.parameters, eff.condition, (op_index, eff_index), eff_node,
+                             op_args, eff_args)
 
         # affected literal
-        first_node =self._add_literal(NodeType.effect_literal,
-                                      Color.effect_literal, eff.literal,
-                                      (op_index, eff_index),
-                                      (eff_args, op_args))
+        first_node = self._add_literal(NodeType.effect_literal,
+                                       Color.effect_literal, eff.literal,
+                                       (op_index, eff_index),
+                                       (eff_args, op_args))
         self.graph.add_edge(eff_node, first_node)
 
     def _add_operators(self, task):
@@ -281,7 +265,7 @@ class SymmetryGraph:
                 self.graph.add_vertex(param_node, Color.operator)
                 self.graph.add_edge(op_node, param_node)
 
-            self._add_preconditions(op, op_index, op_node, op_args) 
+            self._add_conditions(op.parameters, op.precondition, (op_index,), op_node, op_args) 
             for no, effect in enumerate(op.effects):  
                 self._add_effect(op_index, op_node, op_args, no, effect) 
 
