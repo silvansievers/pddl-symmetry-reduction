@@ -118,24 +118,18 @@ class SymmetryGraph:
         index = -1 if negated else 0
         return (NodeType.predicate, index, pred_name)
     
-    def _get_ground_atom_node(self, node_type, name, init_index, arg_index=0):
-        # name is only relevant for the dot output
-        return (node_type, init_index, arg_index, name) 
-
     def _get_operator_node(self, op_index, name):
         # name is either operator name or argument name
         return (NodeType.operator, op_index, name) 
     
-    def _get_condition_node(self, op_index, eff_index, cond_index, param_index, name):
-        return (NodeType.condition, op_index, eff_index, cond_index, param_index, name) 
-
     def _get_effect_node(self, op_index, eff_index, name):
         # name is either some effect name or argument name.
         # The argument name is relevant for identifying the node
         return (NodeType.effect, op_index, eff_index, name)
 
-    def _get_effect_literal_node(self, op_index, eff_index, index, name):
-        return (NodeType.effect_literal, op_index, eff_index, index, name) 
+    def _get_literal_node(self, node_type, id_indices, arg_index, name):
+        # name is only relevant for the dot output
+        return (node_type, id_indices, arg_index, name) 
     
     def _add_objects(self, task):
         for o in task.objects:
@@ -160,68 +154,56 @@ class SymmetryGraph:
             if type.name != "object":
                 add_predicate(type.get_predicate_name(), 1, True) 
         
-    def _add_ground_atom(self, node_type, color, predicate, args, counter):
-        pred_node = self._get_pred_node(predicate)
-        first_node = self._get_ground_atom_node(node_type, predicate, counter)
+    def _add_literal(self, node_type, color, literal, id_indices, param_dicts=()):
+        pred_node = self._get_pred_node(literal.predicate, literal.negated)
+        index = -1 if literal.negated else 0
+        first_node = self._get_literal_node(node_type, id_indices, index,
+                                            literal.predicate)
         self.graph.add_vertex(first_node, color)
         self.graph.add_edge(first_node, pred_node)
         prev_node = first_node
-        for num, arg in enumerate(args):
-            arg_node = self._get_ground_atom_node(node_type, arg, counter, num + 1)
+        for num, arg in enumerate(literal.args):
+            arg_node = self._get_literal_node(node_type, id_indices, num+1, arg)
             self.graph.add_vertex(arg_node, color)
             self.graph.add_edge(prev_node, arg_node)
-            self.graph.add_edge(arg_node, self._get_obj_node(arg))
+            # edge from respective parameter or constant to argument
+            if arg[0] == "?":
+                for d in param_dicts:
+                    if arg in d:
+                        self.graph.add_edge(d[arg], arg_node)
+                        break
+                else:
+                    assert(False)
+            else:
+                self.graph.add_edge(self._get_obj_node(arg), arg_node)
             prev_node = arg_node
+        return first_node
 
     def _add_init(self, task):
         for no, fact in enumerate(task.init):
-            self._add_ground_atom(NodeType.init, Color.init, fact.predicate, fact.args, no)
+            self._add_literal(NodeType.init, Color.init, fact, (no,))
         counter = len(task.init)
         type_dict = dict((type.name, type) for type in task.types)
         for o in task.objects:
-            obj_node = self._get_obj_node(o.name)
             type = type_dict[o.type_name]
             while type.name != "object":
-                self._add_ground_atom(NodeType.init, Color.init, type.get_predicate_name(), [o.name], counter)
+                literal = pddl.Atom(type.get_predicate_name(), (o.name,))
+                self._add_literal(NodeType.init, Color.init, literal, (counter,))
                 counter += 1
                 type = type_dict[type.basetype_name]
     
     def _add_goal(self, task):
         for no, fact in enumerate(task.goal.parts):
-            self._add_ground_atom(NodeType.goal, Color.goal, fact.predicate, fact.args, no)
+            self._add_literal(NodeType.goal, Color.goal, fact, (no,))
    
     def _add_condition(self, literal, cond_index, base_node, op_index, op_args,
                        eff_index = -1, eff_args=dict()):
         # base node is operator node for preconditions and effect node for
         # effect conditions
-        pred_name = literal.predicate
-        if literal.negated:
-            pred_node = self._get_pred_node(pred_name, True)
-            label = "not %s" % pred_name
-        else:
-            pred_node = self._get_pred_node(pred_name)
-            label = pred_name
-        index = -1 if literal.negated else 0
-        cond_node = self._get_condition_node(op_index, eff_index, cond_index,
-                                             index, pred_name)
-        self.graph.add_vertex(cond_node, Color.condition)
-#        self.graph.add_edge(cond_node, base_node)
-        self.graph.add_edge(base_node, cond_node)
-        self.graph.add_edge(pred_node, cond_node)
-        prev_node = cond_node
-        for arg_no, arg in enumerate(literal.args):  
-            arg_node = self._get_condition_node(op_index, eff_index, cond_index, arg_no+1, arg)
-            self.graph.add_vertex(arg_node, Color.condition)
-            self.graph.add_edge(prev_node, arg_node)
-            prev_node = arg_node
-            # edge argument to respective parameter or constant
-            if arg[0] == "?":
-                if arg in eff_args:
-                    self.graph.add_edge(eff_args[arg], arg_node)
-                else:
-                    self.graph.add_edge(op_args[arg], arg_node)
-            else:
-                self.graph.add_edge(self._get_obj_node(arg), arg_node)
+        first_node = self._add_literal(NodeType.condition, Color.condition,
+                                       literal, (op_index, eff_index,
+                                       cond_index), (eff_args, op_args)) 
+        self.graph.add_edge(base_node, first_node) # FEHLT
 
     def _add_preconditions(self, op, op_index, op_node, op_args): 
         pre_index = 0
@@ -283,16 +265,17 @@ class SymmetryGraph:
         # affected literal
         pred_name = eff.literal.predicate
         index = -1 if eff.literal.negated else 0
-        eff_literal_node = self._get_effect_literal_node(op_index, eff_index,
-                                                         index, pred_name)
+        eff_literal_node = self._get_literal_node(NodeType.effect_literal,
+                                                  (op_index, eff_index),
+                                                  index, pred_name)
         pred_node = self._get_pred_node(pred_name, index)
         self.graph.add_vertex(eff_literal_node, Color.effect_literal)
         self.graph.add_edge(eff_literal_node, pred_node)
         self.graph.add_edge(eff_node, eff_literal_node)
         prev_node = eff_literal_node
         for num, arg in enumerate(eff.literal.args):
-            arg_node = self._get_effect_literal_node(op_index, eff_index,
-                                                         num+1, arg)
+            arg_node = self._get_literal_node(NodeType.effect_literal,
+                                              (op_index, eff_index), num+1, arg)
             self.graph.add_vertex(arg_node, Color.effect_literal)
             self.graph.add_edge(prev_node, arg_node)
 #            self.graph.add_edge(arg_node, self._get_obj_node(arg))
