@@ -263,30 +263,11 @@ class SymmetryGraph:
                 pre_index += 1
 
         # affected literal
-        pred_name = eff.literal.predicate
-        index = -1 if eff.literal.negated else 0
-        eff_literal_node = self._get_literal_node(NodeType.effect_literal,
-                                                  (op_index, eff_index),
-                                                  index, pred_name)
-        pred_node = self._get_pred_node(pred_name, index)
-        self.graph.add_vertex(eff_literal_node, Color.effect_literal)
-        self.graph.add_edge(eff_literal_node, pred_node)
-        self.graph.add_edge(eff_node, eff_literal_node)
-        prev_node = eff_literal_node
-        for num, arg in enumerate(eff.literal.args):
-            arg_node = self._get_literal_node(NodeType.effect_literal,
-                                              (op_index, eff_index), num+1, arg)
-            self.graph.add_vertex(arg_node, Color.effect_literal)
-            self.graph.add_edge(prev_node, arg_node)
-#            self.graph.add_edge(arg_node, self._get_obj_node(arg))
-            prev_node = arg_node
-            if arg[0] == "?":
-                if arg in eff_args:
-                    self.graph.add_edge(eff_args[arg], arg_node)
-                else:
-                    self.graph.add_edge(op_args[arg], arg_node)
-            else:
-                self.graph.add_edge(self._get_obj_node(arg), arg_node)
+        first_node =self._add_literal(NodeType.effect_literal,
+                                      Color.effect_literal, eff.literal,
+                                      (op_index, eff_index),
+                                      (eff_args, op_args))
+        self.graph.add_edge(eff_node, first_node)
 
     def _add_operators(self, task):
         for op_index, op in enumerate(task.actions):
