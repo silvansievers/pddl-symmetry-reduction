@@ -101,32 +101,27 @@ class Color:
 class SymmetryGraph:
     def __init__(self, task):
         self.graph = Digraph()
+        self.max_predicate_arity = \
+            max([len(p.arguments) for p in task.predicates] +
+                [int(len(task.types) > 1)])
+        
         self._add_objects(task)
         self._add_predicates(task)
         self._add_init(task)
         self._add_goal(task)
         self._add_operators(task)
-        self.max_predicate_arity = max([len(p.arguments)
-                                        for p in task.predicates])
-        if self.max_predicate_arity == 0 and len(task.types) > 1:
-            # type predicates have arity 1 (we do not count type object)
-            self.max_predicate_arity = 1
 
     def _get_obj_node(self, obj_name):
         return (NodeType.constant, obj_name)
 
     def _get_pred_node(self, pred_name, negated=False):
         index = -1 if negated else 0
-        return (NodeType.predicate, index, pred_name) 
+        return (NodeType.predicate, index, pred_name)
     
-    def _get_init_node(self, name, init_index, arg_index=0):
+    def _get_ground_atom_node(self, node_type, name, init_index, arg_index=0):
         # name is only relevant for the dot output
-        return (NodeType.init, init_index, arg_index, name) 
+        return (node_type, init_index, arg_index, name) 
 
-    def _get_goal_node(self, name, goal_index, arg_index=0):
-        # name is only relevant for the dot output
-        return (NodeType.goal, goal_index, arg_index, name) 
-    
     def _get_operator_node(self, op_index, name):
         # name is either operator name or argument name
         return (NodeType.operator, op_index, name) 
@@ -164,46 +159,36 @@ class SymmetryGraph:
         for type in task.types:
             if type.name != "object":
                 add_predicate(type.get_predicate_name(), 1, True) 
+        
+    def _add_ground_atom(self, node_type, color, predicate, args, counter):
+        pred_node = self._get_pred_node(predicate)
+        first_node = self._get_ground_atom_node(node_type, predicate, counter)
+        self.graph.add_vertex(first_node, color)
+        self.graph.add_edge(first_node, pred_node)
+        prev_node = first_node
+        for num, arg in enumerate(args):
+            arg_node = self._get_ground_atom_node(node_type, arg, counter, num + 1)
+            self.graph.add_vertex(arg_node, color)
+            self.graph.add_edge(prev_node, arg_node)
+            self.graph.add_edge(arg_node, self._get_obj_node(arg))
+            prev_node = arg_node
 
     def _add_init(self, task):
-        def add_fact(predicate, args, counter):
-            pred_node = self._get_pred_node(predicate)
-            init_node = self._get_init_node(predicate, counter)
-            self.graph.add_vertex(init_node, Color.init)
-            self.graph.add_edge(init_node, pred_node)
-            prev_node = init_node
-            for num, arg in enumerate(args):
-                arg_node = self._get_init_node(arg, counter, num + 1)
-                self.graph.add_vertex(arg_node, Color.init)
-                self.graph.add_edge(prev_node, arg_node)
-                self.graph.add_edge(arg_node, self._get_obj_node(arg))
-                prev_node = arg_node
-
         for no, fact in enumerate(task.init):
-            add_fact(fact.predicate, fact.args, no)
+            self._add_ground_atom(NodeType.init, Color.init, fact.predicate, fact.args, no)
         counter = len(task.init)
         type_dict = dict((type.name, type) for type in task.types)
         for o in task.objects:
             obj_node = self._get_obj_node(o.name)
             type = type_dict[o.type_name]
             while type.name != "object":
-                add_fact(type.get_predicate_name(), [o.name], counter)
+                self._add_ground_atom(NodeType.init, Color.init, type.get_predicate_name(), [o.name], counter)
                 counter += 1
                 type = type_dict[type.basetype_name]
     
     def _add_goal(self, task):
         for no, fact in enumerate(task.goal.parts):
-            pred_node = self._get_pred_node(fact.predicate)
-            goal_node = self._get_goal_node(fact.predicate, no)
-            self.graph.add_vertex(goal_node, Color.goal)
-            self.graph.add_edge(goal_node, pred_node)
-            prev_node = goal_node
-            for num, arg in enumerate(fact.args):
-                arg_node = self._get_goal_node(arg, no, num + 1)
-                self.graph.add_vertex(arg_node, Color.goal)
-                self.graph.add_edge(prev_node, arg_node)
-                self.graph.add_edge(arg_node, self._get_obj_node(arg))
-                prev_node = arg_node
+            self._add_ground_atom(NodeType.goal, Color.goal, fact.predicate, fact.args, no)
    
     def _add_condition(self, literal, cond_index, base_node, op_index, op_args,
                        eff_index = -1, eff_args=dict()):
