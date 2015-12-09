@@ -13,7 +13,6 @@ class Digraph:
     def __init__(self):
         self.graph = PyBliss.Graph()
         self.internal_node_color = 0
-        self.internal_edge_color = 1
         self.id_to_vertex = []
         self.vertices = {}
 
@@ -39,7 +38,7 @@ class Digraph:
     def get_color(self, vertex):
         v_out = self.vertices[vertex][1]
         vertex = self.graph._vertices[v_out]
-        return vertex.color - 2;
+        return vertex.color - 1;
 
     def add_vertex(self, vertex, color):
         vertex = tuple(vertex)
@@ -48,31 +47,25 @@ class Digraph:
             return
         v_in, v_out = self._new_node(vertex), self._new_node()
         self.graph.add_vertex(v_in, self.internal_node_color)
-        self.graph.add_vertex(v_out, color + 2)
+        self.graph.add_vertex(v_out, color + 1)
         self.graph.add_edge(v_in, v_out)
         self.vertices[vertex] = (v_in, v_out)
 
     def add_edge(self, v1, v2):
+        assert (v1 != v2) # we do not support self-loops
         v_out = self.vertices[tuple(v1)][1]
         v_in = self.vertices[tuple(v2)][0]
-        e1, e2 = self._new_node(), self._new_node()
-        self.graph.add_vertex(e1, self.internal_edge_color)
-        self.graph.add_vertex(e2, self.internal_edge_color)
-        self.graph.add_edge(e1, e2)
-        self.graph.add_edge(v_out, e2)
-        self.graph.add_edge(e2, v_in)
+        self.graph.add_edge(v_out, v_in)
     
     def get_vertices(self):
         return list(self.vertices)
 
     def get_successors(self, vertex):
         successors = []
-        v_out = self.vertices[vertex][1]
-        for edge in self.graph._vertices[v_out].edges:
-            if self.id_to_vertex[int(edge.name)] is None: # edge node
-                for succ in self.graph._vertices[edge.name].edges:
-                    if self.id_to_vertex[int(succ.name)] is not None: # in node
-                        successors.append(self.id_to_vertex[int(succ.name)]) 
+        v_in, v_out = self.vertices[vertex]
+        for succ in self.graph._vertices[v_out].edges:
+            if succ != v_in:
+                successors.append(self.id_to_vertex[int(succ.name)]) 
         return successors
 
 
@@ -180,7 +173,7 @@ class SymmetryGraph:
         return first_node
 
     def _add_init(self, task):
-        for no, fact in enumerate(task.init):
+        for no, fact in enumerate(sorted(task.init)):
             self._add_literal(NodeType.init, Color.init, fact, (no,))
         counter = len(task.init)
         type_dict = dict((type.name, type) for type in task.types)
