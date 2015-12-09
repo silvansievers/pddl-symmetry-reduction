@@ -90,8 +90,8 @@ class SymmetryGraph:
     def __init__(self, task):
         self.graph = Digraph()
         self._object_color = 0
-        self._first_predicate_color = 1
         self._add_objects(task)
+        self._first_predicate_color = 1
         max_predicate_color = self._add_predicates(task)
         self._init_color = max_predicate_color + 1
         self._goal_color = max_predicate_color + 2
@@ -111,12 +111,10 @@ class SymmetryGraph:
     def _get_obj_node(self, obj_name):
         return (self.TYPE_OBJECT, obj_name) 
 
-    def _get_pred_node(self, pred_name, index=0):
-        return (self.TYPE_PRED, pred_name, index) 
+    def _get_pred_node(self, pred_name, negated=False):
+        index = -1 if negated else 0
+        return (self.TYPE_PRED, index, pred_name) 
     
-    def _get_inv_pred_node(self, pred_name):
-        return (self.TYPE_PRED, pred_name, -1) 
-
     def _get_init_node(self, name, init_index, arg_index=0):
         # name is only relevant for the dot output
         return (self.TYPE_INIT, init_index, arg_index, name) 
@@ -125,45 +123,21 @@ class SymmetryGraph:
         # name is only relevant for the dot output
         return (self.TYPE_GOAL, goal_index, arg_index, name) 
     
-    def _get_operator_node(self, index, name):
+    def _get_operator_node(self, op_index, name):
         # name is either operator name or argument name
-        return (self.TYPE_OPERATOR, index, name) 
+        return (self.TYPE_OPERATOR, op_index, name) 
     
     def _get_condition_node(self, op_index, eff_index, cond_index, param_index, name):
         return (self.TYPE_CONDITION, op_index, eff_index, cond_index, param_index, name) 
 
     def _get_effect_node(self, op_index, eff_index, name):
-        # name is either some effect name or argument name
+        # name is either some effect name or argument name.
+        # The argument name is relevant for identifying the node
         return (self.TYPE_EFFECT, op_index, eff_index, name)
 
     def _get_effect_literal_node(self, op_index, eff_index, index, name):
         return (self.TYPE_EFFECT_LITERAL, op_index, eff_index, index, name) 
     
-
-    def _dot_label(self, node):
-        if node[0] == self.TYPE_OBJECT:
-            return node[1]
-        if node[0] == self.TYPE_PRED:
-            pred, index = node[1], node[2]
-            if index == -1:
-                return "not %s" % pred
-            if index == 0:
-                return pred
-            return "%s [%i]" % (pred, index)
-        if node[0] in (self.TYPE_INIT, self.TYPE_GOAL):
-            return node[3]
-        if node[0] == self.TYPE_OPERATOR:
-            return node[-1]
-        if node[0] == self.TYPE_CONDITION:
-            return node[-1]
-        if node[0] == self.TYPE_EFFECT:
-            return node[-1]
-        if node[0] == self.TYPE_EFFECT_LITERAL:
-            if node[-2] == -1:
-                return "not %s" % node[-1]
-            else:
-                return node[-1]
-
     def _add_objects(self, task):
         for o in task.objects:
             self.graph.add_vertex(self._get_obj_node(o.name), self._object_color)
@@ -176,7 +150,7 @@ class SymmetryGraph:
             color = self._first_predicate_color + arity 
             self.graph.add_vertex(pred_node, color)
             if not only_positive:
-                inv_pred_node = self._get_inv_pred_node(pred_name)
+                inv_pred_node = self._get_pred_node(pred_name, True)
                 self.graph.add_vertex(inv_pred_node, color)
                 self.graph.add_edge(inv_pred_node, pred_node)
                 self.graph.add_edge(pred_node, inv_pred_node)
@@ -238,12 +212,14 @@ class SymmetryGraph:
         # effect conditions
         pred_name = literal.predicate
         if literal.negated:
-            pred_node = self._get_inv_pred_node(pred_name)
+            pred_node = self._get_pred_node(pred_name, True)
             label = "not %s" % pred_name
         else:
             pred_node = self._get_pred_node(pred_name)
             label = pred_name
-        cond_node = self._get_condition_node(op_index, eff_index, cond_index, 0, label)
+        index = -1 if literal.negated else 0
+        cond_node = self._get_condition_node(op_index, eff_index, cond_index,
+                                             index, pred_name)
         self.graph.add_vertex(cond_node, self._condition_color)
 #        self.graph.add_edge(cond_node, base_node)
         self.graph.add_edge(base_node, cond_node)
@@ -365,6 +341,12 @@ class SymmetryGraph:
         """
         Write the graph into a file in the graphviz dot format.
         """
+        def dot_label(node):
+            if (node[0] in (self.TYPE_PRED, self.TYPE_EFFECT_LITERAL,
+                self.TYPE_CONDITION) and node[-2] == -1):
+                return "not %s" % node[-1]
+            return node[-1]
+
         colors = {
                 self._object_color: ("X11","blue"),
                 self._init_color: ("X11", "lightyellow"),
@@ -376,18 +358,17 @@ class SymmetryGraph:
             }
         different_pred_colors = self._init_color - self._first_predicate_color
         for c in range(self._first_predicate_color, self._init_color):
-            colors[c] = ("blues%i" % different_pred_colors, 
-                         "%i" %  c )
+            colors[c] = ("blues%i" % different_pred_colors, "%i" %  c )
+
         file.write("digraph g {\n")
         for vertex in self.graph.get_vertices():
             color = self.graph.get_color(vertex)
             file.write("\"%s\" [style=filled, label=\"%s\", colorscheme=%s, fillcolor=%s];\n" %
-                (vertex, self._dot_label(vertex), colors[color][0], colors[color][1]))
+                (vertex, dot_label(vertex), colors[color][0], colors[color][1]))
         for vertex in self.graph.get_vertices():
             for succ in self.graph.get_successors(vertex):
                 file.write("\"%s\" -> \"%s\";\n" % (vertex, succ))
         file.write("}\n")
-
 
 
 if __name__ == "__main__":
