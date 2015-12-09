@@ -70,25 +70,14 @@ class Digraph:
 
 
 class NodeType:
-    constant = 0
-    predicate = 1
-    init = 2
-    goal = 3
-    operator = 4
-    condition = 5
-    effect = 6
-    effect_literal = 7
+    (constant, init, goal, operator, condition, effect, effect_literal, predicate) = range(8)
 
 
 class Color:
-    constant = 0
-    init = 1
-    goal = 2
-    operator = 3
-    condition = 4
-    effect = 5
-    effect_literal = 6
-    predicate = 7 # predicates of arity 0
+    # NOTE: it is important that predicate has the highest value. This value is
+    # used for predicates of arity 0, predicates of higher arity get assigned
+    # subsequent numbers
+    (constant, init, goal, operator, condition, effect, effect_literal, predicate) = range(8)
 
 
 class SymmetryGraph:
@@ -111,14 +100,11 @@ class SymmetryGraph:
         index = -1 if negated else 0
         return (NodeType.predicate, index, pred_name)
     
-    def _get_operator_node(self, op_index, name):
-        # name is either operator name or argument name
-        return (NodeType.operator, op_index, name) 
-    
-    def _get_effect_node(self, op_index, eff_index, name):
-        # name is either some effect name or argument name.
+    def _get_structure_node(self, node_type, id_indices, name):
+        # name is either the operator or effect name or an argument name.
         # The argument name is relevant for identifying the node
-        return (NodeType.effect, op_index, eff_index, name)
+        assert (node_type in (NodeType.operator, NodeType.effect))
+        return (node_type, id_indices, name)
 
     def _get_literal_node(self, node_type, id_indices, arg_index, name):
         # name is only relevant for the dot output
@@ -224,13 +210,16 @@ class SymmetryGraph:
                 pre_index += 1
 
     def _add_effect(self, op_index, op_node, op_args, eff_index, eff):
-        eff_node = self._get_effect_node(op_index, eff_index, 
-                                         "e_%i_%i" % (op_index, eff_index))
+        eff_label = "e_%i_%i" % (op_index, eff_index)
+        eff_node = self._get_structure_node(NodeType.effect, (op_index,
+                                            eff_index), eff_label)
         self.graph.add_vertex(eff_node, Color.effect);
         self.graph.add_edge(op_node, eff_node);
         eff_args = dict()
         for param in eff.parameters: 
-            param_node = self._get_effect_node(op_index, eff_index, param.name) 
+            param_node = self._get_structure_node(NodeType.effect,
+                                                  (op_index, eff_index),
+                                                  param.name)
             self.graph.add_vertex(param_node, Color.effect); 
             eff_args[param.name] = param_node
             self.graph.add_edge(eff_node, param_node)
@@ -248,12 +237,14 @@ class SymmetryGraph:
 
     def _add_operators(self, task):
         for op_index, op in enumerate(task.actions):
-            op_node = self._get_operator_node(op_index, op.name)
+            op_node = self._get_structure_node(NodeType.operator, (op_index,),
+                                               op.name)
             self.graph.add_vertex(op_node, Color.operator)
             op_args = dict()
             for param in op.parameters:
                 # parameter node
-                param_node = self._get_operator_node(op_index, param.name)
+                param_node = self._get_structure_node(NodeType.operator, (op_index,),
+                                                      param.name)
                 op_args[param.name] = param_node
                 self.graph.add_vertex(param_node, Color.operator)
                 self.graph.add_edge(op_node, param_node)
