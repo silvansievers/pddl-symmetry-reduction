@@ -1,0 +1,5 @@
+To use findsymmetries.py, you need to compile PyBliss first.
+You find the instructions in PyBliss-0.50beta/README.txt.
+
+Example usage:
+./find_symmetries.py ../../benchmarks/schedule/{domain,probschedule-2-0}.pddl
