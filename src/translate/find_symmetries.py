@@ -4,8 +4,8 @@ import normalize
 import pddl
 
 import sys
-sys.path.append('/home/roeger/PyBliss-0.50beta')
-sys.path.append('/home/roeger/PyBliss-0.50beta/lib/python')
+sys.path.append('PyBliss-0.50beta')
+sys.path.append('PyBliss-0.50beta/lib/python')
 import PyBliss
 
 
