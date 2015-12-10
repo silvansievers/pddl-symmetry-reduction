@@ -64,7 +64,7 @@ class Digraph:
         successors = []
         v_in, v_out = self.vertices[vertex]
         for succ in self.graph._vertices[v_out].edges:
-            if succ != v_in:
+            if succ.name != v_in:
                 successors.append(self.id_to_vertex[int(succ.name)]) 
         return successors
 
