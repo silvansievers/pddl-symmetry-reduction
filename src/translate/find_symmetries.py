@@ -10,6 +10,12 @@ import PyBliss
 
 
 class Digraph:
+    """Wrapper graph for PyBliss graphs to represent a directed graph.
+
+    This is a very simple implementation that represents each vertex by two
+    internal vertices, one for ingoing and one for outgoing edges. It does not
+    support self-loops or edge colors.
+    """
     def __init__(self):
         self.graph = PyBliss.Graph()
         self.internal_node_color = 0
@@ -70,10 +76,12 @@ class Digraph:
 
 
 class NodeType:
+    """Used by SymmetryGraph to make nodes of different types distinguishable."""
     (constant, init, goal, operator, condition, effect, effect_literal, predicate) = range(8)
 
 
 class Color:
+    """Node colors used by SymmetryGraph"""
     # NOTE: it is important that predicate has the highest value. This value is
     # used for predicates of arity 0, predicates of higher arity get assigned
     # subsequent numbers
@@ -97,8 +105,7 @@ class SymmetryGraph:
         return (NodeType.constant, obj_name)
 
     def _get_pred_node(self, pred_name, negated=False):
-        index = -1 if negated else 0
-        return (NodeType.predicate, index, pred_name)
+        return (NodeType.predicate, negated, pred_name)
     
     def _get_structure_node(self, node_type, id_indices, name):
         # name is either the operator or effect name or an argument name.
@@ -111,10 +118,21 @@ class SymmetryGraph:
         return (node_type, id_indices, arg_index, name) 
     
     def _add_objects(self, task):
+        """Add a node for each object of the task.
+        
+        All nodes have color Color.constant.
+        """
         for o in task.objects:
             self.graph.add_vertex(self._get_obj_node(o.name), Color.constant)
 
     def _add_predicates(self, task):
+        """Add nodes for each declared predicate and type predicate.
+        
+        For a normal predicate there is a positive and a negative node and edges
+        between them in both directions. For a type predicate (that cannot occur
+        as a negative condition) there is only the positive node. The nodes have
+        color 'Color.predicate + <arity of the predicate>'. 
+        """
         assert(not task.axioms) # TODO support axioms
 
         def add_predicate(pred_name, arity, only_positive=False):
@@ -252,12 +270,10 @@ class SymmetryGraph:
                 self._add_effect(op_index, op_node, op_args, no, effect) 
 
     def write_dot(self, file):
-        """
-        Write the graph into a file in the graphviz dot format.
-        """
+        """Write the graph into a file in the graphviz dot format."""
         def dot_label(node):
             if (node[0] in (NodeType.predicate, NodeType.effect_literal,
-                NodeType.condition) and node[-2] == -1):
+                NodeType.condition) and (node[-2] is True or node[-2] == -1)):
                 return "not %s" % node[-1]
             return node[-1]
 
