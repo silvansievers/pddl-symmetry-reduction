@@ -157,7 +157,7 @@ class SymmetryGraph:
         first_node = self._get_literal_node(node_type, id_indices, index,
                                             literal.predicate)
         self.graph.add_vertex(first_node, color)
-        self.graph.add_edge(first_node, pred_node)
+        self.graph.add_edge(pred_node, first_node)
         prev_node = first_node
         for num, arg in enumerate(literal.args):
             arg_node = self._get_literal_node(node_type, id_indices, num+1, arg)
