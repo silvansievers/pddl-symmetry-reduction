@@ -209,24 +209,29 @@ class SymmetryGraph:
                                     op_args, eff_args)
                 pre_index += 1
 
-    def _add_effect(self, op_index, op_node, op_args, eff_index, eff):
-        eff_label = "e_%i_%i" % (op_index, eff_index)
-        eff_node = self._get_structure_node(NodeType.effect, (op_index,
-                                            eff_index), eff_label)
-        self.graph.add_vertex(eff_node, Color.effect);
-        self.graph.add_edge(op_node, eff_node);
-        eff_args = dict()
-        for param in eff.parameters: 
-            param_node = self._get_structure_node(NodeType.effect,
-                                                  (op_index, eff_index),
+    def _add_structure(self, node_type, id_indices, name, color, parameters):
+        main_node = self._get_structure_node(node_type, id_indices, name)
+        self.graph.add_vertex(main_node, color);
+        args = dict()
+        for param in parameters: 
+            param_node = self._get_structure_node(node_type, id_indices,
                                                   param.name)
-            self.graph.add_vertex(param_node, Color.effect); 
-            eff_args[param.name] = param_node
-            self.graph.add_edge(eff_node, param_node)
+            self.graph.add_vertex(param_node, color); 
+            args[param.name] = param_node
+            self.graph.add_edge(main_node, param_node)
+        return main_node, args
+
+    def _add_effect(self, op_index, op_node, op_args, eff_index, eff):
+        name = "e_%i_%i" % (op_index, eff_index)
+        eff_node, eff_args = self._add_structure(NodeType.effect,
+                                                 (op_index, eff_index),
+                                                  name, Color.effect,
+                                                  eff.parameters)
+        self.graph.add_edge(op_node, eff_node);
 
         # effect conditions (also from parameter types)
-        self._add_conditions(eff.parameters, eff.condition, (op_index, eff_index), eff_node,
-                             op_args, eff_args)
+        self._add_conditions(eff.parameters, eff.condition, (op_index,
+                             eff_index), eff_node, op_args, eff_args)
 
         # affected literal
         first_node = self._add_literal(NodeType.effect_literal,
@@ -237,19 +242,12 @@ class SymmetryGraph:
 
     def _add_operators(self, task):
         for op_index, op in enumerate(task.actions):
-            op_node = self._get_structure_node(NodeType.operator, (op_index,),
-                                               op.name)
-            self.graph.add_vertex(op_node, Color.operator)
-            op_args = dict()
-            for param in op.parameters:
-                # parameter node
-                param_node = self._get_structure_node(NodeType.operator, (op_index,),
-                                                      param.name)
-                op_args[param.name] = param_node
-                self.graph.add_vertex(param_node, Color.operator)
-                self.graph.add_edge(op_node, param_node)
-
-            self._add_conditions(op.parameters, op.precondition, (op_index,), op_node, op_args) 
+            op_node, op_args = self._add_structure(NodeType.operator,
+                                                   (op_index,), op.name,
+                                                   Color.operator,
+                                                   op.parameters)
+            self._add_conditions(op.parameters, op.precondition, (op_index,),
+                                 op_node, op_args) 
             for no, effect in enumerate(op.effects):  
                 self._add_effect(op_index, op_node, op_args, no, effect) 
 
