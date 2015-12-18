@@ -77,7 +77,8 @@ class Digraph:
 
 class NodeType:
     """Used by SymmetryGraph to make nodes of different types distinguishable."""
-    (constant, init, goal, operator, condition, effect, effect_literal, predicate) = range(8)
+    (constant, init, goal, operator, condition, effect, effect_literal,
+    function, predicate, cost, number) = range(11)
 
 
 class Color:
@@ -85,27 +86,47 @@ class Color:
     # NOTE: it is important that predicate has the highest value. This value is
     # used for predicates of arity 0, predicates of higher arity get assigned
     # subsequent numbers
-    (constant, init, goal, operator, condition, effect, effect_literal, predicate) = range(8)
-
+    (constant, init, goal, operator, condition, effect, effect_literal,
+    cost, predicate) = range(9)
+    function = None # will be set by Symmetry Graph, depending on the colors
+                    # required for predicate symbols
+    number = None # will be set by Symmetry Graph
 
 class SymmetryGraph:
     def __init__(self, task):
         self.graph = Digraph()
+        self.numbers = set()
+        self.constant_functions = dict()
         self.max_predicate_arity = \
             max([len(p.arguments) for p in task.predicates] +
                 [int(len(task.types) > 1)])
+        self.max_function_arity = max([len(p.arguments)
+                                       for p in task.functions])
+        Color.function = Color.predicate + self.max_predicate_arity + 1 
+        Color.number = Color.function + self.max_function_arity + 1 
         
         self._add_objects(task)
         self._add_predicates(task)
+        self._add_functions(task)
         self._add_init(task)
         self._add_goal(task)
         self._add_operators(task)
+
+    def _get_number_node(self, no):
+        node = (NodeType.number, no)
+        if no not in self.numbers:
+            self.graph.add_vertex(node, Color.number + len(self.numbers))
+            self.numbers.add(no)
+        return node
 
     def _get_obj_node(self, obj_name):
         return (NodeType.constant, obj_name)
 
     def _get_pred_node(self, pred_name, negated=False):
         return (NodeType.predicate, negated, pred_name)
+    
+    def _get_function_node(self, function_name, arg_index=0):
+        return (NodeType.function, function_name, arg_index)
     
     def _get_structure_node(self, node_type, id_indices, name):
         # name is either the operator or effect name or an argument name.
@@ -114,7 +135,9 @@ class SymmetryGraph:
         return (node_type, id_indices, name)
 
     def _get_literal_node(self, node_type, id_indices, arg_index, name):
-        # name is only relevant for the dot output
+        # name is mostly relevant for the dot output. The only exception are
+        # init nodes for constant functions, where it is used to distinguish
+        # them
         return (node_type, id_indices, arg_index, name) 
     
     def _add_objects(self, task):
@@ -150,6 +173,59 @@ class SymmetryGraph:
         for type in task.types:
             if type.name != "object":
                 add_predicate(type.get_predicate_name(), 1, True) 
+    
+    def _add_functions(self, task):
+        """Add a node for each function symbol.
+        
+        All functions f of the same arity share the same color
+        Color.function + arity(f).
+        """
+        type_dict = dict((type.name, type) for type in task.types)
+        for function in task.functions:
+            if function.name == "total-cost":
+                continue
+            func_node = self._get_function_node(function.name, 0)
+            assert (Color.function is not None)
+            self.graph.add_vertex(func_node,
+                                  Color.function + len(function.arguments))
+#            prev_node = func_node
+#            for no, arg in enumerate(function.arguments):
+#                arg_node = self._get_function_node(function.name, no+1)
+#                self.graph.add_vertex(arg_node, Color.function)
+#                self.graph.add_edge(prev_node, arg_node)
+#                prev_node = arg_node
+#                if arg.type_name != "object":
+#                    type = type_dict[arg.type_name]
+#                    type_node = self._get_pred_node(type.get_predicate_name())
+#                    self.graph.add_edge(type_node, arg_node)
+#            val_node = self._get_function_node(function.name, -1)
+#            self.graph.add_vertex(val_node, Color.function)
+#            self.graph.add_edge(prev_node, val_node)
+
+        
+    def _add_pne(self, node_type, color, pne, id_indices, param_dicts=()):
+        function_node = self._get_function_node(pne.symbol)
+        first_node = self._get_literal_node(node_type, id_indices, 0,
+                                            pne.symbol)
+        self.graph.add_vertex(first_node, color)
+        self.graph.add_edge(function_node, first_node)
+        prev_node = first_node
+        for num, arg in enumerate(pne.args):
+            arg_node = self._get_literal_node(node_type, id_indices, num+1, arg)
+            self.graph.add_vertex(arg_node, color)
+            self.graph.add_edge(prev_node, arg_node)
+            # edge from respective parameter or constant to argument
+            if arg[0] == "?":
+                for d in param_dicts:
+                    if arg in d:
+                        self.graph.add_edge(d[arg], arg_node)
+                        break
+                else:
+                    assert(False)
+            else:
+                self.graph.add_edge(self._get_obj_node(arg), arg_node)
+            prev_node = arg_node
+        return first_node, prev_node
         
     def _add_literal(self, node_type, color, literal, id_indices, param_dicts=()):
         pred_node = self._get_pred_node(literal.predicate, literal.negated)
@@ -177,8 +253,20 @@ class SymmetryGraph:
         return first_node
 
     def _add_init(self, task):
-        for no, fact in enumerate(sorted(task.init)):
-            self._add_literal(NodeType.init, Color.init, fact, (no,))
+        for no, entry in enumerate(task.init):
+            if isinstance(entry, pddl.Literal):
+                self._add_literal(NodeType.init, Color.init, entry, (no,))
+            else: # numeric function
+                assert(isinstance(entry, pddl.Assign))
+                assert(isinstance(entry.fluent, pddl.PrimitiveNumericExpression))
+                assert(isinstance(entry.expression, pddl.NumericConstant))
+                if entry.fluent.symbol == "total-cost":
+                    continue
+                first, last = self._add_pne(NodeType.init, Color.init, entry.fluent, (no,))
+                num_node = self._get_number_node(entry.expression.value)
+                self.graph.add_edge(last, num_node)
+        
+        # add types
         counter = len(task.init)
         type_dict = dict((type.name, type) for type in task.types)
         for o in task.objects:
@@ -269,12 +357,50 @@ class SymmetryGraph:
             for no, effect in enumerate(op.effects):  
                 self._add_effect(op_index, op_node, op_args, no, effect) 
 
+            if op.cost:
+                val = op.cost.expression
+                if isinstance(val, pddl.PrimitiveNumericExpression):
+                    c_node, _ = self._add_pne(NodeType.cost, Color.cost, val,
+                                              (op_index,), (op_args,))
+                else:
+                    assert(isinstance(val, pddl.NumericConstant))
+                    num_node = self._get_number_node(val.value)
+                    if val.value not in self.constant_functions:
+                        # add node for constant function
+                        assert (Color.function is not None)
+                        name = "const@%i" % val.value
+                        symbol_node = self._get_function_node(name, 0)
+                        self.graph.add_vertex(symbol_node, Color.function)
+
+                        # add structure for initial state
+                        id_indices = -1
+                        i_node = self._get_literal_node(NodeType.init, id_indices, 0, name)
+                        self.graph.add_vertex(i_node, Color.init)
+                        self.graph.add_edge(symbol_node, i_node)
+                        self.graph.add_edge(i_node, num_node)
+                        self.constant_functions[val.value] = (symbol_node, name)
+                    sym_node, name = self.constant_functions[val.value]
+                    c_node = self._get_literal_node(NodeType.cost, (op_index,),
+                                                    0, name)
+                    self.graph.add_vertex(c_node, Color.cost)
+                    self.graph.add_edge(sym_node, c_node)
+                    self.graph.add_edge(c_node, num_node)
+                self.graph.add_edge(op_node, c_node)
+                
+
     def write_dot(self, file):
         """Write the graph into a file in the graphviz dot format."""
         def dot_label(node):
             if (node[0] in (NodeType.predicate, NodeType.effect_literal,
                 NodeType.condition) and (node[-2] is True or node[-2] == -1)):
                 return "not %s" % node[-1]
+            elif node[0] == NodeType.function:
+                if node[-1] == 0:
+                    return node[-2]
+                elif node[-1] == -1: # val
+                    return "%s [val]" % node[-2]
+                else:
+                    return "%s [%i]" % (node[-2], node[-1])
             return node[-1]
 
         colors = {
@@ -285,10 +411,18 @@ class SymmetryGraph:
                 Color.condition: ("X11", "green2"),
                 Color.effect: ("X11", "green3"),
                 Color.effect_literal: ("X11", "yellowgreen"),
+                Color.cost: ("X11", "tomato"),
             }
         vals = self.max_predicate_arity + 1
         for c in range(vals):
             colors[Color.predicate + c] = ("blues%i" % vals, "%i" %  (c + 1))
+        vals = self.max_function_arity + 1
+        for c in range(vals):
+            colors[Color.function + c] = ("oranges%i" % vals, "%i" %  (c + 1))
+        for c in range(len(self.numbers) + 1):
+            colors[Color.number + c] = ("X11", "gray100") 
+            # we draw numbers with the same color albeit they are actually all
+            # different
 
         file.write("digraph g {\n")
         for vertex in self.graph.get_vertices():
