@@ -100,7 +100,7 @@ class SymmetryGraph:
         self.max_predicate_arity = \
             max([len(p.arguments) for p in task.predicates] +
                 [int(len(task.types) > 1)])
-        self.max_function_arity = max([len(p.arguments)
+        self.max_function_arity = max([0] + [len(p.arguments)
                                        for p in task.functions])
         Color.function = Color.predicate + self.max_predicate_arity + 1 
         Color.number = Color.function + self.max_function_arity + 1 
