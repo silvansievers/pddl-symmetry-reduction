@@ -42,9 +42,6 @@ def traverse2(G, N, R, stats):
     to all graphs.
     """
     canform = G.relabel(G.canonical_labeling())
-    f = open('blubb', 'w')
-    G.write_dot(f)
-    f.close()
     if canform in R:
         return
     R.add(canform)
@@ -101,11 +98,11 @@ G = PyBliss.Graph()
 G.add_vertex('v1')
 G.add_vertex('v2')
 G.add_vertex('v3')
-#G.add_vertex('v4')
+G.add_vertex('v4')
 G.add_edge('v1','v2')
 G.add_edge('v1','v3')
-#G.add_edge('v2','v3')
-#G.add_edge('v1','v4')
+G.add_edge('v2','v3')
+G.add_edge('v1','v4')
 print "Computing generators for the automorphism group of the graph:"
 G.write_dot(sys.stdout)
 G.find_automorphisms(report, "Aut gen:")
@@ -114,20 +111,20 @@ print "A canonical labeling of the graph is:",canlab
 print "The canonical form of the graph is:"
 G.relabel(canlab).write_dot(sys.stdout)
 
-#N = 3
-#stats = Stats()
-#G = PyBliss.Graph()
-#traverse1(G, N, sets.Set(), stats)
-#print "There are "+str(stats.nof_graphs)+" non-isomorphic graphs with "+str(N)+" vertices"
+N = 3
+stats = Stats()
+G = PyBliss.Graph()
+traverse1(G, N, sets.Set(), stats)
+print "There are "+str(stats.nof_graphs)+" non-isomorphic graphs with "+str(N)+" vertices"
 
-#N = 5
-#stats = Stats()
-#G = PyBliss.Graph()
-#traverse2(G, N, sets.Set(), stats)
-#print "There are "+str(stats.nof_graphs)+" non-isomorphic graphs with "+str(N)+" vertices"
+N = 5
+stats = Stats()
+G = PyBliss.Graph()
+traverse2(G, N, sets.Set(), stats)
+print "There are "+str(stats.nof_graphs)+" non-isomorphic graphs with "+str(N)+" vertices"
 
-#N = 6
-#stats = Stats()
-#G = PyBliss.Graph()
-#traverse3(G, N, stats)
-#print "There are "+str(stats.nof_graphs)+" non-isomorphic graphs with "+str(N)+" vertices"
+N = 6
+stats = Stats()
+G = PyBliss.Graph()
+traverse3(G, N, stats)
+print "There are "+str(stats.nof_graphs)+" non-isomorphic graphs with "+str(N)+" vertices"

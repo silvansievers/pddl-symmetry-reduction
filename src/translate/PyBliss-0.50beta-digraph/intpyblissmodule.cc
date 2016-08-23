@@ -1,14 +1,10 @@
 #include <Python.h>
 #include <cstdio>
-#include <iostream>
 
 #include "graph.hh"
 
-using namespace std;
-
 static void _destroy(void *g)
 {
-  //cout << "destroy" << endl;
   if(g)
     {
       //fprintf(stderr, "Free: %x\n", (unsigned int)g);
@@ -19,7 +15,6 @@ static void _destroy(void *g)
 static PyObject *
 graph_create(PyObject *self, PyObject *args)
 {
-  //cout << "graph_create" << endl;
   bliss::Digraph *g = new bliss::Digraph();
   if(!g)
     Py_RETURN_NONE;
@@ -36,7 +31,6 @@ graph_create(PyObject *self, PyObject *args)
 static PyObject *
 graph_delete(PyObject *self, PyObject *args)
 {
-  //cout << "graph_delete" << endl;
   PyObject *py_g = NULL;
 
   if(!PyArg_ParseTuple(args, "O", &py_g))
@@ -93,7 +87,6 @@ pybliss_write_dot(PyObject *self, PyObject *args)
 static PyObject *
 nof_vertices(PyObject *self, PyObject *args)
 {
-  //cout << "nof_vertices" << endl;
   PyObject *py_g = NULL;
 
   if(!PyArg_ParseTuple(args, "O", &py_g))
@@ -112,7 +105,6 @@ nof_vertices(PyObject *self, PyObject *args)
 static PyObject *
 add_vertex(PyObject *self, PyObject *args)
 {
-  //cout << "add_vertex" << endl;
   PyObject *py_g = NULL;
   unsigned int color;
 
@@ -135,7 +127,6 @@ add_vertex(PyObject *self, PyObject *args)
 static PyObject *
 add_edge(PyObject *self, PyObject *args)
 {
-  //cout << "add_edge" << endl;
   PyObject *py_g = NULL;
   unsigned int v1;
   unsigned int v2;
@@ -157,7 +148,6 @@ add_edge(PyObject *self, PyObject *args)
 static PyObject *
 graph_permute(PyObject *self, PyObject *args)
 {
-  //cout << "permute" << endl;
   PyObject *py_g = NULL;
   PyObject *py_perm = NULL;
 
@@ -249,7 +239,6 @@ _reporter(void *user_param,
 static PyObject *
 pybliss_canonical_form(PyObject *self, PyObject *args)
 {
-  //cout << "canonical_form" << endl;
   PyObject *py_g = NULL;
   PyObject *py_reporter = NULL;
   PyObject *py_reporter_arg = NULL;
@@ -291,7 +280,6 @@ pybliss_canonical_form(PyObject *self, PyObject *args)
 static PyObject *
 pybliss_find_automorphisms(PyObject *self, PyObject *args)
 {
-  //cout << "find_automorphisms" << endl;
   PyObject *py_g = NULL;
   PyObject *py_reporter = NULL;
   PyObject *py_reporter_arg = NULL;
