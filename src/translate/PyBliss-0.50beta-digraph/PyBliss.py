@@ -161,13 +161,12 @@ class Graph:
         """
         Write the graph into a file in the graphviz dot format.
         """
-        file.write("graph g {\n")
+        file.write("digraph g {\n")
         for v,vertex in self._vertices.iteritems():
             file.write("\""+str(v)+"\" [label="+str(vertex.color)+"];\n")
         for v,vertex in self._vertices.iteritems():
             for neighbour in vertex.edges:
-                if neighbour.name >= vertex.name:
-                    file.write("\""+str(v)+"\" -- \""+str(neighbour.name)+"\";\n")
+                file.write("\""+str(v)+"\" -> \""+str(neighbour.name)+"\";\n")
         file.write("}\n")
 
 

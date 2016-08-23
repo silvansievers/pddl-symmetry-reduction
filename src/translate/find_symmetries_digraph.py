@@ -4,21 +4,16 @@ import normalize
 import pddl
 
 import sys
-sys.path.append('PyBliss-0.50beta')
-sys.path.append('PyBliss-0.50beta/lib/python')
+sys.path.append('PyBliss-0.50beta-digraph')
+sys.path.append('PyBliss-0.50beta-digraph/lib/python')
 import PyBliss
 
 
 class Digraph:
-    """Wrapper graph for PyBliss graphs to represent a directed graph.
-
-    This is a very simple implementation that represents each vertex by two
-    internal vertices, one for ingoing and one for outgoing edges. It does not
-    support self-loops or edge colors.
+    """Wrapper graph for PyBliss graphs.
     """
     def __init__(self):
         self.graph = PyBliss.Graph()
-        self.internal_node_color = 0
         self.id_to_vertex = []
         self.vertices = {}
 
@@ -37,42 +32,42 @@ class Digraph:
                 result[self.id_to_vertex[a]] = self.id_to_vertex[b]
         return result
 
-    def _new_node(self, vertex=None):
+    def _new_node(self, vertex):
         self.id_to_vertex.append(vertex)
         return len(self.id_to_vertex) - 1
 
     def get_color(self, vertex):
-        v_out = self.vertices[vertex][1]
-        vertex = self.graph._vertices[v_out]
-        return vertex.color - 1;
+        v = self.vertices[vertex]
+        return self.graph._vertices[v].color
 
     def add_vertex(self, vertex, color):
         vertex = tuple(vertex)
         if vertex in self.vertices:
             assert (color == self.get_color(vertex))
             return
-        v_in, v_out = self._new_node(vertex), self._new_node()
-        self.graph.add_vertex(v_in, self.internal_node_color)
-        self.graph.add_vertex(v_out, color + 1)
-        self.graph.add_edge(v_in, v_out)
-        self.vertices[vertex] = (v_in, v_out)
+        v = self._new_node(vertex)
+        self.graph.add_vertex(v, color)
+        self.vertices[vertex] = v
 
-    def add_edge(self, v1, v2):
-        assert (v1 != v2) # we do not support self-loops
-        v_out = self.vertices[tuple(v1)][1]
-        v_in = self.vertices[tuple(v2)][0]
-        self.graph.add_edge(v_out, v_in)
+    def add_edge(self, vertex1, vertex2):
+        assert (vertex1 != vertex2) # we do not support self-loops
+        v1 = self.vertices[tuple(vertex1)]
+        v2 = self.vertices[tuple(vertex2)]
+        self.graph.add_edge(v1, v2)
 
     def get_vertices(self):
         return list(self.vertices)
 
     def get_successors(self, vertex):
         successors = []
-        v_in, v_out = self.vertices[vertex]
-        for succ in self.graph._vertices[v_out].edges:
-            if succ.name != v_in:
+        v = self.vertices[vertex]
+        for succ in self.graph._vertices[v].edges:
+            if succ.name != v:
                 successors.append(self.id_to_vertex[int(succ.name)])
         return successors
+
+    def write_dot(self, file):
+        self.graph.write_dot(file)
 
 
 class NodeType:
@@ -434,6 +429,9 @@ class SymmetryGraph:
                 file.write("\"%s\" -> \"%s\";\n" % (vertex, succ))
         file.write("}\n")
 
+    def write_dot_bliss(self, file):
+        self.graph.write_dot(file)
+
     def print_automorphism_generators(self):
         for generator in self.graph.get_autiomorphism_generators():
             print("generator:")
@@ -450,4 +448,7 @@ if __name__ == "__main__":
     G.print_automorphism_generators()
     f = open('out.dot', 'w')
     G.write_dot(f)
+    f.close()
+    f = open('out_bliss.dot', 'w')
+    G.write_dot_bliss(f)
     f.close()
