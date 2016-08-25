@@ -95,7 +95,7 @@ class Graph:
         """
         Return the (list of) vertices in the graph.
         """
-        return self._vertices.keys()
+        return sorted(self._vertices.keys())
 
     def add_vertex(self, v, color = 0):
         """

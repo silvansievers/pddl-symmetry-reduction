@@ -13,11 +13,30 @@ class Digraph:
     """Wrapper graph for PyBliss graphs.
     """
     def __init__(self):
+        self.vertex_to_color = {}
+        self.edges = set()
+        self.graph_created = False
+
+    def create_bliss_graph(self):
+        assert self.graph_created == False
         self.graph = PyBliss.Graph()
+        vertices = self.get_vertices()
         self.id_to_vertex = []
-        self.vertices = {}
+        self.vertex_to_id = {}
+        for id, vertex in enumerate(vertices):
+            self.graph.add_vertex(id, self.vertex_to_color[vertex])
+            self.id_to_vertex.append(vertex)
+            assert len(self.id_to_vertex) - 1 == id
+            self.vertex_to_id[vertex] = id
+        for edge in self.edges:
+            assert type(edge) is tuple
+            v1 = self.vertex_to_id[edge[0]]
+            v2 = self.vertex_to_id[edge[1]]
+            self.graph.add_edge(v1, v2)
+        self.graph_created = True
 
     def get_autiomorphism_generators(self):
+        assert self.graph_created
         aut_gens = []
         def report(perm, text = None):
             aut_gens.append(self._translate_generator(perm))
@@ -25,6 +44,7 @@ class Digraph:
         return aut_gens
 
     def _translate_generator(self, generator):
+        assert self.graph_created
         result = {}
         for a,b in generator.iteritems():
             if self.id_to_vertex[a] is not None:
@@ -32,35 +52,29 @@ class Digraph:
                 result[self.id_to_vertex[a]] = self.id_to_vertex[b]
         return result
 
-    def _new_node(self, vertex):
-        self.id_to_vertex.append(vertex)
-        return len(self.id_to_vertex) - 1
-
     def get_color(self, vertex):
-        v = self.vertices[vertex]
-        return self.graph._vertices[v].color
+        return self.vertex_to_color[vertex]
 
     def add_vertex(self, vertex, color):
         vertex = tuple(vertex)
-        if vertex in self.vertices:
-            assert (color == self.get_color(vertex))
+        if vertex in self.vertex_to_color:
+            assert color == self.vertex_to_color(vertex)
             return
-        v = self._new_node(vertex)
-        self.graph.add_vertex(v, color)
-        self.vertices[vertex] = v
+        self.vertex_to_color[vertex] = color
 
     def add_edge(self, vertex1, vertex2):
         assert (vertex1 != vertex2) # we do not support self-loops
-        v1 = self.vertices[tuple(vertex1)]
-        v2 = self.vertices[tuple(vertex2)]
-        self.graph.add_edge(v1, v2)
+        assert vertex1 in self.vertex_to_color
+        assert vertex2 in self.vertex_to_color
+        self.edges.add((vertex1, vertex2))
 
     def get_vertices(self):
-        return list(self.vertices)
+        return sorted(self.vertex_to_color.keys())
 
     def get_successors(self, vertex):
+        assert self.graph_created
         successors = []
-        v = self.vertices[vertex]
+        v = self.vertex_to_id[vertex]
         for succ in self.graph._vertices[v].edges:
             if succ.name != v:
                 successors.append(self.id_to_vertex[int(succ.name)])
@@ -68,17 +82,6 @@ class Digraph:
 
     def write_dot(self, file):
         self.graph.write_dot(file)
-
-    def relabel_sorted(self):
-        vertex_names = self.vertices.keys()
-        vertex_names.sort()
-        relabel_dict = {}
-        for new_num, vertex_name in enumerate(vertex_names):
-            old_num = self.vertices[vertex_name]
-            relabel_dict[old_num] = new_num
-        #print relabel_dict
-        self.graph = self.graph.relabel(relabel_dict)
-
 
 class NodeType:
     """Used by SymmetryGraph to make nodes of different types distinguishable."""
@@ -117,7 +120,7 @@ class SymmetryGraph:
         self._add_goal(task)
         self._add_operators(task)
 
-        self.graph.relabel_sorted()
+        self.graph.create_bliss_graph()
 
     def _get_number_node(self, no):
         node = (NodeType.number, no)
