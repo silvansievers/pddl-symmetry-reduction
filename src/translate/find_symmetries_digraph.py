@@ -69,6 +69,16 @@ class Digraph:
     def write_dot(self, file):
         self.graph.write_dot(file)
 
+    def relabel_sorted(self):
+        vertex_names = self.vertices.keys()
+        vertex_names.sort()
+        relabel_dict = {}
+        for new_num, vertex_name in enumerate(vertex_names):
+            old_num = self.vertices[vertex_name]
+            relabel_dict[old_num] = new_num
+        #print relabel_dict
+        self.graph = self.graph.relabel(relabel_dict)
+
 
 class NodeType:
     """Used by SymmetryGraph to make nodes of different types distinguishable."""
@@ -106,6 +116,8 @@ class SymmetryGraph:
         self._add_init(task)
         self._add_goal(task)
         self._add_operators(task)
+
+        self.graph.relabel_sorted()
 
     def _get_number_node(self, no):
         node = (NodeType.number, no)
@@ -432,12 +444,14 @@ class SymmetryGraph:
     def write_dot_bliss(self, file):
         self.graph.write_dot(file)
 
-    def print_automorphism_generators(self):
+    def print_automorphism_generators(self, file):
         for generator in self.graph.get_autiomorphism_generators():
             print("generator:")
+            file.write("generator:\n")
             for a,b in generator.iteritems():
                 if a != b:
                     print ("%s => %s" % (a,b))
+                    file.write("%s => %s\n" % (a,b))
 
 if __name__ == "__main__":
     import pddl_parser
@@ -445,10 +459,14 @@ if __name__ == "__main__":
     normalize.normalize(task)
     task.dump()
     G = SymmetryGraph(task)
-    G.print_automorphism_generators()
     f = open('out.dot', 'w')
     G.write_dot(f)
     f.close()
     f = open('out_bliss.dot', 'w')
     G.write_dot_bliss(f)
     f.close()
+    f = open('generator.txt', 'w')
+    G.print_automorphism_generators(f)
+    sys.stdout.flush()
+    f.close()
+

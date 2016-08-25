@@ -245,8 +245,6 @@ class Graph:
                 raise RuntimeError("'lab' is not a bijection")
         for name,vertex in self._vertices.iteritems():
             for neighbour in vertex.edges:
-                if neighbour < vertex:
-                    continue
                 g2.add_edge(lab[name],lab[neighbour.name])
         return g2
 
