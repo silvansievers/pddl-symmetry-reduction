@@ -451,10 +451,12 @@ class SymmetryGraph:
         for generator in self.graph.get_autiomorphism_generators():
             print("generator:")
             file.write("generator:\n")
-            for a,b in generator.iteritems():
-                if a != b:
-                    print ("%s => %s" % (a,b))
-                    file.write("%s => %s\n" % (a,b))
+            keys = sorted(generator.keys())
+            for from_vertex in keys:
+                to_vertex = generator[from_vertex]
+                if from_vertex != to_vertex:
+                    print ("%s => %s" % (from_vertex, to_vertex))
+                    file.write("%s => %s\n" % (from_vertex, to_vertex))
 
 if __name__ == "__main__":
     import pddl_parser
