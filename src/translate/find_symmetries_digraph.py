@@ -263,7 +263,8 @@ class SymmetryGraph:
         return first_node
 
     def _add_init(self, task):
-        for no, entry in enumerate(task.init):
+        init = sorted(task.init)
+        for no, entry in enumerate(init):
             if isinstance(entry, pddl.Literal):
                 self._add_literal(NodeType.init, Color.init, entry, (no,))
             else: # numeric function
@@ -277,7 +278,7 @@ class SymmetryGraph:
                 self.graph.add_edge(last, num_node)
 
         # add types
-        counter = len(task.init)
+        counter = len(init)
         type_dict = dict((type.name, type) for type in task.types)
         for o in task.objects:
             type = type_dict[o.type_name]
@@ -357,7 +358,8 @@ class SymmetryGraph:
         self.graph.add_edge(eff_node, first_node)
 
     def _add_operators(self, task):
-        for op_index, op in enumerate(task.actions):
+        actions = sorted(task.actions)
+        for op_index, op in enumerate(actions):
             op_node, op_args = self._add_structure(NodeType.operator,
                                                    (op_index,), op.name,
                                                    Color.operator,
@@ -448,6 +450,9 @@ class SymmetryGraph:
         self.graph.write_dot(file)
 
     def print_automorphism_generators(self, file):
+        # TODO: we sorted task's init, hence if we wanted to to use
+        # the generators, should remap init indices when required.
+        # The same is true for operators
         for generator in self.graph.get_autiomorphism_generators():
             print("generator:")
             file.write("generator:\n")
