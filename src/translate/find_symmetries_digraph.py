@@ -358,7 +358,9 @@ class SymmetryGraph:
         self.graph.add_edge(eff_node, first_node)
 
     def _add_operators(self, task):
-        actions = sorted(task.actions)
+        def get_key(action):
+            return action.name
+        actions = sorted(task.actions, key=get_key)
         for op_index, op in enumerate(actions):
             op_node, op_args = self._add_structure(NodeType.operator,
                                                    (op_index,), op.name,
