@@ -4,8 +4,8 @@ import normalize
 import pddl
 
 import sys
-sys.path.append('PyBliss-0.50beta-digraph')
-sys.path.append('PyBliss-0.50beta-digraph/lib/python')
+sys.path.append('pybliss-0.50')
+sys.path.append('pybliss-0.50/lib/python')
 import PyBliss
 
 
