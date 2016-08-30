@@ -14,8 +14,7 @@ pybliss.add_vertex(g, 1)
 pybliss.add_edge(g, 0, 1)
 pybliss.add_edge(g, 0, 2)
 pybliss.add_edge(g, 0, 3)
-pybliss.find_automorphisms(g)
-automorphisms = pybliss.get_automorphisms(g)
+automorphisms = pybliss.find_automorphisms(g)
 assert type(automorphisms) is list
 
 print "Python tester"

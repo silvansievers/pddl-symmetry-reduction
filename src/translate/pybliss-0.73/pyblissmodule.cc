@@ -1,9 +1,8 @@
 #include <Python.h>
-#include <cstdio>
+#include <iostream>
 
 #include "digraph_wrapper.hh"
 
-#include <iostream>
 using namespace std;
 
 static void _destroy(void *g)
@@ -82,25 +81,9 @@ find_automorphisms(PyObject *self, PyObject *args)
   assert(g);
 
   g->find_automorphisms();
-  Py_RETURN_NONE;
-}
-
-
-static PyObject *
-get_automorphisms(PyObject *self, PyObject *args)
-{
-  PyObject *py_g = NULL;
-
-  if(!PyArg_ParseTuple(args, "O", &py_g))
-    Py_RETURN_NONE;
-  if(!PyCObject_Check(py_g))
-    Py_RETURN_NONE;
-
-  DigraphWrapper *g = (DigraphWrapper *)PyCObject_AsVoidPtr(py_g);
-  assert(g);
-
   const vector<vector<int> > &automorphisms = g->get_automorphisms();
 
+  // Map the automorphisms to a python list
   PyObject* py_outer = PyList_New(0);
   if(!py_outer)
     Py_RETURN_NONE;
@@ -129,7 +112,6 @@ static PyMethodDef Methods[] = {
     {"add_vertex", add_vertex, METH_VARARGS, ""},
     {"add_edge", add_edge, METH_VARARGS, ""},
     {"find_automorphisms",  find_automorphisms, METH_VARARGS, ""},
-    {"get_automorphisms", get_automorphisms, METH_VARARGS, ""},
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 

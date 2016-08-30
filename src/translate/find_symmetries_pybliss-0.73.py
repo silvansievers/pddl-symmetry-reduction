@@ -37,8 +37,7 @@ class PyblissModuleWrapper:
             pybliss.add_edge(graph, v1, v2)
 
         # Get the automorphisms
-        pybliss.find_automorphisms(graph)
-        automorphisms = pybliss.get_automorphisms(graph)
+        automorphisms = pybliss.find_automorphisms(graph)
         translated_auts = []
         for aut in automorphisms:
             translated_auts.append(self._translate_generator(aut))
@@ -353,6 +352,7 @@ class SymmetryGraph:
         self.graph.add_edge(eff_node, first_node)
 
     def _add_operators(self, task):
+        # We consider operators sorted by name
         def get_key(action):
             return action.name
         actions = sorted(task.actions, key=get_key)
@@ -363,6 +363,7 @@ class SymmetryGraph:
                                                    op.parameters)
             self._add_conditions(op.parameters, op.precondition, (op_index,),
                                  op_node, op_args)
+            # TODO: for reproduciblity, we could also sort the effects
             for no, effect in enumerate(op.effects):
                 self._add_effect(op_index, op_node, op_args, no, effect)
 
@@ -447,7 +448,10 @@ class SymmetryGraph:
         # TODO: we sorted task's init, hence if we wanted to to use
         # the generators, should remap init indices when required.
         # The same is true for operators
-        for generator in self.graph.find_automorphisms():
+        automorphisms = self.graph.find_automorphisms()
+        if len(automorphisms) == 0:
+            print "Task does not contain symmetries."
+        for generator in automorphisms:
             print("generator:")
             file.write("generator:\n")
             keys = sorted(generator.keys())
@@ -468,6 +472,5 @@ if __name__ == "__main__":
     f.close()
     f = open('generator.txt', 'w')
     G.print_automorphism_generators(f)
-    sys.stdout.flush()
     f.close()
-
+    sys.stdout.flush()

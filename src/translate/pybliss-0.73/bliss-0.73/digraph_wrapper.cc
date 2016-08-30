@@ -42,7 +42,7 @@ void DigraphWrapper::add_automorphism(
     // Copy the array to the vector (do not just store a pointer to the array!)
     vector<int> new_aut;
     new_aut.reserve(automorphism_size);
-    for (int i = 0; i < automorphism_size; ++i) {
+    for (size_t i = 0; i < automorphism_size; ++i) {
         //cout << i << "->" << automorphism[i] << endl;
         new_aut.push_back(automorphism[i]);
     }
