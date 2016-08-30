@@ -13,16 +13,17 @@ BLISS_SOURCES = $(BLISS_HEADERS:%.hh=%.cc)
 
 WRAPPER_SOURCES = bliss_wrapper.cc $(BLISS_HEADERS:%.hh=%.cc)
 
+default: pyblissmodule
+
 bliss-wrapper:
 	c++ -O3 -shared -std=c++11 -fPIC -Ipybind11-include `python-config --cflags --ldflags` $(WRAPPER_SOURCES) -o bliss_wrapper.so
 
-intpyblissmodule: intpyblissmodule.cc setup.py
+pyblissmodule: pyblissmodule.cc setup.py
 	python setup.py install --home=.
 
 clean:
-	rm -rf bliss_wrapper.so graph_module.so
-	rm -f PyBliss.pyc setup.pyc
+	rm -rf bliss_wrapper.so
 	rm -rf build
 	rm -rf lib
 
-default: intpyblissmodule bliss-wraper clean
+

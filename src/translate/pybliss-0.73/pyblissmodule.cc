@@ -135,8 +135,8 @@ static PyMethodDef Methods[] = {
 
 
 PyMODINIT_FUNC
-initintpybliss(void)
+initpybliss(void)
 {
-  (void)Py_InitModule("intpybliss", Methods);
+  (void)Py_InitModule("pybliss", Methods);
 }
 

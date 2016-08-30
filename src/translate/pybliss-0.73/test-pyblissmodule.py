@@ -4,18 +4,18 @@ import sys
 
 sys.path.append('.')
 sys.path.append('./lib/python')
-import intpybliss
+import pybliss
 
-g = intpybliss.create()
-intpybliss.add_vertex(g, 0)
-intpybliss.add_vertex(g, 1)
-intpybliss.add_vertex(g, 1)
-intpybliss.add_vertex(g, 1)
-intpybliss.add_edge(g, 0, 1)
-intpybliss.add_edge(g, 0, 2)
-intpybliss.add_edge(g, 0, 3)
-intpybliss.find_automorphisms(g)
-automorphisms = intpybliss.get_automorphisms(g)
+g = pybliss.create()
+pybliss.add_vertex(g, 0)
+pybliss.add_vertex(g, 1)
+pybliss.add_vertex(g, 1)
+pybliss.add_vertex(g, 1)
+pybliss.add_edge(g, 0, 1)
+pybliss.add_edge(g, 0, 2)
+pybliss.add_edge(g, 0, 3)
+pybliss.find_automorphisms(g)
+automorphisms = pybliss.get_automorphisms(g)
 assert type(automorphisms) is list
 
 print "Python tester"

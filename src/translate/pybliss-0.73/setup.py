@@ -10,19 +10,14 @@ blisssrcs = ['defs.cc', 'digraph_wrapper.cc', 'graph.cc', 'heap.cc',
              'utils.cc']
 blisssrcs = [blissdir+'/'+src for src in blisssrcs]
 
-module1 = Extension('intpybliss',
+module1 = Extension('pybliss',
                     define_macros = [('MAJOR_VERSION', '0'),
                                      ('MINOR_VERSION', '73')],
                     include_dirs = [blissdir],
-                    sources = ['intpyblissmodule.cc']+blisssrcs
+                    sources = ['pyblissmodule.cc']+blisssrcs
                     )
 
-setup (name = 'IntPyBliss',
+setup (name = 'PyBliss',
        version = '0.73',
-       description = 'This is an internal PyBliss package',
        author = 'Tommi Junttila, modified by Silvan Sievers',
-       long_description = '''
-This is an internal PyBliss package.
-Should never be used directly.
-''',
        ext_modules = [module1])
