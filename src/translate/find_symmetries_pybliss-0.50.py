@@ -35,7 +35,7 @@ class Digraph:
             self.graph.add_edge(v1, v2)
         self.graph_created = True
 
-    def get_autiomorphism_generators(self):
+    def get_automorphism_generators(self):
         assert self.graph_created
         aut_gens = []
         def report(perm, text = None):
@@ -455,7 +455,7 @@ class SymmetryGraph:
         # TODO: we sorted task's init, hence if we wanted to to use
         # the generators, should remap init indices when required.
         # The same is true for operators
-        for generator in self.graph.get_autiomorphism_generators():
+        for generator in self.graph.get_automorphism_generators():
             print("generator:")
             file.write("generator:\n")
             keys = sorted(generator.keys())
