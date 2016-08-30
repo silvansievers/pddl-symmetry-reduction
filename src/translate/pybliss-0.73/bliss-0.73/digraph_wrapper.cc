@@ -28,11 +28,15 @@ void DigraphWrapper::add_edge(int v1, int v2) {
     graph->add_edge(v1, v2);
 }
 
-void DigraphWrapper::find_automorphisms() {
+vector<vector<int> > DigraphWrapper::find_automorphisms() {
+    automorphisms.clear();
     graph->set_splitting_heuristic(bliss::Digraph::shs_fs);
     bliss::Stats stats;
     cout << "DigraphWrapper: searching for automorphisms... " << endl;
     graph->find_automorphisms(stats, &(_add_automorphism), this);
+    vector<vector<int> > result;
+    result.swap(automorphisms);
+    return result;
 }
 
 void DigraphWrapper::add_automorphism(

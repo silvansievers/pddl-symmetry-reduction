@@ -80,8 +80,7 @@ find_automorphisms(PyObject *self, PyObject *args)
   DigraphWrapper *g = (DigraphWrapper *)PyCObject_AsVoidPtr(py_g);
   assert(g);
 
-  g->find_automorphisms();
-  const vector<vector<int> > &automorphisms = g->get_automorphisms();
+  vector<vector<int> > automorphisms = g->find_automorphisms();
 
   // Map the automorphisms to a python list
   PyObject* py_outer = PyList_New(0);
