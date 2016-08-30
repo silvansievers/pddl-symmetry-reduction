@@ -6,5 +6,5 @@
 ^misc/autodoc/downward-xmlrpc\.secret$
 ^builds/
 ^src/CMakeLists.txt.user$
-^src/translate/PyBliss-0.50beta-digraph/build/
-^src/translate/PyBliss-0.50beta-digraph/lib/
+^src/translate/pybliss-0.50/build/
+^src/translate/pybliss-0.50/lib/
