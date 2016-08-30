@@ -25,4 +25,4 @@ clean:
 	rm -rf build
 	rm -rf lib
 
-default: bliss-wraper intpyblissmodule clean
+default: intpyblissmodule bliss-wraper clean

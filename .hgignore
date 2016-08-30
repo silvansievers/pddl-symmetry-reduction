@@ -8,3 +8,6 @@
 ^src/CMakeLists.txt.user$
 ^src/translate/pybliss-0.50/build/
 ^src/translate/pybliss-0.50/lib/
+^src/translate/pybliss-0.73/build/
+^src/translate/pybliss-0.73/lib/
+^src/translate/pybliss-0.73/bliss_wrapper.so
