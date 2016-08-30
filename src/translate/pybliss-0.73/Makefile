@@ -11,18 +11,18 @@ BLISS_HEADERS = $(BLISS_DIR)/defs.hh \
 BLISS_SOURCES = $(BLISS_HEADERS:%.hh=%.cc)
 
 
-WRAPPER_SOURCES = bliss_wrapper.cc $(BLISS_HEADERS:%.hh=%.cc)
+WRAPPER_SOURCES = pybind11_blissmodule.cc $(BLISS_HEADERS:%.hh=%.cc)
 
-default: pyblissmodule
+default: pyext-blissmodule
 
-bliss-wrapper:
-	c++ -O3 -shared -std=c++11 -fPIC -Ipybind11-include `python-config --cflags --ldflags` $(WRAPPER_SOURCES) -o bliss_wrapper.so
+pybind11-blissmodule:
+	c++ -O3 -shared -std=c++11 -fPIC -Ipybind11-include `python-config --cflags --ldflags` $(WRAPPER_SOURCES) -o pybind11_blissmodule.so
 
-pyblissmodule: pyblissmodule.cc setup.py
+pyext-blissmodule: pyext_blissmodule.cc setup.py
 	python setup.py install --home=.
 
 clean:
-	rm -rf bliss_wrapper.so
+	rm -rf pybind11_blissmodule.so
 	rm -rf build
 	rm -rf lib
 
