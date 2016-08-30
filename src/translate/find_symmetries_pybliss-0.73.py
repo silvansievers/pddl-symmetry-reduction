@@ -6,7 +6,7 @@ import pddl
 import sys
 sys.path.append('pybliss-0.73')
 sys.path.append('pybliss-0.73/lib/python')
-import pybliss
+import pyext_blissmodule as bliss
 
 
 class PyblissModuleWrapper:
@@ -21,12 +21,12 @@ class PyblissModuleWrapper:
 
     def find_automorphisms(self):
         # Create and fill the graph
-        graph = pybliss.create()
+        graph = bliss.create()
         vertices = self.get_vertices()
         self.id_to_vertex = []
         self.vertex_to_id = {}
         for id, vertex in enumerate(vertices):
-            pybliss.add_vertex(graph, self.vertex_to_color[vertex])
+            bliss.add_vertex(graph, self.vertex_to_color[vertex])
             self.id_to_vertex.append(vertex)
             assert len(self.id_to_vertex) - 1 == id
             self.vertex_to_id[vertex] = id
@@ -34,10 +34,10 @@ class PyblissModuleWrapper:
             assert type(edge) is tuple
             v1 = self.vertex_to_id[edge[0]]
             v2 = self.vertex_to_id[edge[1]]
-            pybliss.add_edge(graph, v1, v2)
+            bliss.add_edge(graph, v1, v2)
 
         # Get the automorphisms
-        automorphisms = pybliss.find_automorphisms(graph)
+        automorphisms = bliss.find_automorphisms(graph)
         translated_auts = []
         for aut in automorphisms:
             translated_auts.append(self._translate_generator(aut))
