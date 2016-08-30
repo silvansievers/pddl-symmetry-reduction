@@ -11,7 +11,7 @@ ext_modules = [
     Extension(
         'pyext_blissmodule',
         ['pyext_blissmodule.cc']+blisssrcs,
-        include_dirs=['pybind11/include', blissdir],
+        include_dirs=['pybind11-include', blissdir],
         language='c++',
         extra_compile_args = cpp_args,
     ),
