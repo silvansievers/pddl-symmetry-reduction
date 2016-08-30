@@ -2,13 +2,14 @@
 
 #include "graph.hh"
 
+#include <cassert>
 #include <iostream>
 
 using namespace std;
 
 void _add_automorphism(void* param, unsigned int size, const unsigned int *automorphism) {
     DigraphWrapper *wrapper = static_cast<DigraphWrapper *>(param);
-    wrapper->add_automorphism(automorphism);
+    wrapper->add_automorphism(size, automorphism);
 }
 
 DigraphWrapper::DigraphWrapper() {
@@ -30,10 +31,20 @@ void DigraphWrapper::add_edge(int v1, int v2) {
 void DigraphWrapper::find_automorphisms() {
     graph->set_splitting_heuristic(bliss::Digraph::shs_fs);
     bliss::Stats stats;
-    cout << "Wrapper: searching for automorphisms... " << endl;
+    cout << "DigraphWrapper: searching for automorphisms... " << endl;
     graph->find_automorphisms(stats, &(_add_automorphism), this);
 }
 
-void DigraphWrapper::add_automorphism(const unsigned int *automorphism) {
-    automorphisms.push_back(automorphism);
+void DigraphWrapper::add_automorphism(
+    unsigned int automorphism_size, const unsigned int *automorphism) {
+    assert(automorphisms_size == graph->get_nof_vertices());
+    cout << "DigraphWrapper: found generator" << endl;
+    // Copy the array to the vector (do not just store a pointer to the array!)
+    vector<int> new_aut;
+    new_aut.reserve(automorphism_size);
+    for (int i = 0; i < automorphism_size; ++i) {
+        //cout << i << "->" << automorphism[i] << endl;
+        new_aut.push_back(automorphism[i]);
+    }
+    automorphisms.push_back(new_aut);
 }

@@ -12,7 +12,7 @@ blisssrcs = [blissdir+'/'+src for src in blisssrcs]
 
 module1 = Extension('intpybliss',
                     define_macros = [('MAJOR_VERSION', '0'),
-                                     ('MINOR_VERSION', '073')],
+                                     ('MINOR_VERSION', '73')],
                     include_dirs = [blissdir],
                     sources = ['intpyblissmodule.cc']+blisssrcs
                     )
@@ -20,9 +20,7 @@ module1 = Extension('intpybliss',
 setup (name = 'IntPyBliss',
        version = '0.73',
        description = 'This is an internal PyBliss package',
-       author = 'Silvan Sievers',
-       #author_email = '',
-       #url = 'http://www.python.org/doc/current/ext/building.html',
+       author = 'Tommi Junttila, modified by Silvan Sievers',
        long_description = '''
 This is an internal PyBliss package.
 Should never be used directly.
