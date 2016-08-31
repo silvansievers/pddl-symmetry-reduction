@@ -5,8 +5,13 @@ import pddl
 
 import sys
 sys.path.append('pybliss-0.73')
-sys.path.append('pybliss-0.73/lib/python')
-import pyext_blissmodule as bliss
+# The pybind11 bliss module hopefully is more stable than the C-API
+# pyext bliss module.
+USE_PYEXT = False
+if USE_PYEXT:
+    import pyext_blissmodule as bliss
+else:
+    import pybind11_blissmodule as bliss
 
 
 class PyblissModuleWrapper:
@@ -21,12 +26,18 @@ class PyblissModuleWrapper:
 
     def find_automorphisms(self):
         # Create and fill the graph
-        graph = bliss.create()
+        if USE_PYEXT:
+            graph = bliss.create()
+        else:
+            graph = bliss.DigraphWrapper()
         vertices = self.get_vertices()
         self.id_to_vertex = []
         self.vertex_to_id = {}
         for id, vertex in enumerate(vertices):
-            bliss.add_vertex(graph, self.vertex_to_color[vertex])
+            if USE_PYEXT:
+                bliss.add_vertex(graph, self.vertex_to_color[vertex])
+            else:
+                graph.add_vertex(self.vertex_to_color[vertex])
             self.id_to_vertex.append(vertex)
             assert len(self.id_to_vertex) - 1 == id
             self.vertex_to_id[vertex] = id
@@ -34,10 +45,16 @@ class PyblissModuleWrapper:
             assert type(edge) is tuple
             v1 = self.vertex_to_id[edge[0]]
             v2 = self.vertex_to_id[edge[1]]
-            bliss.add_edge(graph, v1, v2)
+            if USE_PYEXT:
+                bliss.add_edge(graph, v1, v2)
+            else:
+                graph.add_edge(v1, v2)
 
         # Get the automorphisms
-        automorphisms = bliss.find_automorphisms(graph)
+        if USE_PYEXT:
+            automorphisms = bliss.find_automorphisms(graph)
+        else:
+            automorphisms = graph.find_automorphisms()
         translated_auts = []
         for aut in automorphisms:
             translated_auts.append(self._translate_generator(aut))
@@ -446,7 +463,7 @@ class SymmetryGraph:
 
     def print_automorphism_generators(self, file):
         # TODO: we sorted task's init, hence if we wanted to to use
-        # the generators, should remap init indices when required.
+        # the generators, we should remap init indices when required.
         # The same is true for operators
         automorphisms = self.graph.find_automorphisms()
         if len(automorphisms) == 0:
