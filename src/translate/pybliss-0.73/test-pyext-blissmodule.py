@@ -1,9 +1,5 @@
 #! /usr/bin/env python
 
-import sys
-
-sys.path.append('.')
-sys.path.append('./lib/python')
 import pyext_blissmodule as bliss
 
 graph = bliss.create()

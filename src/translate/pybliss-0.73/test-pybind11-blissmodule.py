@@ -10,17 +10,15 @@ graph.add_vertex(1)
 graph.add_edge(0, 1)
 graph.add_edge(0, 2)
 graph.add_edge(0, 3)
-graph.find_automorphisms()
-automorphisms = graph.get_automorphisms()
-print automorphisms
-#assert type(automorphisms) is list
+automorphisms = graph.find_automorphisms()
+assert type(automorphisms) is list
 
-#print "Python tester"
-#print "Got %d automorphism(s)" % len(automorphisms)
-#for aut_no, aut in enumerate(automorphisms):
-    #assert type(aut) is list
-    #print "automorphism #%d:" % aut_no
-    #for from_index, to_index in enumerate(aut):
-        #print "%d->%d" % (from_index, to_index)
+print "Python tester"
+print "Got %d automorphism(s)" % len(automorphisms)
+for aut_no, aut in enumerate(automorphisms):
+    assert type(aut) is list
+    print "automorphism #%d:" % aut_no
+    for from_index, to_index in enumerate(aut):
+        print "%d->%d" % (from_index, to_index)
 
 
