@@ -23,6 +23,8 @@ class PyblissModuleWrapper:
     def __init__(self):
         self.vertex_to_color = {}
         self.edges = set()
+        # To exclude "="-predicates and all related nodes from dot output
+        self.excluded_vertices = set()
 
     def find_automorphisms(self):
         # Create and fill the graph
@@ -71,12 +73,14 @@ class PyblissModuleWrapper:
     def get_color(self, vertex):
         return self.vertex_to_color[vertex]
 
-    def add_vertex(self, vertex, color):
+    def add_vertex(self, vertex, color, exclude=False):
         vertex = tuple(vertex)
         if vertex in self.vertex_to_color:
             assert color == self.vertex_to_color(vertex)
             return
         self.vertex_to_color[vertex] = color
+        if exclude:
+            self.excluded_vertices.add(vertex)
 
     def add_edge(self, vertex1, vertex2):
         assert (vertex1 != vertex2) # we do not support self-loops
@@ -182,10 +186,11 @@ class SymmetryGraph:
         def add_predicate(pred_name, arity, only_positive=False):
             pred_node = self._get_pred_node(pred_name)
             color = Color.predicate + arity
-            self.graph.add_vertex(pred_node, color)
+            exclude_node = pred_name == "="
+            self.graph.add_vertex(pred_node, color, exclude_node)
             if not only_positive:
                 inv_pred_node = self._get_pred_node(pred_name, True)
-                self.graph.add_vertex(inv_pred_node, color)
+                self.graph.add_vertex(inv_pred_node, color, exclude_node)
                 self.graph.add_edge(inv_pred_node, pred_node)
                 self.graph.add_edge(pred_node, inv_pred_node)
 
@@ -250,15 +255,16 @@ class SymmetryGraph:
 
     def _add_literal(self, node_type, color, literal, id_indices, param_dicts=()):
         pred_node = self._get_pred_node(literal.predicate, literal.negated)
+        exclude_vertices = pred_node in self.graph.excluded_vertices
         index = -1 if literal.negated else 0
         first_node = self._get_literal_node(node_type, id_indices, index,
                                             literal.predicate)
-        self.graph.add_vertex(first_node, color)
+        self.graph.add_vertex(first_node, color, exclude_vertices)
         self.graph.add_edge(pred_node, first_node)
         prev_node = first_node
         for num, arg in enumerate(literal.args):
             arg_node = self._get_literal_node(node_type, id_indices, num+1, arg)
-            self.graph.add_vertex(arg_node, color)
+            self.graph.add_vertex(arg_node, color, exclude_vertices)
             self.graph.add_edge(prev_node, arg_node)
             # edge from respective parameter or constant to argument
             if arg[0] == "?":
@@ -415,7 +421,7 @@ class SymmetryGraph:
                 self.graph.add_edge(op_node, c_node)
 
 
-    def write_dot(self, file):
+    def write_dot(self, file, hide_equal_predicates=False):
         """Write the graph into a file in the graphviz dot format."""
         def dot_label(node):
             if (node[0] in (NodeType.predicate, NodeType.effect_literal,
@@ -452,19 +458,27 @@ class SymmetryGraph:
             # different
 
         file.write("digraph g {\n")
+        if hide_equal_predicates:
+            file.write("\"extra\" [style=filled, fillcolor=red, label=\"Warning: hidden =-predicates\"];\n")
         for vertex in self.graph.get_vertices():
+            if hide_equal_predicates and vertex in self.graph.excluded_vertices:
+                continue
             color = self.graph.get_color(vertex)
             file.write("\"%s\" [style=filled, label=\"%s\", colorscheme=%s, fillcolor=%s];\n" %
                 (vertex, dot_label(vertex), colors[color][0], colors[color][1]))
         for vertex in self.graph.get_vertices():
+            if hide_equal_predicates and vertex in self.graph.excluded_vertices:
+                continue
             for succ in self.graph.get_successors(vertex):
+                if hide_equal_predicates and succ in self.graph.excluded_vertices:
+                    continue
                 file.write("\"%s\" -> \"%s\";\n" % (vertex, succ))
         file.write("}\n")
 
-    def print_automorphism_generators(self, file):
+    def print_automorphism_generators(self, file, hide_equal_predicates=False):
         # TODO: we sorted task's init, hence if we wanted to to use
         # the generators, we should remap init indices when required.
-        # The same is true for operators
+        # The same is true for operators.
         automorphisms = self.graph.find_automorphisms()
         if len(automorphisms) == 0:
             print "Task does not contain symmetries."
@@ -473,7 +487,11 @@ class SymmetryGraph:
             file.write("generator:\n")
             keys = sorted(generator.keys())
             for from_vertex in keys:
+                if hide_equal_predicates and from_vertex in self.graph.excluded_vertices:
+                    continue
                 to_vertex = generator[from_vertex]
+                if hide_equal_predicates and to_vertex in self.graph.excluded_vertices:
+                    continue
                 if from_vertex != to_vertex:
                     print ("%s => %s" % (from_vertex, to_vertex))
                     file.write("%s => %s\n" % (from_vertex, to_vertex))
@@ -485,9 +503,9 @@ if __name__ == "__main__":
     task.dump()
     G = SymmetryGraph(task)
     f = open('out.dot', 'w')
-    G.write_dot(f)
+    G.write_dot(f, True)
     f.close()
     f = open('generator.txt', 'w')
-    G.print_automorphism_generators(f)
+    G.print_automorphism_generators(f, True)
     f.close()
     sys.stdout.flush()
