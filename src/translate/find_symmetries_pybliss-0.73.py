@@ -280,7 +280,15 @@ class SymmetryGraph:
         return first_node
 
     def _add_init(self, task):
-        init = sorted(task.init)
+        def get_key(init_entry):
+            if isinstance(init_entry, pddl.Literal):
+                return init_entry.key
+            elif isinstance(init_entry, pddl.Assign):
+                return str(init_entry)
+            else:
+                assert False
+        assert isinstance(task.init, list)
+        init = sorted(task.init, key=get_key)
         for no, entry in enumerate(init):
             if isinstance(entry, pddl.Literal):
                 self._add_literal(NodeType.init, Color.init, entry, (no,))
