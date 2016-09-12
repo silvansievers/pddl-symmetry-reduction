@@ -75,8 +75,9 @@ class PyblissModuleWrapper:
 
     def add_vertex(self, vertex, color, exclude=False):
         vertex = tuple(vertex)
+        # TODO: not sure if this should ever trigger
         if vertex in self.vertex_to_color:
-            assert color == self.vertex_to_color(vertex)
+            assert color == self.vertex_to_color[vertex]
             return
         self.vertex_to_color[vertex] = color
         if exclude:
@@ -103,7 +104,7 @@ class PyblissModuleWrapper:
 class NodeType:
     """Used by SymmetryGraph to make nodes of different types distinguishable."""
     (constant, init, goal, operator, condition, effect, effect_literal,
-    function, predicate, cost, number) = range(11)
+    function, axiom, predicate, cost, number) = range(12)
 
 
 class Color:
@@ -112,9 +113,10 @@ class Color:
     # used for predicates of arity 0, predicates of higher arity get assigned
     # subsequent numbers
     (constant, init, goal, operator, condition, effect, effect_literal,
-    cost, predicate) = range(9)
-    function = None # will be set by Symmetry Graph, depending on the colors
-                    # required for predicate symbols
+    cost, axiom, predicate) = range(10)
+    derived_predicate = None # will be set by Symmetry Graph, depending on
+                             # the colors required for predicate symbols
+    function = None # will be set by Symmetry Graph
     number = None # will be set by Symmetry Graph
 
 class SymmetryGraph:
@@ -127,7 +129,8 @@ class SymmetryGraph:
                 [int(len(task.types) > 1)])
         self.max_function_arity = max([0] + [len(p.arguments)
                                        for p in task.functions])
-        Color.function = Color.predicate + self.max_predicate_arity + 1
+        Color.derived_predicate = Color.predicate + self.max_predicate_arity + 1
+        Color.function = Color.derived_predicate + self.max_predicate_arity + 1
         Color.number = Color.function + self.max_function_arity + 1
 
         self._add_objects(task)
@@ -136,6 +139,7 @@ class SymmetryGraph:
         self._add_init(task)
         self._add_goal(task)
         self._add_operators(task)
+        self._add_axioms(task)
 
     def _get_number_node(self, no):
         node = (NodeType.number, no)
@@ -154,9 +158,9 @@ class SymmetryGraph:
         return (NodeType.function, function_name, arg_index)
 
     def _get_structure_node(self, node_type, id_indices, name):
-        # name is either the operator or effect name or an argument name.
+        # name is either the operator or effect name or an argument name. Or an axiom.
         # The argument name is relevant for identifying the node
-        assert (node_type in (NodeType.operator, NodeType.effect))
+        assert (node_type in (NodeType.operator, NodeType.effect, NodeType.axiom))
         return (node_type, id_indices, name)
 
     def _get_literal_node(self, node_type, id_indices, arg_index, name):
@@ -164,6 +168,9 @@ class SymmetryGraph:
         # init nodes for constant functions, where it is used to distinguish
         # them
         return (node_type, id_indices, arg_index, name)
+
+    def _get_axiom_node(self, axiom_name):
+        return (NodeType.axiom, axiom_name)
 
     def _add_objects(self, task):
         """Add a node for each object of the task.
@@ -176,16 +183,19 @@ class SymmetryGraph:
     def _add_predicates(self, task):
         """Add nodes for each declared predicate and type predicate.
 
-        For a normal predicate there is a positive and a negative node and edges
-        between them in both directions. For a type predicate (that cannot occur
-        as a negative condition) there is only the positive node. The nodes have
-        color 'Color.predicate + <arity of the predicate>'.
+        For a normal or a derived predicate there is a positive and a negative
+        node and edges between them in both directions. For a type predicate
+        (that cannot occur as a negative condition) there is only the positive
+        node. The nodes have color 'Color.predicate + <arity of the predicate>'
+        or 'Color.derived_predicate + <arity of the predicate>'.
         """
-        assert(not task.axioms) # TODO support axioms
 
-        def add_predicate(pred_name, arity, only_positive=False):
+        def add_predicate(pred_name, arity, derived, only_positive=False):
             pred_node = self._get_pred_node(pred_name)
-            color = Color.predicate + arity
+            if derived:
+                color = Color.derived_predicate + arity
+            else:
+                color = Color.predicate + arity
             exclude_node = pred_name == "="
             self.graph.add_vertex(pred_node, color, exclude_node)
             if not only_positive:
@@ -195,7 +205,8 @@ class SymmetryGraph:
                 self.graph.add_edge(pred_node, inv_pred_node)
 
         for pred in task.predicates:
-            add_predicate(pred.name, len(pred.arguments))
+            derived = "axiom" in pred.name
+            add_predicate(pred.name, len(pred.arguments), derived)
         for type in task.types:
             if type.name != "object":
                 add_predicate(type.get_predicate_name(), 1, True)
@@ -428,6 +439,25 @@ class SymmetryGraph:
                     self.graph.add_edge(c_node, num_node)
                 self.graph.add_edge(op_node, c_node)
 
+    def _add_axioms(self, task):
+        # We consider axioms sorted by name
+        def get_key(axiom):
+            return axiom.name
+        axioms = sorted(task.axioms, key=get_key)
+        for index, axiom in enumerate(axioms):
+            axiom_node, axiom_args = self._add_structure(
+                NodeType.axiom, (index,), axiom.name, Color.axiom,
+                axiom.parameters)
+            self._add_conditions(axiom.parameters, axiom.condition,
+                                 (index,), axiom_node, axiom_args)
+
+            # Add "effect" node and edges from axiom and predicate nodes
+            axiom_eff_node = self._get_axiom_node(axiom.name)
+            self.graph.add_vertex(axiom_eff_node, Color.axiom)
+            self.graph.add_edge(axiom_node, axiom_eff_node)
+            derived_pred_node = self._get_pred_node(axiom.name)
+            self.graph.add_edge(derived_pred_node, axiom_eff_node)
+
 
     def write_dot(self, file, hide_equal_predicates=False):
         """Write the graph into a file in the graphviz dot format."""
@@ -452,11 +482,15 @@ class SymmetryGraph:
                 Color.condition: ("X11", "green2"),
                 Color.effect: ("X11", "green3"),
                 Color.effect_literal: ("X11", "yellowgreen"),
+                Color.axiom: ("X11", "orange"),
                 Color.cost: ("X11", "tomato"),
             }
         vals = self.max_predicate_arity + 1
         for c in range(vals):
             colors[Color.predicate + c] = ("blues%i" % vals, "%i" %  (c + 1))
+        vals = self.max_predicate_arity + 1
+        for c in range(vals):
+            colors[Color.derived_predicate + c] = ("reds%i" % vals, "%i" %  (c + 1))
         vals = self.max_function_arity + 1
         for c in range(vals):
             colors[Color.function + c] = ("oranges%i" % vals, "%i" %  (c + 1))
