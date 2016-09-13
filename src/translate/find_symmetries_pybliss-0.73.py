@@ -104,7 +104,7 @@ class PyblissModuleWrapper:
 class NodeType:
     """Used by SymmetryGraph to make nodes of different types distinguishable."""
     (constant, init, goal, operator, condition, effect, effect_literal,
-    function, axiom, predicate, cost, number) = range(12)
+    function, axiom, axiom_cond, axiom_eff, predicate, cost, number) = range(14)
 
 
 class Color:
@@ -113,7 +113,7 @@ class Color:
     # used for predicates of arity 0, predicates of higher arity get assigned
     # subsequent numbers
     (constant, init, goal, operator, condition, effect, effect_literal,
-    cost, axiom, predicate) = range(10)
+    cost, axiom, axiom_cond, axiom_eff, predicate) = range(12)
     derived_predicate = None # will be set by Symmetry Graph, depending on
                              # the colors required for predicate symbols
     function = None # will be set by Symmetry Graph
@@ -168,9 +168,6 @@ class SymmetryGraph:
         # init nodes for constant functions, where it is used to distinguish
         # them
         return (node_type, id_indices, arg_index, name)
-
-    def _get_axiom_node(self, axiom_name):
-        return (NodeType.axiom, axiom_name)
 
     def _add_objects(self, task):
         """Add a node for each object of the task.
@@ -328,25 +325,28 @@ class SymmetryGraph:
         for no, fact in enumerate(task.goal.parts):
             self._add_literal(NodeType.goal, Color.goal, fact, (no,))
 
-    def _add_condition(self, literal, id_indices, base_node, op_args,
-                       eff_args=dict()):
+    def _add_condition(self, node_type, color, literal, id_indices,
+                       base_node, op_args,
+                       eff_args):
         # base node is operator node for preconditions and effect node for
         # effect conditions
-        first_node = self._add_literal(NodeType.condition, Color.condition,
-                                       literal, id_indices, (eff_args, op_args))
+        first_node = self._add_literal(node_type, color, literal,
+                                       id_indices, (eff_args, op_args))
         self.graph.add_edge(base_node, first_node)
 
-    def _add_conditions(self, params, condition, id_indices, base_node, op_args,
-        eff_args=dict()):
+    def _add_conditions(self, node_type, color, params, condition,
+        id_indices, base_node, op_args, eff_args=dict()):
         pre_index = 0
         if isinstance(condition, pddl.Literal):
-            self._add_condition(condition, id_indices + (pre_index,), base_node,
+            self._add_condition(node_type, color, condition,
+                                id_indices + (pre_index,), base_node,
                                 op_args, eff_args)
             pre_index += 1
         elif isinstance(condition, pddl.Conjunction):
             assert isinstance(condition, pddl.Conjunction)
             for literal in condition.parts:
-                self._add_condition(literal, id_indices + (pre_index,),
+                self._add_condition(node_type, color, literal,
+                                    id_indices + (pre_index,),
                                     base_node, op_args, eff_args)
                 pre_index += 1
         else:
@@ -358,7 +358,8 @@ class SymmetryGraph:
             if param.type_name != "object":
                 pred_name = type_dict[param.type_name].get_predicate_name()
                 literal = pddl.Atom(pred_name, (param.name,))
-                self._add_condition(literal, id_indices + (pre_index,), base_node,
+                self._add_condition(node_type, color,literal,
+                                    id_indices + (pre_index,), base_node,
                                     op_args, eff_args)
                 pre_index += 1
 
@@ -383,7 +384,8 @@ class SymmetryGraph:
         self.graph.add_edge(op_node, eff_node);
 
         # effect conditions (also from parameter types)
-        self._add_conditions(eff.parameters, eff.condition, (op_index,
+        self._add_conditions(NodeType.effect, Color.effect,
+                             eff.parameters, eff.condition, (op_index,
                              eff_index), eff_node, op_args, eff_args)
 
         # affected literal
@@ -403,7 +405,8 @@ class SymmetryGraph:
                                                    (op_index,), op.name,
                                                    Color.operator,
                                                    op.parameters)
-            self._add_conditions(op.parameters, op.precondition, (op_index,),
+            self._add_conditions(NodeType.condition, Color.condition,
+                                 op.parameters, op.precondition, (op_index,),
                                  op_node, op_args)
             # TODO: for reproduciblity, we could also sort the effects
             for no, effect in enumerate(op.effects):
@@ -448,15 +451,37 @@ class SymmetryGraph:
             axiom_node, axiom_args = self._add_structure(
                 NodeType.axiom, (index,), axiom.name, Color.axiom,
                 axiom.parameters)
-            self._add_conditions(axiom.parameters, axiom.condition,
+            self._add_conditions(NodeType.axiom_cond, Color.axiom_cond,
+                                 axiom.parameters, axiom.condition,
                                  (index,), axiom_node, axiom_args)
 
-            # Add "effect" node and edges from axiom and predicate nodes
-            axiom_eff_node = self._get_axiom_node(axiom.name)
-            self.graph.add_vertex(axiom_eff_node, Color.axiom)
-            self.graph.add_edge(axiom_node, axiom_eff_node)
+            # TODO: why doesn't an axiom have a simple "effect", i.e.
+            # a literal so that we could use _add_literal()? The code
+            # below is an adapted copy for _add_literal().
+            first_node = self._get_literal_node(
+                NodeType.axiom_eff, (index,), 0, axiom.name)
+            self.graph.add_vertex(first_node, Color.axiom_eff)
+            self.graph.add_edge(axiom_node, first_node)
             derived_pred_node = self._get_pred_node(axiom.name)
-            self.graph.add_edge(derived_pred_node, axiom_eff_node)
+            self.graph.add_edge(derived_pred_node, first_node)
+
+            prev_node = first_node
+            for num, param in enumerate(axiom.parameters):
+                arg = param.name
+                arg_node = self._get_literal_node(NodeType.axiom_eff, (index,), num+1, arg)
+                self.graph.add_vertex(arg_node, Color.axiom_eff)
+                self.graph.add_edge(prev_node, arg_node)
+                # edge from respective parameter or constant to argument
+                if arg[0] == "?":
+                    for d in (axiom_args,):
+                        if arg in d:
+                            self.graph.add_edge(d[arg], arg_node)
+                            break
+                    else:
+                        assert(False)
+                else:
+                    self.graph.add_edge(self._get_obj_node(arg), arg_node)
+                prev_node = arg_node
 
 
     def write_dot(self, file, hide_equal_predicates=False):
@@ -482,7 +507,9 @@ class SymmetryGraph:
                 Color.condition: ("X11", "green2"),
                 Color.effect: ("X11", "green3"),
                 Color.effect_literal: ("X11", "yellowgreen"),
-                Color.axiom: ("X11", "orange"),
+                Color.axiom: ("X11", "orange4"),
+                Color.axiom_cond: ("X11", "orange2"),
+                Color.axiom_eff: ("X11", "orange3"),
                 Color.cost: ("X11", "tomato"),
             }
         vals = self.max_predicate_arity + 1
