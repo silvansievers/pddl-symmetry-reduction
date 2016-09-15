@@ -208,7 +208,7 @@ class SymmetryGraph:
             add_predicate(pred.name, len(pred.arguments), derived)
         for type in task.types:
             if type.name != "object":
-                add_predicate(type.get_predicate_name(), 1, True)
+                add_predicate(type.get_predicate_name(), 1, False, True)
 
     def _add_functions(self, task):
         """Add a node for each function symbol.
@@ -399,9 +399,7 @@ class SymmetryGraph:
 
     def _add_operators(self, task):
         # We consider operators sorted by name
-        def get_key(action):
-            return action.name
-        actions = sorted(task.actions, key=get_key)
+        actions = sorted(task.actions, key=lambda x:x.name)
         for op_index, op in enumerate(actions):
             op_node, op_args = self._add_structure(NodeType.operator,
                                                    (op_index,), op.name,
@@ -446,9 +444,7 @@ class SymmetryGraph:
 
     def _add_axioms(self, task):
         # We consider axioms sorted by name
-        def get_key(axiom):
-            return axiom.name
-        axioms = sorted(task.axioms, key=get_key)
+        axioms = sorted(task.axioms, key=lambda x: x.name)
         for index, axiom in enumerate(axioms):
             axiom_node, axiom_args = self._add_structure(
                 NodeType.axiom, (index,), axiom.name, Color.axiom,
