@@ -187,6 +187,8 @@ class SymmetryGraph:
         or 'Color.derived_predicate + <arity of the predicate>'.
         """
 
+        derived_predicates = set(axiom.name for axiom in task.axioms)
+
         def add_predicate(pred_name, arity, derived, only_positive=False):
             pred_node = self._get_pred_node(pred_name)
             if derived:
@@ -202,7 +204,7 @@ class SymmetryGraph:
                 self.graph.add_edge(pred_node, inv_pred_node)
 
         for pred in task.predicates:
-            derived = "axiom" in pred.name
+            derived = pred.name in derived_predicates
             add_predicate(pred.name, len(pred.arguments), derived)
         for type in task.types:
             if type.name != "object":
