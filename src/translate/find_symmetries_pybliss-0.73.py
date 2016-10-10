@@ -151,8 +151,8 @@ class SymmetryGraph:
     def _get_obj_node(self, obj_name):
         return (NodeType.constant, obj_name)
 
-    def _get_pred_node(self, pred_name, negated=False):
-        return (NodeType.predicate, negated, pred_name)
+    def _get_pred_node(self, pred_name):
+        return (NodeType.predicate, pred_name)
 
     def _get_function_node(self, function_name, arg_index=0):
         return (NodeType.function, function_name, arg_index)
@@ -189,7 +189,7 @@ class SymmetryGraph:
 
         derived_predicates = set(axiom.name for axiom in task.axioms)
 
-        def add_predicate(pred_name, arity, derived, only_positive=False):
+        def add_predicate(pred_name, arity, derived):
             pred_node = self._get_pred_node(pred_name)
             if derived:
                 color = Color.derived_predicate + arity
@@ -197,18 +197,13 @@ class SymmetryGraph:
                 color = Color.predicate + arity
             exclude_node = pred_name == "="
             self.graph.add_vertex(pred_node, color, exclude_node)
-            if not only_positive:
-                inv_pred_node = self._get_pred_node(pred_name, True)
-                self.graph.add_vertex(inv_pred_node, color, exclude_node)
-                self.graph.add_edge(inv_pred_node, pred_node)
-                self.graph.add_edge(pred_node, inv_pred_node)
 
         for pred in task.predicates:
             derived = pred.name in derived_predicates
             add_predicate(pred.name, len(pred.arguments), derived)
         for type in task.types:
             if type.name != "object":
-                add_predicate(type.get_predicate_name(), 1, False, True)
+                add_predicate(type.get_predicate_name(), 1, False)
 
     def _add_functions(self, task):
         """Add a node for each function symbol.
@@ -264,14 +259,20 @@ class SymmetryGraph:
         return first_node, prev_node
 
     def _add_literal(self, node_type, color, literal, id_indices, param_dicts=()):
-        pred_node = self._get_pred_node(literal.predicate, literal.negated)
+        pred_node = self._get_pred_node(literal.predicate)
         exclude_vertices = pred_node in self.graph.excluded_vertices
-        index = -1 if literal.negated else 0
-        first_node = self._get_literal_node(node_type, id_indices, index,
-                                            literal.predicate)
-        self.graph.add_vertex(first_node, color, exclude_vertices)
-        self.graph.add_edge(pred_node, first_node)
-        prev_node = first_node
+        literal_pred_node = self._get_literal_node(node_type, id_indices, 0,
+                                                   literal.predicate)
+        self.graph.add_vertex(literal_pred_node, color, exclude_vertices)
+        self.graph.add_edge(pred_node, literal_pred_node)
+        first_node = literal_pred_node
+        if literal.negated:
+            neg_node = self._get_literal_node(node_type, id_indices, -1, "not")
+            self.graph.add_vertex(neg_node, color, exclude_vertices)
+            self.graph.add_edge(neg_node, literal_pred_node)
+            first_node = neg_node
+
+        prev_node = literal_pred_node
         for num, arg in enumerate(literal.args):
             arg_node = self._get_literal_node(node_type, id_indices, num+1, arg)
             self.graph.add_vertex(arg_node, color, exclude_vertices)
@@ -485,10 +486,7 @@ class SymmetryGraph:
     def write_dot(self, file, hide_equal_predicates=False):
         """Write the graph into a file in the graphviz dot format."""
         def dot_label(node):
-            if (node[0] in (NodeType.predicate, NodeType.effect_literal,
-                NodeType.condition) and (node[-2] is True or node[-2] == -1)):
-                return "not %s" % node[-1]
-            elif node[0] == NodeType.function:
+            if node[0] == NodeType.function:
                 if node[-1] == 0:
                     return node[-2]
                 elif node[-1] == -1: # val
@@ -505,11 +503,12 @@ class SymmetryGraph:
                 Color.condition: ("X11", "green2"),
                 Color.effect: ("X11", "green3"),
                 Color.effect_literal: ("X11", "yellowgreen"),
+                Color.cost: ("X11", "tomato"),
                 Color.axiom: ("X11", "orange4"),
                 Color.axiom_cond: ("X11", "orange2"),
                 Color.axiom_eff: ("X11", "orange3"),
-                Color.cost: ("X11", "tomato"),
             }
+        # TODO: these color schemes only work for max arities of at least 3 and at most 9
         vals = self.max_predicate_arity + 1
         for c in range(vals):
             colors[Color.predicate + c] = ("blues%i" % vals, "%i" %  (c + 1))
