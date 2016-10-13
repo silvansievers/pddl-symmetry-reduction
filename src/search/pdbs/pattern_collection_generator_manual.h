@@ -6,18 +6,19 @@
 
 #include <memory>
 
+namespace options {
 class Options;
+}
 
-
-namespace PDBs {
+namespace pdbs {
 class PatternCollectionGeneratorManual : public PatternCollectionGenerator {
     std::shared_ptr<PatternCollection> patterns;
 public:
-    explicit PatternCollectionGeneratorManual(const Options &opts);
+    explicit PatternCollectionGeneratorManual(const options::Options &opts);
     virtual ~PatternCollectionGeneratorManual() = default;
 
     virtual PatternCollectionInformation generate(
-        std::shared_ptr<AbstractTask> task) override;
+        const std::shared_ptr<AbstractTask> &task) override;
 };
 }
 

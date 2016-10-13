@@ -2,8 +2,9 @@
 #include "../global_operator.h"
 #include "../global_state.h"
 #include "../globals.h"
-#include "../utilities.h"
-#include "../utilities_hash.h"
+
+#include "../utils/collections.h"
+#include "../utils/hash.h"
 
 #include <algorithm>
 #include <cassert>
@@ -11,8 +12,7 @@
 
 using namespace std;
 
-
-namespace Landmarks {
+namespace landmarks {
 /* Integration Note: this class is the same as (rich man's) FF heuristic
    (taken from hector branch) except for the following:
    - Added-on functionality for excluding certain operators from the relaxed
@@ -31,7 +31,7 @@ namespace Landmarks {
 */
 
 // Construction and destruction
-Exploration::Exploration(const Options &opts)
+Exploration::Exploration(const options::Options &opts)
     : Heuristic(opts),
       did_write_overflow_warning(false) {
     cout << "Initializing Exploration..." << endl;
@@ -69,9 +69,6 @@ Exploration::Exploration(const Options &opts)
     // Set flag that before heuristic values can be used, computation
     // (relaxed exploration) needs to be done
     heuristic_recomputation_needed = true;
-}
-
-Exploration::~Exploration() {
 }
 
 void Exploration::increase_cost(int &cost, int amount) {
@@ -128,18 +125,18 @@ void Exploration::build_unary_operators(const GlobalOperator &op) {
     vector<pair<int, int>> precondition_var_vals1;
 
     for (size_t i = 0; i < preconditions.size(); ++i) {
-        assert(in_bounds(preconditions[i].var, g_variable_domain));
+        assert(utils::in_bounds(preconditions[i].var, g_variable_domain));
         assert(preconditions[i].val >= 0 && preconditions[i].val < g_variable_domain[preconditions[i].var]);
         precondition_var_vals1.push_back(make_pair(preconditions[i].var, preconditions[i].val));
     }
     for (size_t i = 0; i < effects.size(); ++i) {
         vector<pair<int, int>> precondition_var_vals2(precondition_var_vals1);
-        assert(in_bounds(effects[i].var, g_variable_domain));
+        assert(utils::in_bounds(effects[i].var, g_variable_domain));
         assert(effects[i].val >= 0 && effects[i].val < g_variable_domain[effects[i].var]);
         ExProposition *effect = &propositions[effects[i].var][effects[i].val];
         const vector<GlobalCondition> &eff_conds = effects[i].conditions;
         for (size_t j = 0; j < eff_conds.size(); ++j) {
-            assert(in_bounds(eff_conds[j].var, g_variable_domain));
+            assert(utils::in_bounds(eff_conds[j].var, g_variable_domain));
             assert(eff_conds[j].val >= 0 && eff_conds[j].val < g_variable_domain[eff_conds[j].var]);
             precondition_var_vals2.push_back(make_pair(eff_conds[j].var, eff_conds[j].val));
         }
@@ -157,7 +154,7 @@ void Exploration::build_unary_operators(const GlobalOperator &op) {
 }
 
 // heuristic computation
-void Exploration::setup_exploration_queue(const GlobalState &state,
+void Exploration::setup_exploration_queue(const State &state,
                                           const vector<pair<int, int>> &excluded_props,
                                           const unordered_set<const GlobalOperator *> &excluded_ops,
                                           bool use_h_max = false) {
@@ -180,8 +177,10 @@ void Exploration::setup_exploration_queue(const GlobalState &state,
     }
 
     // Deal with current state.
-    for (size_t var = 0; var < propositions.size(); ++var) {
-        ExProposition *init_prop = &propositions[var][state[var]];
+    for (FactProxy fact : state) {
+        int var_id = fact.get_variable().get_id();
+        int value = fact.get_value();
+        ExProposition *init_prop = &propositions[var_id][value];
         enqueue_if_necessary(init_prop, 0, 0, 0, use_h_max);
     }
 
@@ -333,7 +332,7 @@ void Exploration::compute_reachability_with_excludes(vector<vector<int>> &lvl_va
                                                      const unordered_set<const GlobalOperator *> &excluded_ops,
                                                      bool compute_lvl_ops) {
     // Perform exploration using h_max-values
-    setup_exploration_queue(g_initial_state(), excluded_props, excluded_ops, true);
+    setup_exploration_queue(task_proxy.get_initial_state(), excluded_props, excluded_ops, true);
     relaxed_exploration(true, level_out);
 
     // Copy reachability information into lvl_var and lvl_op
@@ -384,7 +383,8 @@ void Exploration::compute_reachability_with_excludes(vector<vector<int>> &lvl_va
     heuristic_recomputation_needed = true;
 }
 
-void Exploration::prepare_heuristic_computation(const GlobalState &state, bool h_max = false) {
+void Exploration::prepare_heuristic_computation(const GlobalState &state,
+                                                bool h_max = false) {
     setup_exploration_queue(state, h_max);
     relaxed_exploration(h_max);
     heuristic_recomputation_needed = false;

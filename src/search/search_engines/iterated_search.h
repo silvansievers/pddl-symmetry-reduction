@@ -4,12 +4,13 @@
 #include "../option_parser_util.h"
 #include "../search_engine.h"
 
+namespace options {
 class Options;
+}
 
-
-namespace IteratedSearch {
+namespace iterated_search {
 class IteratedSearch : public SearchEngine {
-    const std::vector<ParseTree> engine_configs;
+    const std::vector<options::ParseTree> engine_configs;
     bool pass_bound;
     bool repeat_last_phase;
     bool continue_on_fail;
@@ -20,19 +21,14 @@ class IteratedSearch : public SearchEngine {
     int best_bound;
     bool iterated_found_solution;
 
-    SearchEngine *current_search;
-    std::string current_search_name;
-
     SearchEngine *get_search_engine(int engine_config_start_index);
-    SearchEngine *create_phase(int p);
+    SearchEngine *create_phase(int phase);
     SearchStatus step_return_value();
 
-    virtual void initialize() override;
     virtual SearchStatus step() override;
 
 public:
-    explicit IteratedSearch(const Options &opts);
-    virtual ~IteratedSearch() override = default;
+    explicit IteratedSearch(const options::Options &opts);
 
     virtual void save_plan_if_necessary() const override;
     virtual void print_statistics() const override;

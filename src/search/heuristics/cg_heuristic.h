@@ -12,8 +12,7 @@ class GlobalState;
 class State;
 struct ValueNode;
 
-
-namespace CGHeuristic {
+namespace cg_heuristic {
 class CGCache;
 
 class CGHeuristic : public Heuristic {
@@ -32,10 +31,9 @@ class CGHeuristic : public Heuristic {
     int get_transition_cost(const State &state, DomainTransitionGraph *dtg, int start_val, int goal_val);
     void mark_helpful_transitions(const State &state, DomainTransitionGraph *dtg, int to);
 protected:
-    virtual void initialize();
     virtual int compute_heuristic(const GlobalState &state);
 public:
-    CGHeuristic(const Options &opts);
+    CGHeuristic(const options::Options &opts);
     ~CGHeuristic();
     virtual bool dead_ends_are_reliable() const;
 };

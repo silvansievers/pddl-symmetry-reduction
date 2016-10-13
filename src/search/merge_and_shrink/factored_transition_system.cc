@@ -5,19 +5,39 @@
 #include "heuristic_representation.h"
 #include "transition_system.h"
 
-#include "../timer.h"
+#include "../utils/memory.h"
 
 #include <cassert>
 
 using namespace std;
 
+namespace merge_and_shrink {
+FTSConstIterator::FTSConstIterator(
+    const FactoredTransitionSystem &fts,
+    bool end)
+    : fts(fts), current_index((end ? fts.get_size() : 0)) {
+    next_valid_index();
+}
 
-namespace MergeAndShrink {
+void FTSConstIterator::next_valid_index() {
+    while (current_index < fts.get_size()
+           && !fts.is_active(current_index)) {
+        ++current_index;
+    }
+}
+
+void FTSConstIterator::operator++() {
+    ++current_index;
+    next_valid_index();
+}
+
+
 FactoredTransitionSystem::FactoredTransitionSystem(
     unique_ptr<Labels> labels,
     vector<unique_ptr<TransitionSystem>> &&transition_systems,
     vector<unique_ptr<HeuristicRepresentation>> &&heuristic_representations,
-    vector<unique_ptr<Distances>> &&distances)
+    vector<unique_ptr<Distances>> &&distances,
+    Verbosity verbosity)
     : labels(move(labels)),
       transition_systems(move(transition_systems)),
       heuristic_representations(move(heuristic_representations)),
@@ -25,7 +45,7 @@ FactoredTransitionSystem::FactoredTransitionSystem(
       final_index(-1),
       solvable(true) {
     for (size_t i = 0; i < this->transition_systems.size(); ++i) {
-        compute_distances_and_prune(i);
+        compute_distances_and_prune(i, verbosity);
         if (!this->transition_systems[i]->is_solvable()) {
             solvable = false;
             finalize(i);
@@ -52,7 +72,9 @@ FactoredTransitionSystem::~FactoredTransitionSystem() {
 }
 
 void FactoredTransitionSystem::discard_states(
-    int index, const vector<bool> &to_be_pruned_states) {
+    int index,
+    const vector<bool> &to_be_pruned_states,
+    Verbosity verbosity) {
     assert(is_index_valid(index));
     int num_states = transition_systems[index]->get_size();
     assert(static_cast<int>(to_be_pruned_states.size()) == num_states);
@@ -65,7 +87,7 @@ void FactoredTransitionSystem::discard_states(
             state_equivalence_relation.push_back(state_equivalence_class);
         }
     }
-    apply_abstraction(index, state_equivalence_relation);
+    apply_abstraction(index, state_equivalence_relation, verbosity);
 }
 
 bool FactoredTransitionSystem::is_index_valid(int index) const {
@@ -84,14 +106,18 @@ bool FactoredTransitionSystem::is_component_valid(int index) const {
            && transition_systems[index]->are_transitions_sorted_unique();
 }
 
-void FactoredTransitionSystem::compute_distances_and_prune(int index) {
+void FactoredTransitionSystem::compute_distances_and_prune(
+    int index, Verbosity verbosity) {
     /*
       This method does all that compute_distances does and
       additionally prunes all states that are unreachable (abstract g
       is infinite) or irrelevant (abstract h is infinite).
     */
     assert(is_index_valid(index));
-    discard_states(index, distances[index]->compute_distances());
+    discard_states(
+        index,
+        distances[index]->compute_distances(verbosity),
+        verbosity);
     assert(is_component_valid(index));
 }
 
@@ -111,28 +137,30 @@ void FactoredTransitionSystem::apply_label_reduction(
 }
 
 bool FactoredTransitionSystem::apply_abstraction(
-    int index, const StateEquivalenceRelation &state_equivalence_relation) {
+    int index,
+    const StateEquivalenceRelation &state_equivalence_relation,
+    Verbosity verbosity) {
     assert(is_index_valid(index));
 
     vector<int> abstraction_mapping(
-        transition_systems[index]->get_size(), TransitionSystem::PRUNED_STATE);
+        transition_systems[index]->get_size(), PRUNED_STATE);
     for (size_t class_no = 0; class_no < state_equivalence_relation.size(); ++class_no) {
         const StateEquivalenceClass &state_equivalence_class =
             state_equivalence_relation[class_no];
         for (auto pos = state_equivalence_class.begin();
              pos != state_equivalence_class.end(); ++pos) {
             int state = *pos;
-            assert(abstraction_mapping[state] == TransitionSystem::PRUNED_STATE);
+            assert(abstraction_mapping[state] == PRUNED_STATE);
             abstraction_mapping[state] = class_no;
         }
     }
 
     bool shrunk = transition_systems[index]->apply_abstraction(
-        state_equivalence_relation, abstraction_mapping);
+        state_equivalence_relation, abstraction_mapping, verbosity);
     if (shrunk) {
         bool f_preserving = distances[index]->apply_abstraction(
-            state_equivalence_relation);
-        if (!f_preserving) {
+            state_equivalence_relation, verbosity);
+        if (verbosity >= Verbosity::VERBOSE && !f_preserving) {
             cout << transition_systems[index]->tag()
                  << "simplification was not f-preserving!" << endl;
         }
@@ -143,27 +171,30 @@ bool FactoredTransitionSystem::apply_abstraction(
     return shrunk;
 }
 
-int FactoredTransitionSystem::merge(int index1, int index2) {
+int FactoredTransitionSystem::merge(
+    int index1, int index2, Verbosity verbosity) {
     assert(is_index_valid(index1));
     assert(is_index_valid(index2));
     transition_systems.push_back(
-        make_unique_ptr<TransitionSystem>(*labels,
-                                          *transition_systems[index1],
-                                          *transition_systems[index2]));
+        TransitionSystem::merge(
+            *labels,
+            *transition_systems[index1],
+            *transition_systems[index2],
+            verbosity));
     distances[index1] = nullptr;
     distances[index2] = nullptr;
     transition_systems[index1] = nullptr;
     transition_systems[index2] = nullptr;
     heuristic_representations.push_back(
-        make_unique_ptr<HeuristicRepresentationMerge>(
+        utils::make_unique_ptr<HeuristicRepresentationMerge>(
             move(heuristic_representations[index1]),
             move(heuristic_representations[index2])));
     heuristic_representations[index1] = nullptr;
     heuristic_representations[index2] = nullptr;
     const TransitionSystem &new_ts = *transition_systems.back();
-    distances.push_back(make_unique_ptr<Distances>(new_ts));
+    distances.push_back(utils::make_unique_ptr<Distances>(new_ts));
     int new_index = transition_systems.size() - 1;
-    compute_distances_and_prune(new_index);
+    compute_distances_and_prune(new_index, verbosity);
     assert(is_component_valid(new_index));
     if (!new_ts.is_solvable()) {
         solvable = false;
@@ -209,41 +240,24 @@ int FactoredTransitionSystem::get_cost(const State &state) const {
     assert(distances[final_index]->are_distances_computed());
     int abs_state = heuristic_representations[final_index]->get_abstract_state(state);
 
-    if (abs_state == TransitionSystem::PRUNED_STATE)
+    if (abs_state == PRUNED_STATE)
         return -1;
     int cost = distances[final_index]->get_goal_distance(abs_state);
     assert(cost != INF);
     return cost;
 }
 
-void FactoredTransitionSystem::statistics(int index,
-                                          const Timer &timer) const {
+void FactoredTransitionSystem::statistics(int index) const {
     assert(is_index_valid(index));
     const TransitionSystem &ts = *transition_systems[index];
     ts.statistics();
-    // TODO: Turn the following block into Distances::statistics()?
-    cout << ts.tag();
     const Distances &dist = *distances[index];
-    if (!dist.are_distances_computed()) {
-        cout << "distances not computed";
-    } else if (is_solvable()) {
-        cout << "init h=" << dist.get_goal_distance(ts.get_init_state())
-             << ", max f=" << dist.get_max_f()
-             << ", max g=" << dist.get_max_g()
-             << ", max h=" << dist.get_max_h();
-    } else {
-        cout << "transition system is unsolvable";
-    }
-    cout << " [t=" << timer << "]" << endl;
+    dist.statistics();
 }
 
 void FactoredTransitionSystem::dump(int index) const {
     assert(transition_systems[index]);
     transition_systems[index]->dump_labels_and_transitions();
     heuristic_representations[index]->dump();
-}
-
-int FactoredTransitionSystem::get_num_labels() const {
-    return labels->get_size();
 }
 }

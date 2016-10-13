@@ -5,7 +5,6 @@
 
 #include <vector>
 
-
 /*
   TODO: Possible interface improvements for this class:
 
@@ -39,7 +38,7 @@
     then?)
 */
 
-namespace MergeAndShrink {
+namespace merge_and_shrink {
 class TransitionSystem;
 
 class Distances {
@@ -67,7 +66,7 @@ public:
     ~Distances();
 
     bool are_distances_computed() const;
-    std::vector<bool> compute_distances();
+    std::vector<bool> compute_distances(Verbosity verbosity);
 
     /*
       Update distances according to the given abstraction.
@@ -79,7 +78,8 @@ public:
       out of date.)
     */
     bool apply_abstraction(
-        const StateEquivalenceRelation &state_equivalence_relation);
+        const StateEquivalenceRelation &state_equivalence_relation,
+        Verbosity verbosity);
 
     int get_max_f() const { // used by shrink_fh
         return max_f;
@@ -93,10 +93,11 @@ public:
     int get_init_distance(int state) const { // used by shrink_fh
         return init_distances[state];
     }
-    int get_goal_distance(int state) const { // used by shrink strategies and merge_dfp
+    int get_goal_distance(int state) const { // used by shrink strategies and DFP
         return goal_distances[state];
     }
     void dump() const;
+    void statistics() const;
 };
 }
 

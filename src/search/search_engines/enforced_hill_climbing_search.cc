@@ -4,7 +4,6 @@
 #include "../option_parser.h"
 #include "../plugin.h"
 #include "../successor_generator.h"
-#include "../utilities.h"
 
 #include "../evaluators/g_evaluator.h"
 #include "../evaluators/pref_evaluator.h"
@@ -12,12 +11,14 @@
 #include "../open_lists/standard_scalar_open_list.h"
 #include "../open_lists/tiebreaking_open_list.h"
 
+#include "../utils/system.h"
+
 using namespace std;
+using utils::ExitCode;
 
-
-namespace EnforcedHillClimbingSearch {
-using GEval = GEvaluator::GEvaluator;
-using PrefEval = PrefEvaluator::PrefEvaluator;
+namespace enforced_hill_climbing_search {
+using GEval = g_evaluator::GEvaluator;
+using PrefEval = pref_evaluator::PrefEvaluator;
 
 static shared_ptr<OpenListFactory> create_ehc_open_list_factory(
     bool use_preferred, PreferredUsage preferred_usage) {
@@ -67,13 +68,17 @@ EnforcedHillClimbingSearch::EnforcedHillClimbingSearch(
       heuristic(opts.get<Heuristic *>("h")),
       preferred_operator_heuristics(opts.get_list<Heuristic *>("preferred")),
       preferred_usage(PreferredUsage(opts.get_enum("preferred_usage"))),
-      current_eval_context(g_initial_state(), &statistics),
+      current_eval_context(state_registry.get_initial_state(), &statistics),
       current_phase_start_g(-1),
       num_ehc_phases(0),
       last_num_expanded(-1) {
     heuristics.insert(preferred_operator_heuristics.begin(),
                       preferred_operator_heuristics.end());
     heuristics.insert(heuristic);
+    const GlobalState &initial_state = state_registry.get_initial_state();
+    for (Heuristic *heuristic : heuristics) {
+        heuristic->notify_initial_state(initial_state);
+    }
     use_preferred = find(preferred_operator_heuristics.begin(),
                          preferred_operator_heuristics.end(), heuristic) !=
                     preferred_operator_heuristics.end();
@@ -88,7 +93,7 @@ EnforcedHillClimbingSearch::~EnforcedHillClimbingSearch() {
 void EnforcedHillClimbingSearch::reach_state(
     const GlobalState &parent, const GlobalOperator &op, const GlobalState &state) {
     for (Heuristic *heur : heuristics) {
-        heur->reach_state(parent, op, state);
+        heur->notify_state_transition(parent, op, state);
     }
 }
 
@@ -109,9 +114,9 @@ void EnforcedHillClimbingSearch::initialize() {
     if (dead_end) {
         cout << "Initial state is a dead end, no solution" << endl;
         if (heuristic->dead_ends_are_reliable())
-            exit_with(EXIT_UNSOLVABLE);
+            utils::exit_with(ExitCode::UNSOLVABLE);
         else
-            exit_with(EXIT_UNSOLVED_INCOMPLETE);
+            utils::exit_with(ExitCode::UNSOLVED_INCOMPLETE);
     }
 
     SearchNode node = search_space.get_node(current_eval_context.get_state());
@@ -190,7 +195,7 @@ SearchStatus EnforcedHillClimbingSearch::ehc() {
         StateID parent_state_id = entry.first;
         const GlobalOperator *last_op = entry.second;
 
-        GlobalState parent_state = g_state_registry->lookup_state(parent_state_id);
+        GlobalState parent_state = state_registry.lookup_state(parent_state_id);
         SearchNode parent_node = search_space.get_node(parent_state);
 
         // d: distance from initial node in this EHC phase
@@ -200,7 +205,7 @@ SearchStatus EnforcedHillClimbingSearch::ehc() {
         if (parent_node.get_real_g() + last_op->get_cost() >= bound)
             continue;
 
-        GlobalState state = g_state_registry->get_successor_state(parent_state, *last_op);
+        GlobalState state = state_registry.get_successor_state(parent_state, *last_op);
         statistics.inc_generated();
 
         SearchNode node = search_space.get_node(state);

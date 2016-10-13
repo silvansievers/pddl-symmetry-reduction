@@ -1,25 +1,27 @@
 #include "pattern_collection_generator_manual.h"
 
+#include "validation.h"
+
 #include "../option_parser.h"
 #include "../plugin.h"
 #include "../task_proxy.h"
 
-#include "validation.h"
+#include "../utils/logging.h"
 
 #include <iostream>
 
 using namespace std;
 
-
-namespace PDBs {
+namespace pdbs {
 PatternCollectionGeneratorManual::PatternCollectionGeneratorManual(const Options &opts)
     : patterns(make_shared<PatternCollection>(opts.get_list<Pattern>("patterns"))) {
 }
 
 PatternCollectionInformation PatternCollectionGeneratorManual::generate(
-    std::shared_ptr<AbstractTask> task) {
+    const shared_ptr<AbstractTask> &task) {
     cout << "Manual pattern collection: " << *patterns << endl;
-    return PatternCollectionInformation(task, patterns);
+    TaskProxy task_proxy(*task);
+    return PatternCollectionInformation(task_proxy, patterns);
 }
 
 static shared_ptr<PatternCollectionGenerator> _parse(OptionParser &parser) {

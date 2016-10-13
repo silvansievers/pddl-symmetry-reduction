@@ -6,13 +6,17 @@
 #include "validation.h"
 
 #include "../causal_graph.h"
-#include "../countdown_timer.h"
 #include "../option_parser.h"
 #include "../plugin.h"
 #include "../sampling.h"
 #include "../task_tools.h"
-#include "../timer.h"
-#include "../utilities.h"
+
+#include "../utils/countdown_timer.h"
+#include "../utils/logging.h"
+#include "../utils/markup.h"
+#include "../utils/math.h"
+#include "../utils/memory.h"
+#include "../utils/timer.h"
 
 #include <algorithm>
 #include <cassert>
@@ -22,8 +26,7 @@
 
 using namespace std;
 
-
-namespace PDBs {
+namespace pdbs {
 struct HillClimbingTimeout : public exception {};
 
 PatternCollectionGeneratorHillclimbing::PatternCollectionGeneratorHillclimbing(const Options &opts)
@@ -37,7 +40,7 @@ PatternCollectionGeneratorHillclimbing::PatternCollectionGeneratorHillclimbing(c
 }
 
 void PatternCollectionGeneratorHillclimbing::generate_candidate_patterns(
-    TaskProxy task_proxy, const PatternDatabase &pdb,
+    const TaskProxy &task_proxy, const PatternDatabase &pdb,
     PatternCollection &candidate_patterns) {
     const CausalGraph &causal_graph = task_proxy.get_causal_graph();
     const Pattern &pattern = pdb.get_pattern();
@@ -56,7 +59,8 @@ void PatternCollectionGeneratorHillclimbing::generate_candidate_patterns(
         for (int rel_var_id : relevant_vars) {
             VariableProxy rel_var = task_proxy.get_variables()[rel_var_id];
             int rel_var_size = rel_var.get_domain_size();
-            if (is_product_within_limit(pdb_size, rel_var_size, pdb_max_size)) {
+            if (utils::is_product_within_limit(pdb_size, rel_var_size,
+                                               pdb_max_size)) {
                 Pattern new_pattern(pattern);
                 new_pattern.push_back(rel_var_id);
                 sort(new_pattern.begin(), new_pattern.end());
@@ -69,7 +73,7 @@ void PatternCollectionGeneratorHillclimbing::generate_candidate_patterns(
 }
 
 size_t PatternCollectionGeneratorHillclimbing::generate_pdbs_for_candidates(
-    TaskProxy task_proxy, set<Pattern> &generated_patterns,
+    const TaskProxy &task_proxy, set<Pattern> &generated_patterns,
     PatternCollection &new_candidates, PDBCollection &candidate_pdbs) const {
     /*
       For the new candidate patterns check whether they already have been
@@ -90,7 +94,7 @@ size_t PatternCollectionGeneratorHillclimbing::generate_pdbs_for_candidates(
 }
 
 void PatternCollectionGeneratorHillclimbing::sample_states(
-    TaskProxy task_proxy, const SuccessorGenerator &successor_generator,
+    const TaskProxy &task_proxy, const SuccessorGenerator &successor_generator,
     vector<State> &samples, double average_operator_cost) {
     int init_h = current_pdbs->get_value(
         task_proxy.get_initial_state());
@@ -108,7 +112,7 @@ void PatternCollectionGeneratorHillclimbing::sample_states(
     }
 }
 
-std::pair<int, int> PatternCollectionGeneratorHillclimbing::find_best_improving_pdb(
+pair<int, int> PatternCollectionGeneratorHillclimbing::find_best_improving_pdb(
     vector<State> &samples, PDBCollection &candidate_pdbs) {
     /*
       TODO: The original implementation by Haslum et al. uses A* to compute
@@ -208,11 +212,11 @@ bool PatternCollectionGeneratorHillclimbing::is_heuristic_improved(
 }
 
 void PatternCollectionGeneratorHillclimbing::hill_climbing(
-    TaskProxy task_proxy,
+    const TaskProxy &task_proxy,
     const SuccessorGenerator &successor_generator,
     double average_operator_cost,
     PatternCollection &initial_candidate_patterns) {
-    hill_climbing_timer = new CountdownTimer(max_time);
+    hill_climbing_timer = new utils::CountdownTimer(max_time);
     // Candidate patterns generated so far (used to avoid duplicates).
     set<Pattern> generated_patterns;
     /* Set of new pattern candidates from the last call to
@@ -282,23 +286,24 @@ void PatternCollectionGeneratorHillclimbing::hill_climbing(
     }
 
     cout << "iPDB: iterations = " << num_iterations << endl;
-    cout << "iPDB: num_patterns = "
+    cout << "iPDB: number of patterns = "
          << current_pdbs->get_pattern_databases()->size() << endl;
     cout << "iPDB: size = " << current_pdbs->get_size() << endl;
     cout << "iPDB: generated = " << generated_patterns.size() << endl;
     cout << "iPDB: rejected = " << num_rejected << endl;
-    cout << "iPDB: max_pdb_size = " << max_pdb_size << endl;
+    cout << "iPDB: maximum pdb size = " << max_pdb_size << endl;
     cout << "iPDB: hill climbing time: " << *hill_climbing_timer << endl;
 
     delete hill_climbing_timer;
     hill_climbing_timer = nullptr;
 }
 
-PatternCollectionInformation PatternCollectionGeneratorHillclimbing::generate(shared_ptr<AbstractTask> task) {
+PatternCollectionInformation PatternCollectionGeneratorHillclimbing::generate(
+    const shared_ptr<AbstractTask> &task) {
     TaskProxy task_proxy(*task);
-    SuccessorGenerator successor_generator(task);
+    SuccessorGenerator successor_generator(task_proxy);
 
-    Timer timer;
+    utils::Timer timer;
     double average_operator_cost = get_average_operator_cost(task_proxy);
     cout << "Average operator cost: " << average_operator_cost << endl;
 
@@ -308,8 +313,8 @@ PatternCollectionInformation PatternCollectionGeneratorHillclimbing::generate(sh
         int goal_var_id = goal.get_variable().get_id();
         initial_pattern_collection.emplace_back(1, goal_var_id);
     }
-    current_pdbs = make_unique_ptr<IncrementalCanonicalPDBs>(
-        task, initial_pattern_collection);
+    current_pdbs = utils::make_unique_ptr<IncrementalCanonicalPDBs>(
+        task_proxy, initial_pattern_collection);
 
     State initial_state = task_proxy.get_initial_state();
     if (!current_pdbs->is_dead_end(initial_state)) {
@@ -397,22 +402,25 @@ static Heuristic *_parse_ipdb(OptionParser &parser) {
     parser.document_synopsis(
         "iPDB",
         "This pattern generation method is an adaption of the algorithm "
-        "described in the following paper:\n\n"
-        " * Patrik Haslum, Adi Botea, Malte Helmert, Blai Bonet and "
-        "Sven Koenig.<<BR>>\n"
-        " [Domain-Independent Construction of Pattern Database Heuristics for "
-        "Cost-Optimal Planning http://www.informatik.uni-freiburg.de/~ki"
-        "/papers/haslum-etal-aaai07.pdf].<<BR>>\n "
-        "In //Proceedings of the 22nd AAAI Conference on Artificial "
-        "Intelligence (AAAI 2007)//, pp. 1007-1012. AAAI Press 2007.\n"
-        "For implementation notes, see also this paper:\n\n"
-        " * Silvan Sievers, Manuela Ortlieb and Malte Helmert.<<BR>>\n"
-        " [Efficient Implementation of Pattern Database Heuristics for "
-        "Classical Planning "
-        "http://ai.cs.unibas.ch/papers/sievers-et-al-socs2012.pdf].<<BR>>\n"
-        " In //Proceedings of the Fifth Annual Symposium on Combinatorial "
-        "Search (SoCS 2012)//, "
-        "pp. 105-111. AAAI Press 2012.\n");
+        "described in the following paper:" + utils::format_paper_reference(
+            {"Patrik Haslum", "Adi Botea", "Malte Helmert", "Blai Bonet",
+             "Sven Koenig"},
+            "Domain-Independent Construction of Pattern Database Heuristics for"
+            " Cost-Optimal Planning",
+            "http://www.informatik.uni-freiburg.de/~ki/papers/haslum-etal-aaai07.pdf",
+            "Proceedings of the 22nd AAAI Conference on Artificial"
+            " Intelligence (AAAI 2007)",
+            "1007-1012",
+            "AAAI Press 2007") +
+        "For implementation notes, see:" + utils::format_paper_reference(
+            {"Silvan Sievers", "Manuela Ortlieb", "Malte Helmert"},
+            "Efficient Implementation of Pattern Database Heuristics for"
+            " Classical Planning",
+            "http://ai.cs.unibas.ch/papers/sievers-et-al-socs2012.pdf",
+            "Proceedings of the Fifth Annual Symposium on Combinatorial"
+            " Search (SoCS 2012)",
+            "105-111",
+            "AAAI Press 2012"));
     parser.document_note(
         "Note",
         "The pattern collection created by the algorithm will always contain "

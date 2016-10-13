@@ -1,6 +1,5 @@
 #include "heuristic.h"
 
-#include "cost_adapted_task.h"
 #include "evaluation_context.h"
 #include "evaluation_result.h"
 #include "global_operator.h"
@@ -8,6 +7,8 @@
 #include "option_parser.h"
 #include "operator_cost.h"
 #include "plugin.h"
+
+#include "tasks/cost_adapted_task.h"
 
 #include <cassert>
 #include <cstdlib>
@@ -17,7 +18,6 @@ using namespace std;
 
 Heuristic::Heuristic(const Options &opts)
     : description(opts.get_unparsed_config()),
-      initialized(false),
       heuristic_cache(HEntry(NO_VALUE, true)), //TODO: is true really a good idea here?
       cache_h_values(opts.get<bool>("cache_estimates")),
       task(get_task_from_options(opts)),
@@ -39,7 +39,7 @@ void Heuristic::set_preferred(OperatorProxy op) {
     set_preferred(op.get_global_operator());
 }
 
-bool Heuristic::reach_state(
+bool Heuristic::notify_state_transition(
     const GlobalState & /*parent_state*/,
     const GlobalOperator & /*op*/,
     const GlobalState & /*state*/) {
@@ -51,7 +51,8 @@ int Heuristic::get_adjusted_cost(const GlobalOperator &op) const {
 }
 
 State Heuristic::convert_global_state(const GlobalState &global_state) const {
-    return task_proxy.convert_global_state(global_state);
+    State state(*g_root_task(), global_state.get_values());
+    return task_proxy.convert_ancestor_state(state);
 }
 
 void Heuristic::add_options_to_parser(OptionParser &parser) {
@@ -77,11 +78,6 @@ Options Heuristic::default_options() {
 
 EvaluationResult Heuristic::compute_result(EvaluationContext &eval_context) {
     EvaluationResult result;
-
-    if (!initialized) {
-        initialize();
-        initialized = true;
-    }
 
     assert(preferred_operators.empty());
 

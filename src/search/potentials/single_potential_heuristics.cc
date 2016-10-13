@@ -8,10 +8,11 @@
 #include "../option_parser.h"
 #include "../plugin.h"
 
+#include "../utils/system.h"
+
 using namespace std;
 
-
-namespace Potentials {
+namespace potentials {
 enum class OptimizeFor {
     INITIAL_STATE,
     ALL_STATES,

@@ -1,15 +1,16 @@
 #include "validation.h"
 
-#include "../utilities.h"
 #include "../task_proxy.h"
+
+#include "../utils/system.h"
 
 #include <algorithm>
 #include <iostream>
 
 using namespace std;
+using utils::ExitCode;
 
-
-namespace PDBs {
+namespace pdbs {
 void validate_and_normalize_pattern(const TaskProxy &task_proxy,
                                     Pattern &pattern) {
     /*
@@ -27,12 +28,12 @@ void validate_and_normalize_pattern(const TaskProxy &task_proxy,
     if (!pattern.empty()) {
         if (pattern.front() < 0) {
             cerr << "Variable number too low in pattern" << endl;
-            exit_with(EXIT_CRITICAL_ERROR);
+            utils::exit_with(ExitCode::CRITICAL_ERROR);
         }
         int num_variables = task_proxy.get_variables().size();
         if (pattern.back() >= num_variables) {
             cerr << "Variable number too high in pattern" << endl;
-            exit_with(EXIT_CRITICAL_ERROR);
+            utils::exit_with(ExitCode::CRITICAL_ERROR);
         }
     }
 }

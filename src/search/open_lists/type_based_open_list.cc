@@ -5,7 +5,11 @@
 #include "../globals.h"
 #include "../option_parser.h"
 #include "../plugin.h"
-#include "../rng.h"
+
+#include "../utils/collections.h"
+#include "../utils/markup.h"
+#include "../utils/memory.h"
+#include "../utils/rng.h"
 
 #include <memory>
 #include <unordered_map>
@@ -56,7 +60,7 @@ void TypeBasedOpenList<Entry>::do_insertion(
         keys_and_buckets.push_back(make_pair(move(key), Bucket({entry})));
     } else {
         size_t bucket_index = it->second;
-        assert(in_bounds(bucket_index, keys_and_buckets));
+        assert(utils::in_bounds(bucket_index, keys_and_buckets));
         keys_and_buckets[bucket_index].second.push_back(entry);
     }
 }
@@ -68,7 +72,7 @@ TypeBasedOpenList<Entry>::TypeBasedOpenList(const Options &opts)
 
 template<class Entry>
 Entry TypeBasedOpenList<Entry>::remove_min(vector<int> *key) {
-    size_t bucket_id = g_rng(keys_and_buckets.size());
+    size_t bucket_id = (*g_rng())(keys_and_buckets.size());
     auto &key_and_bucket = keys_and_buckets[bucket_id];
     const Key &min_key = key_and_bucket.first;
     Bucket &bucket = key_and_bucket.second;
@@ -78,14 +82,14 @@ Entry TypeBasedOpenList<Entry>::remove_min(vector<int> *key) {
         *key = min_key;
     }
 
-    int pos = g_rng(bucket.size());
-    Entry result = swap_and_pop_from_vector(bucket, pos);
+    int pos = (*g_rng())(bucket.size());
+    Entry result = utils::swap_and_pop_from_vector(bucket, pos);
 
     if (bucket.empty()) {
         // Swap the empty bucket with the last bucket, then delete it.
         key_to_bucket_index[keys_and_buckets.back().first] = bucket_id;
         key_to_bucket_index.erase(min_key);
-        swap_and_pop_from_vector(keys_and_buckets, bucket_id);
+        utils::swap_and_pop_from_vector(keys_and_buckets, bucket_id);
     }
     return result;
 }
@@ -141,12 +145,12 @@ TypeBasedOpenListFactory::TypeBasedOpenListFactory(
 
 unique_ptr<StateOpenList>
 TypeBasedOpenListFactory::create_state_open_list() {
-    return make_unique_ptr<TypeBasedOpenList<StateOpenListEntry>>(options);
+    return utils::make_unique_ptr<TypeBasedOpenList<StateOpenListEntry>>(options);
 }
 
 unique_ptr<EdgeOpenList>
 TypeBasedOpenListFactory::create_edge_open_list() {
-    return make_unique_ptr<TypeBasedOpenList<EdgeOpenListEntry>>(options);
+    return utils::make_unique_ptr<TypeBasedOpenList<EdgeOpenListEntry>>(options);
 }
 
 static shared_ptr<OpenListFactory> _parse(OptionParser &parser) {
@@ -157,15 +161,15 @@ static shared_ptr<OpenListFactory> _parse(OptionParser &parser) {
         "When retrieving an entry, a bucket is chosen uniformly at "
         "random and one of the contained entries is selected "
         "uniformly randomly. "
-        "The algorithm is based on\n\n"
-        " * Fan Xie, Martin Mueller, Robert Holte, Tatsuya Imai.<<BR>>\n"
-        " [Type-Based Exploration with Multiple Search Queues for "
-        "Satisficing Planning "
-        "http://www.aaai.org/ocs/index.php/AAAI/AAAI14/paper/view/8472/8705]."
-        "<<BR>>\n "
-        "In //Proceedings of the Twenty-Eigth AAAI Conference "
-        "Conference on Artificial Intelligence (AAAI "
-        "2014)//, pp. 2395-2401. AAAI Press 2014.\n\n\n");
+        "The algorithm is based on" + utils::format_paper_reference(
+            {"Fan Xie", "Martin Mueller", "Robert Holte", "Tatsuya Imai"},
+            "Type-Based Exploration with Multiple Search Queues for"
+            " Satisficing Planning",
+            "http://www.aaai.org/ocs/index.php/AAAI/AAAI14/paper/view/8472/8705",
+            "Proceedings of the Twenty-Eigth AAAI Conference Conference"
+            " on Artificial Intelligence (AAAI 2014)",
+            "2395-2401",
+            "AAAI Press 2014"));
     parser.add_list_option<ScalarEvaluator *>(
         "evaluators",
         "Evaluators used to determine the bucket for each entry.");

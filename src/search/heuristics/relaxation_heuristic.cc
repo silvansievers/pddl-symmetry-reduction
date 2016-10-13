@@ -3,8 +3,9 @@
 #include "../global_operator.h"
 #include "../global_state.h"
 #include "../globals.h"
-#include "../utilities.h"
-#include "../utilities_hash.h"
+
+#include "../utils/collections.h"
+#include "../utils/hash.h"
 
 #include <algorithm>
 #include <cassert>
@@ -14,22 +15,10 @@
 
 using namespace std;
 
-
-namespace RelaxationHeuristic {
+namespace relaxation_heuristic {
 // construction and destruction
-RelaxationHeuristic::RelaxationHeuristic(const Options &opts)
+RelaxationHeuristic::RelaxationHeuristic(const options::Options &opts)
     : Heuristic(opts) {
-}
-
-RelaxationHeuristic::~RelaxationHeuristic() {
-}
-
-bool RelaxationHeuristic::dead_ends_are_reliable() const {
-    return !has_axioms();
-}
-
-// initialization
-void RelaxationHeuristic::initialize() {
     // Build propositions.
     int prop_id = 0;
     VariablesProxy variables = task_proxy.get_variables();
@@ -63,11 +52,18 @@ void RelaxationHeuristic::initialize() {
     }
 }
 
+RelaxationHeuristic::~RelaxationHeuristic() {
+}
+
+bool RelaxationHeuristic::dead_ends_are_reliable() const {
+    return !has_axioms();
+}
+
 Proposition *RelaxationHeuristic::get_proposition(const FactProxy &fact) {
     int var = fact.get_variable().get_id();
     int value = fact.get_value();
-    assert(in_bounds(var, propositions));
-    assert(in_bounds(value, propositions[var]));
+    assert(utils::in_bounds(var, propositions));
+    assert(utils::in_bounds(value, propositions[var]));
     return &propositions[var][value];
 }
 

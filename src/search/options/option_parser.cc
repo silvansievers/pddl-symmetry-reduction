@@ -7,9 +7,11 @@
 #include "type_documenter.h"
 
 #include "../globals.h"
-#include "../rng.h"
 
 #include "../ext/tree_util.hh"
+
+#include "../utils/rng.h"
+#include "../utils/system.h"
 
 #include <algorithm>
 #include <cassert>
@@ -25,27 +27,36 @@ using namespace std;
 // TODO (post-issue586): Remove this once we no longer need it.
 class AbstractTask;
 class OpenListFactory;
+class PruningMethod;
 class SearchEngine;
 
-namespace Landmarks {
-class LandmarkGraph;
+namespace cegar {
+class SubtaskGenerator;
 }
 
-namespace MergeAndShrink {
+namespace landmarks {
+class LandmarkFactory;
+}
+
+namespace merge_and_shrink {
 class LabelReduction;
-class MergeStrategy;
+class MergeScoringFunction;
+class MergeSelector;
+class MergeStrategyFactory;
+class MergeTreeFactory;
 class ShrinkStrategy;
 }
 
-namespace OperatorCounting {
+namespace operator_counting {
 class ConstraintGenerator;
 }
 
-namespace PDBs {
+namespace pdbs {
 class PatternCollectionGenerator;
 class PatternGenerator;
 }
 
+namespace options {
 const string OptionParser::NONE = "<none>";
 
 
@@ -84,14 +95,19 @@ static void get_help(string k) {
     get_help_templ<shared_ptr<AbstractTask>>(pt);
     get_help_templ<ScalarEvaluator *>(pt);
     get_help_templ<Synergy *>(pt);
-    get_help_templ<Landmarks::LandmarkGraph *>(pt);
+    get_help_templ<landmarks::LandmarkFactory *>(pt);
+    get_help_templ<shared_ptr<cegar::SubtaskGenerator>>(pt);
     get_help_templ<shared_ptr<OpenListFactory>>(pt);
-    get_help_templ<shared_ptr<MergeAndShrink::MergeStrategy>>(pt);
-    get_help_templ<shared_ptr<MergeAndShrink::ShrinkStrategy>>(pt);
-    get_help_templ<shared_ptr<MergeAndShrink::LabelReduction>>(pt);
-    get_help_templ<shared_ptr<OperatorCounting::ConstraintGenerator>>(pt);
-    get_help_templ<shared_ptr<PDBs::PatternCollectionGenerator>>(pt);
-    get_help_templ<shared_ptr<PDBs::PatternGenerator>>(pt);
+    get_help_templ<shared_ptr<merge_and_shrink::LabelReduction>>(pt);
+    get_help_templ<shared_ptr<merge_and_shrink::MergeScoringFunction>>(pt);
+    get_help_templ<shared_ptr<merge_and_shrink::MergeSelector>>(pt);
+    get_help_templ<shared_ptr<merge_and_shrink::MergeStrategyFactory>>(pt);
+    get_help_templ<shared_ptr<merge_and_shrink::MergeTreeFactory>>(pt);
+    get_help_templ<shared_ptr<merge_and_shrink::ShrinkStrategy>>(pt);
+    get_help_templ<shared_ptr<operator_counting::ConstraintGenerator>>(pt);
+    get_help_templ<shared_ptr<pdbs::PatternCollectionGenerator>>(pt);
+    get_help_templ<shared_ptr<pdbs::PatternGenerator>>(pt);
+    get_help_templ<shared_ptr<PruningMethod>>(pt);
 }
 
 template<typename T>
@@ -112,14 +128,19 @@ static void get_full_help() {
     get_full_help_templ<shared_ptr<AbstractTask>>();
     get_full_help_templ<ScalarEvaluator *>();
     get_full_help_templ<Synergy *>();
-    get_full_help_templ<Landmarks::LandmarkGraph *>();
+    get_full_help_templ<landmarks::LandmarkFactory *>();
+    get_full_help_templ<shared_ptr<cegar::SubtaskGenerator>>();
     get_full_help_templ<shared_ptr<OpenListFactory>>();
-    get_full_help_templ<shared_ptr<MergeAndShrink::MergeStrategy>>();
-    get_full_help_templ<shared_ptr<MergeAndShrink::ShrinkStrategy>>();
-    get_full_help_templ<shared_ptr<MergeAndShrink::LabelReduction>>();
-    get_full_help_templ<shared_ptr<OperatorCounting::ConstraintGenerator>>();
-    get_full_help_templ<shared_ptr<PDBs::PatternCollectionGenerator>>();
-    get_full_help_templ<shared_ptr<PDBs::PatternGenerator>>();
+    get_full_help_templ<shared_ptr<merge_and_shrink::LabelReduction>>();
+    get_full_help_templ<shared_ptr<merge_and_shrink::MergeScoringFunction>>();
+    get_full_help_templ<shared_ptr<merge_and_shrink::MergeSelector>>();
+    get_full_help_templ<shared_ptr<merge_and_shrink::MergeStrategyFactory>>();
+    get_full_help_templ<shared_ptr<merge_and_shrink::MergeTreeFactory>>();
+    get_full_help_templ<shared_ptr<merge_and_shrink::ShrinkStrategy>>();
+    get_full_help_templ<shared_ptr<operator_counting::ConstraintGenerator>>();
+    get_full_help_templ<shared_ptr<pdbs::PatternCollectionGenerator>>();
+    get_full_help_templ<shared_ptr<pdbs::PatternGenerator>>();
+    get_full_help_templ<shared_ptr<PruningMethod>>();
 }
 
 
@@ -129,9 +150,9 @@ Predefining landmarks and heuristics:
 
 //takes a string of the form "word1, word2, word3 " and converts it to a vector
 //(used for predefining synergies)
-static std::vector<std::string> to_list(std::string s) {
-    std::vector<std::string> result;
-    std::string buffer;
+static vector<string> to_list(string s) {
+    vector<string> result;
+    string buffer;
     for (size_t i = 0; i < s.size(); ++i) {
         if (s[i] == ',') {
             result.push_back(buffer);
@@ -147,22 +168,22 @@ static std::vector<std::string> to_list(std::string s) {
 }
 
 //Note: originally the following function was templated (predefine<T>),
-//but there is no Synergy<LandmarkGraph>, so I split it up for now.
-static void predefine_heuristic(std::string s, bool dry_run) {
+//but there is no Synergy<LandmarkFactory>, so I split it up for now.
+static void predefine_heuristic(string s, bool dry_run) {
     //remove newlines so they don't mess anything up:
-    s.erase(std::remove(s.begin(), s.end(), '\n'), s.end());
+    s.erase(remove(s.begin(), s.end(), '\n'), s.end());
 
     size_t split = s.find("=");
-    std::string ls = s.substr(0, split);
-    std::vector<std::string> definees = to_list(ls);
-    std::string rs = s.substr(split + 1);
+    string ls = s.substr(0, split);
+    vector<string> definees = to_list(ls);
+    string rs = s.substr(split + 1);
     OptionParser op(rs, dry_run);
     if (definees.size() == 1) { //normal predefinition
         Predefinitions<Heuristic *>::instance()->predefine(
             definees[0], op.start_parsing<Heuristic *>());
     } else if (definees.size() > 1) { //synergy
         if (!dry_run) {
-            std::vector<Heuristic *> heur =
+            vector<Heuristic *> heur =
                 op.start_parsing<Synergy *>()->heuristics;
             for (size_t i = 0; i < definees.size(); ++i) {
                 Predefinitions<Heuristic *>::instance()->predefine(
@@ -179,18 +200,18 @@ static void predefine_heuristic(std::string s, bool dry_run) {
     }
 }
 
-static void predefine_lmgraph(std::string s, bool dry_run) {
+static void predefine_lmgraph(string s, bool dry_run) {
     //remove newlines so they don't mess anything up:
-    s.erase(std::remove(s.begin(), s.end(), '\n'), s.end());
+    s.erase(remove(s.begin(), s.end(), '\n'), s.end());
 
     size_t split = s.find("=");
-    std::string ls = s.substr(0, split);
-    std::vector<std::string> definees = to_list(ls);
-    std::string rs = s.substr(split + 1);
+    string ls = s.substr(0, split);
+    vector<string> definees = to_list(ls);
+    string rs = s.substr(split + 1);
     OptionParser op(rs, dry_run);
     if (definees.size() == 1) {
-        Predefinitions<Landmarks::LandmarkGraph *>::instance()->predefine(
-            definees[0], op.start_parsing<Landmarks::LandmarkGraph *>());
+        Predefinitions<landmarks::LandmarkFactory *>::instance()->predefine(
+            definees[0], op.start_parsing<landmarks::LandmarkFactory *>());
     } else {
         op.error("predefinition has invalid left side");
     }
@@ -306,7 +327,7 @@ SearchEngine *OptionParser::parse_cmd_line_aux(
                 throw ArgError("missing argument after --random-seed");
             ++i;
             int seed = parse_int_arg(arg, args[i]);
-            g_rng.seed(seed);
+            g_rng()->seed(seed);
             cout << "random seed: " << seed << endl;
         } else if ((arg.compare("--help") == 0) && dry_run) {
             cout << "Help:" << endl;
@@ -388,7 +409,7 @@ string OptionParser::usage(string progname) {
 
 static ParseTree generate_parse_tree(string config) {
     //remove newlines so they don't mess anything up:
-    config.erase(std::remove(config.begin(), config.end(), '\n'), config.end());
+    config.erase(remove(config.begin(), config.end(), '\n'), config.end());
 
     ParseTree tr;
     ParseTree::iterator top = tr.begin();
@@ -580,7 +601,7 @@ Options OptionParser::parse() {
     return opts;
 }
 
-bool OptionParser::is_valid_option(const std::string &k) const {
+bool OptionParser::is_valid_option(const string &k) const {
     assert(!help_mode());
     return find(valid_keys.begin(), valid_keys.end(), k) != valid_keys.end();
 }
@@ -628,4 +649,5 @@ bool OptionParser::help_mode() const {
 
 const ParseTree *OptionParser::get_parse_tree() {
     return &parse_tree;
+}
 }

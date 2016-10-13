@@ -6,14 +6,14 @@
 
 #include "../option_parser.h"
 #include "../plugin.h"
-#include "../timer.h"
+
+#include "../utils/timer.h"
 
 #include <unordered_set>
 
 using namespace std;
 
-
-namespace Potentials {
+namespace potentials {
 DiversePotentialHeuristics::DiversePotentialHeuristics(const Options &opts)
     : optimizer(opts),
       max_num_heuristics(opts.get<int>("max_num_heuristics")),
@@ -23,7 +23,7 @@ DiversePotentialHeuristics::DiversePotentialHeuristics(const Options &opts)
 SamplesToFunctionsMap
 DiversePotentialHeuristics::filter_samples_and_compute_functions(
     const vector<State> &samples) {
-    Timer filtering_timer;
+    utils::Timer filtering_timer;
     unordered_set<State> dead_ends;
     int num_duplicates = 0;
     int num_dead_ends = 0;
@@ -78,7 +78,7 @@ DiversePotentialHeuristics::find_function_and_remove_covered_samples(
         uncovered_samples.push_back(state);
     }
     optimizer.optimize_for_samples(uncovered_samples);
-    std::unique_ptr<PotentialFunction> function = optimizer.get_potential_function();
+    unique_ptr<PotentialFunction> function = optimizer.get_potential_function();
     size_t last_num_samples = samples_to_functions.size();
     remove_covered_samples(*function, samples_to_functions);
     if (samples_to_functions.size() == last_num_samples) {
@@ -97,7 +97,7 @@ DiversePotentialHeuristics::find_function_and_remove_covered_samples(
 
 void DiversePotentialHeuristics::cover_samples(
     SamplesToFunctionsMap &samples_to_functions) {
-    Timer covering_timer;
+    utils::Timer covering_timer;
     while (!samples_to_functions.empty() &&
            static_cast<int>(diverse_functions.size()) < max_num_heuristics) {
         cout << "Find heuristic #" << diverse_functions.size() + 1 << endl;
@@ -107,9 +107,10 @@ void DiversePotentialHeuristics::cover_samples(
     cout << "Time for covering samples: " << covering_timer << endl;
 }
 
-vector<unique_ptr<PotentialFunction>> && DiversePotentialHeuristics::find_functions() {
+vector<unique_ptr<PotentialFunction>>
+DiversePotentialHeuristics::find_functions() {
     assert(diverse_functions.empty());
-    Timer init_timer;
+    utils::Timer init_timer;
 
     // Sample states.
     vector<State> samples = sample_without_dead_end_detection(

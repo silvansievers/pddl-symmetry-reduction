@@ -1,16 +1,21 @@
 #include "label_reduction.h"
 
 #include "factored_transition_system.h"
+#include "label_equivalence_relation.h"
 #include "labels.h"
 #include "transition_system.h"
+#include "types.h"
 
 #include "../equivalence_relation.h"
-#include "../globals.h"
 #include "../option_parser.h"
 #include "../plugin.h"
-#include "../rng.h"
 #include "../task_proxy.h"
-#include "../utilities.h"
+
+#include "../utils/collections.h"
+#include "../utils/markup.h"
+#include "../utils/rng.h"
+#include "../utils/rng_options.h"
+#include "../utils/system.h"
 
 #include <cassert>
 #include <iostream>
@@ -18,13 +23,15 @@
 #include <unordered_map>
 
 using namespace std;
+using utils::ExitCode;
 
-namespace MergeAndShrink {
+namespace merge_and_shrink {
 LabelReduction::LabelReduction(const Options &options)
     : lr_before_shrinking(options.get<bool>("before_shrinking")),
       lr_before_merging(options.get<bool>("before_merging")),
       lr_method(LabelReductionMethod(options.get_enum("method"))),
       lr_system_order(LabelReductionSystemOrder(options.get_enum("system_order"))) {
+    rng = utils::parse_rng_from_options(options);
 }
 
 bool LabelReduction::initialized() const {
@@ -42,7 +49,7 @@ void LabelReduction::initialize(const TaskProxy &task_proxy) {
         for (size_t i = 0; i < max_transition_system_count; ++i)
             transition_system_order.push_back(i);
         if (lr_system_order == RANDOM) {
-            g_rng.shuffle(transition_system_order);
+            rng->shuffle(transition_system_order);
         }
     } else {
         assert(lr_system_order == REVERSE);
@@ -54,7 +61,8 @@ void LabelReduction::initialize(const TaskProxy &task_proxy) {
 void LabelReduction::compute_label_mapping(
     const EquivalenceRelation *relation,
     const FactoredTransitionSystem &fts,
-    vector<pair<int, vector<int>>> &label_mapping) {
+    vector<pair<int, vector<int>>> &label_mapping,
+    Verbosity verbosity) {
     const Labels &labels = fts.get_labels();
     int next_new_label_no = labels.get_size();
     int num_labels = 0;
@@ -87,7 +95,7 @@ void LabelReduction::compute_label_mapping(
         }
     }
     int number_reduced_labels = num_labels - num_labels_after_reduction;
-    if (number_reduced_labels > 0) {
+    if (verbosity >= Verbosity::VERBOSE && number_reduced_labels > 0) {
         cout << "Label reduction: "
              << num_labels << " labels, "
              << num_labels_after_reduction << " after reduction"
@@ -118,21 +126,22 @@ EquivalenceRelation *LabelReduction::compute_combinable_equivalence_relation(
     EquivalenceRelation *relation =
         EquivalenceRelation::from_annotated_elements<int>(num_labels, annotated_labels);
 
-    for (int i = 0; i < fts.get_size(); ++i) {
-        if (!fts.is_active(i) || i == ts_index) {
-            continue;
-        }
-        const TransitionSystem &ts = fts.get_ts(i);
-        for (TSConstIterator group_it = ts.begin();
-             group_it != ts.end(); ++group_it) {
-            relation->refine(group_it.begin(), group_it.end());
+    for (int index : fts) {
+        if (index != ts_index) {
+            const TransitionSystem &ts = fts.get_ts(index);
+            for (const GroupAndTransitions &gat : ts) {
+                const LabelGroup &label_group = gat.label_group;
+                relation->refine(label_group.begin(), label_group.end());
+            }
         }
     }
     return relation;
 }
 
-void LabelReduction::reduce(pair<int, int> next_merge,
-                            FactoredTransitionSystem &fts) {
+bool LabelReduction::reduce(
+    pair<int, int> next_merge,
+    FactoredTransitionSystem &fts,
+    Verbosity verbosity) {
     assert(initialized());
     assert(reduce_before_shrinking() || reduce_before_merging());
     int num_transition_systems = fts.get_size();
@@ -148,29 +157,32 @@ void LabelReduction::reduce(pair<int, int> next_merge,
         assert(fts.is_active(next_merge.first));
         assert(fts.is_active(next_merge.second));
 
+        bool reduced = false;
         EquivalenceRelation *relation = compute_combinable_equivalence_relation(
             next_merge.first,
             fts);
         vector<pair<int, vector<int>>> label_mapping;
-        compute_label_mapping(relation, fts, label_mapping);
+        compute_label_mapping(relation, fts, label_mapping, verbosity);
         if (!label_mapping.empty()) {
             fts.apply_label_reduction(label_mapping,
                                       next_merge.first);
+            reduced = true;
         }
         delete relation;
         relation = 0;
-        release_vector_memory(label_mapping);
+        utils::release_vector_memory(label_mapping);
 
         relation = compute_combinable_equivalence_relation(
             next_merge.second,
             fts);
-        compute_label_mapping(relation, fts, label_mapping);
+        compute_label_mapping(relation, fts, label_mapping, verbosity);
         if (!label_mapping.empty()) {
             fts.apply_label_reduction(label_mapping,
                                       next_merge.second);
+            reduced = true;
         }
         delete relation;
-        return;
+        return reduced;
     }
 
     // Make sure that we start with an index not ouf of range for
@@ -179,7 +191,7 @@ void LabelReduction::reduce(pair<int, int> next_merge,
     assert(!transition_system_order.empty());
     while (transition_system_order[tso_index] >= num_transition_systems) {
         ++tso_index;
-        assert(in_bounds(tso_index, transition_system_order));
+        assert(utils::in_bounds(tso_index, transition_system_order));
     }
 
     int max_iterations;
@@ -193,6 +205,7 @@ void LabelReduction::reduce(pair<int, int> next_merge,
 
     int num_unsuccessful_iterations = 0;
 
+    bool reduced = false;
     for (int i = 0; i < max_iterations; ++i) {
         int ts_index = transition_system_order[tso_index];
 
@@ -201,7 +214,7 @@ void LabelReduction::reduce(pair<int, int> next_merge,
             EquivalenceRelation *relation =
                 compute_combinable_equivalence_relation(ts_index,
                                                         fts);
-            compute_label_mapping(relation, fts, label_mapping);
+            compute_label_mapping(relation, fts, label_mapping, verbosity);
             delete relation;
         }
 
@@ -210,6 +223,7 @@ void LabelReduction::reduce(pair<int, int> next_merge,
             // it as unsuccessful iterations (the size of the vector matters).
             ++num_unsuccessful_iterations;
         } else {
+            reduced = true;
             num_unsuccessful_iterations = 0;
             fts.apply_label_reduction(label_mapping, ts_index);
         }
@@ -227,6 +241,7 @@ void LabelReduction::reduce(pair<int, int> next_merge,
             }
         }
     }
+    return reduced;
 }
 
 void LabelReduction::dump_options() const {
@@ -269,14 +284,17 @@ void LabelReduction::dump_options() const {
 
 static shared_ptr<LabelReduction>_parse(OptionParser &parser) {
     parser.document_synopsis(
-        "Generalized label reduction",
-        "This class implements the generalized label reduction described "
-        "in the following paper:\n\n"
-        " * Silvan Sievers, Martin Wehrle, and Malte Helmert.<<BR>>\n"
-        " [Generalized Label Reduction for Merge-and-Shrink Heuristics "
-        "http://ai.cs.unibas.ch/papers/sievers-et-al-aaai2014.pdf].<<BR>>\n "
-        "In //Proceedings of the 28th AAAI Conference on Artificial "
-        "Intelligence (AAAI 2014)//, pp. 2358-2366. AAAI Press 2014.");
+        "Exact generalized label reduction",
+        "This class implements the exact generalized label reduction "
+        "described in the following paper:" +
+        utils::format_paper_reference(
+            {"Silvan Sievers", "Martin Wehrle", "Malte Helmert"},
+            "Generalized Label Reduction for Merge-and-Shrink Heuristics",
+            "http://ai.cs.unibas.ch/papers/sievers-et-al-aaai2014.pdf",
+            "Proceedings of the 28th AAAI Conference on Artificial"
+            " Intelligence (AAAI 2014)",
+            "2358-2366",
+            "AAAI Press 2014"));
     parser.add_option<bool>("before_shrinking",
                             "apply label reduction before shrinking");
     parser.add_option<bool>("before_merging",
@@ -331,6 +349,8 @@ static shared_ptr<LabelReduction>_parse(OptionParser &parser) {
                            "label_reduction_method.",
                            "RANDOM",
                            label_reduction_system_order_doc);
+    // add random_seed option
+    utils::add_rng_options(parser);
 
     Options opts = parser.parse();
 
@@ -342,7 +362,7 @@ static shared_ptr<LabelReduction>_parse(OptionParser &parser) {
         if (!lr_before_shrinking && !lr_before_merging) {
             cerr << "Please turn on at least one of the options "
                  << "before_shrinking or before_merging!" << endl;
-            exit_with(EXIT_INPUT_ERROR);
+            utils::exit_with(ExitCode::INPUT_ERROR);
         }
         return nullptr;
     } else {
@@ -352,8 +372,7 @@ static shared_ptr<LabelReduction>_parse(OptionParser &parser) {
 
 static PluginTypePlugin<LabelReduction> _type_plugin(
     "LabelReduction",
-    // TODO: Replace empty string by synopsis for the wiki page.
-    "");
+    "This page describes the current single 'option' for label reduction.");
 
 static PluginShared<LabelReduction> _plugin("exact", _parse);
 }

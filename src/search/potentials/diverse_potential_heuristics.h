@@ -7,8 +7,7 @@
 #include <unordered_map>
 #include <vector>
 
-
-namespace Potentials {
+namespace potentials {
 using SamplesToFunctionsMap =
           std::unordered_map<State, std::unique_ptr<PotentialFunction>>;
 
@@ -43,11 +42,11 @@ class DiversePotentialHeuristics {
     void cover_samples(SamplesToFunctionsMap &samples_to_functions);
 
 public:
-    explicit DiversePotentialHeuristics(const Options &opts);
+    explicit DiversePotentialHeuristics(const options::Options &opts);
     ~DiversePotentialHeuristics() = default;
 
     // Sample states, then cover them.
-    std::vector<std::unique_ptr<PotentialFunction>> && find_functions();
+    std::vector<std::unique_ptr<PotentialFunction>> find_functions();
 };
 }
 #endif

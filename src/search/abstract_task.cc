@@ -1,15 +1,23 @@
 #include "abstract_task.h"
 
-#include "cost_adapted_task.h"
 #include "globals.h"
 #include "operator_cost.h"
 #include "option_parser_util.h"
 #include "plugin.h"
-#include "utilities.h"
+
+#include "tasks/cost_adapted_task.h"
+
+#include "utils/system.h"
 
 #include <iostream>
 
 using namespace std;
+using utils::ExitCode;
+
+ostream &operator<<(ostream &os, const FactPair &fact_pair) {
+    os << fact_pair.var << "=" << fact_pair.value;
+    return os;
+}
 
 const shared_ptr<AbstractTask> get_task_from_options(const Options &opts) {
     /*
@@ -27,7 +35,7 @@ const shared_ptr<AbstractTask> get_task_from_options(const Options &opts) {
         cerr << "You may specify either the cost_type option (deprecated) or "
              << "use transform=adapt_costs(...) (recommended), but not both."
              << endl;
-        exit_with(EXIT_INPUT_ERROR);
+        utils::exit_with(ExitCode::INPUT_ERROR);
     }
     shared_ptr<AbstractTask> task;
     if (opts.contains("transform")) {
@@ -36,7 +44,7 @@ const shared_ptr<AbstractTask> get_task_from_options(const Options &opts) {
         Options options;
         options.set<shared_ptr<AbstractTask>>("transform", g_root_task());
         options.set<int>("cost_type", cost_type);
-        task = make_shared<CostAdaptedTask>(options);
+        task = make_shared<tasks::CostAdaptedTask>(options);
     } else {
         task = g_root_task();
     }

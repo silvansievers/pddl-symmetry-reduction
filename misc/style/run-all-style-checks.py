@@ -7,6 +7,7 @@ Run some syntax checks. Return 0 if all tests pass and 1 otherwise.
 
 from __future__ import print_function
 
+import glob
 import os
 import re
 import subprocess
@@ -38,7 +39,15 @@ def _run_pyflakes(path):
         python_files.extend([
             os.path.join(root, f) for f in files
             if f.endswith(".py") and f != "__init__.py"])
-    return subprocess.call(["pyflakes"] + python_files) == 0
+    try:
+        return subprocess.check_call(["pyflakes"] + python_files) == 0
+    except OSError as err:
+        if err.errno == 2:
+            print(
+                "Python style checks need pyflakes. Please install it "
+                "with \"sudo apt-get install pyflakes\".")
+        else:
+            raise
 
 def check_translator_pyflakes():
     return _run_pyflakes(os.path.join(SRC_DIR, "translate"))
@@ -51,8 +60,16 @@ def check_include_guard_convention():
     return subprocess.call("./check-include-guard-convention.py", cwd=DIR) == 0
 
 
+def check_cc_files():
+    search_dir = os.path.join(SRC_DIR, "search")
+    cc_files = (
+        glob.glob(os.path.join(search_dir, "*.cc")) +
+        glob.glob(os.path.join(search_dir, "*", "*.cc")))
+    return subprocess.call(["./check-cc-file.py"] + cc_files, cwd=DIR) == 0
+
+
 def check_preprocessor_and_search_style():
-    output = subprocess.check_output(["hg", "uncrustify", "-X", "re:^src/VAL"])
+    output = subprocess.check_output(["hg", "uncrustify"])
     if output:
         print('Run "hg uncrustify -m" to fix the style in the following files:')
         print(output.rstrip())

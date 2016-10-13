@@ -1,15 +1,21 @@
 #include "h_m_landmarks.h"
 
+#include "../abstract_task.h"
+#include "../option_parser.h"
 #include "../plugin.h"
 
-using namespace std;
+#include "../utils/collections.h"
+#include "../utils/system.h"
 
-namespace Landmarks {
-std::ostream &operator<<(std::ostream &os, const Fluent &p) {
+using namespace std;
+using utils::ExitCode;
+
+namespace landmarks {
+ostream &operator<<(ostream &os, const Fluent &p) {
     return os << "(" << p.first << ", " << p.second << ")";
 }
 
-std::ostream &operator<<(std::ostream &os, const FluentSet &fs) {
+ostream &operator<<(ostream &os, const FluentSet &fs) {
     FluentSet::const_iterator it;
     os << "[";
     for (it = fs.begin(); it != fs.end(); ++it) {
@@ -20,8 +26,8 @@ std::ostream &operator<<(std::ostream &os, const FluentSet &fs) {
 }
 
 template<typename T>
-std::ostream &operator<<(std::ostream &os, const std::list<T> &alist) {
-    typename std::list<T>::const_iterator it;
+ostream &operator<<(ostream &os, const list<T> &alist) {
+    typename list<T>::const_iterator it;
 
     os << "(";
     for (it = alist.begin(); it != alist.end(); ++it) {
@@ -33,9 +39,9 @@ std::ostream &operator<<(std::ostream &os, const std::list<T> &alist) {
 
 // alist = alist \cup other
 template<typename T>
-void union_with(std::list<T> &alist, const std::list<T> &other) {
-    typename std::list<T>::iterator it1 = alist.begin();
-    typename std::list<T>::const_iterator it2 = other.begin();
+void union_with(list<T> &alist, const list<T> &other) {
+    typename list<T>::iterator it1 = alist.begin();
+    typename list<T>::const_iterator it2 = other.begin();
 
     while ((it1 != alist.end()) && (it2 != other.end())) {
         if (*it1 < *it2) {
@@ -53,9 +59,9 @@ void union_with(std::list<T> &alist, const std::list<T> &other) {
 
 // alist = alist \cap other
 template<typename T>
-void intersect_with(std::list<T> &alist, const std::list<T> &other) {
-    typename std::list<T>::iterator it1 = alist.begin(), tmp;
-    typename std::list<T>::const_iterator it2 = other.begin();
+void intersect_with(list<T> &alist, const list<T> &other) {
+    typename list<T>::iterator it1 = alist.begin(), tmp;
+    typename list<T>::const_iterator it2 = other.begin();
 
     while ((it1 != alist.end()) && (it2 != other.end())) {
         if (*it1 < *it2) {
@@ -75,9 +81,9 @@ void intersect_with(std::list<T> &alist, const std::list<T> &other) {
 
 // alist = alist \setminus other
 template<typename T>
-void set_minus(std::list<T> &alist, const std::list<T> &other) {
-    typename std::list<T>::iterator it1 = alist.begin(), tmp;
-    typename std::list<T>::const_iterator it2 = other.begin();
+void set_minus(list<T> &alist, const list<T> &other) {
+    typename list<T>::iterator it1 = alist.begin(), tmp;
+    typename list<T>::const_iterator it2 = other.begin();
 
     while ((it1 != alist.end()) && (it2 != other.end())) {
         if (*it1 < *it2) {
@@ -96,8 +102,8 @@ void set_minus(std::list<T> &alist, const std::list<T> &other) {
 
 // alist = alist \cup {val}
 template<typename T>
-void insert_into(std::list<T> &alist, const T &val) {
-    typename std::list<T>::iterator it1 = alist.begin();
+void insert_into(list<T> &alist, const T &val) {
+    typename list<T>::iterator it1 = alist.begin();
 
     while (it1 != alist.end()) {
         if (*it1 > val) {
@@ -113,8 +119,8 @@ void insert_into(std::list<T> &alist, const T &val) {
 }
 
 template<typename T>
-bool contains(std::list<T> &alist, const T &val) {
-    typename std::list<T>::iterator it1 = alist.begin();
+bool contains(list<T> &alist, const T &val) {
+    typename list<T>::iterator it1 = alist.begin();
 
     for (; it1 != alist.end(); ++it1) {
         if (*it1 == val) {
@@ -129,7 +135,7 @@ bool contains(std::list<T> &alist, const T &val) {
 // (look at all the variables in the problem)
 void HMLandmarks::get_m_sets_(int m, int num_included, int current_var,
                               FluentSet &current,
-                              std::vector<FluentSet > &subsets) {
+                              vector<FluentSet> &subsets) {
     int num_variables = g_variable_domain.size();
     if (num_included == m) {
         subsets.push_back(current);
@@ -152,7 +158,7 @@ void HMLandmarks::get_m_sets_(int m, int num_included, int current_var,
         }
 
         if (use_var) {
-            current.push_back(std::make_pair(current_var, i));
+            current.push_back(make_pair(current_var, i));
             get_m_sets_(m, num_included + 1, current_var + 1, current, subsets);
             current.pop_back();
         }
@@ -164,7 +170,7 @@ void HMLandmarks::get_m_sets_(int m, int num_included, int current_var,
 // find all size m or less subsets of superset
 void HMLandmarks::get_m_sets_of_set_(int m, int num_included, int current_var_index,
                                      FluentSet &current,
-                                     std::vector<FluentSet > &subsets,
+                                     vector<FluentSet> &subsets,
                                      const FluentSet &superset) {
     if (num_included == m) {
         subsets.push_back(current);
@@ -203,7 +209,7 @@ void HMLandmarks::get_m_sets_of_set_(int m, int num_included, int current_var_in
 void HMLandmarks::get_split_m_sets_(
     int m, int ss1_num_included, int ss2_num_included,
     int ss1_var_index, int ss2_var_index,
-    FluentSet &current, std::vector<FluentSet> &subsets,
+    FluentSet &current, vector<FluentSet> &subsets,
     const FluentSet &superset1, const FluentSet &superset2) {
     /*
        if( ((ss1_var_index == superset1.size()) && (ss1_num_included == 0)) ||
@@ -281,13 +287,13 @@ void HMLandmarks::get_split_m_sets_(
 // e.g. we don't want to represent (truck1-loc x, truck2-loc y) type stuff
 
 // get partial assignments of size <= m in the problem
-void HMLandmarks::get_m_sets(int m, std::vector<FluentSet> &subsets) {
+void HMLandmarks::get_m_sets(int m, vector<FluentSet> &subsets) {
     FluentSet c;
     get_m_sets_(m, 0, 0, c, subsets);
 }
 
 // get subsets of superset with size <= m
-void HMLandmarks::get_m_sets(int m, std::vector<FluentSet> &subsets, const FluentSet &superset) {
+void HMLandmarks::get_m_sets(int m, vector<FluentSet> &subsets, const FluentSet &superset) {
     FluentSet c;
     get_m_sets_of_set_(m, 0, 0, c, subsets, superset);
 }
@@ -296,7 +302,7 @@ void HMLandmarks::get_m_sets(int m, std::vector<FluentSet> &subsets, const Fluen
 // have at least one element in ss1 and same in ss2
 // assume disjoint
 void HMLandmarks::get_split_m_sets(
-    int m, std::vector<FluentSet> &subsets,
+    int m, vector<FluentSet> &subsets,
     const FluentSet &superset1, const FluentSet &superset2) {
     FluentSet c;
     get_split_m_sets_(m, 0, 0, 0, 0, c, subsets, superset1, superset2);
@@ -304,11 +310,11 @@ void HMLandmarks::get_split_m_sets(
 
 // get subsets of state with size <= m
 void HMLandmarks::get_m_sets(int m,
-                             std::vector<FluentSet> &subsets,
+                             vector<FluentSet> &subsets,
                              const GlobalState &s) {
     FluentSet state_fluents;
     for (size_t i = 0; i < g_variable_domain.size(); ++i) {
-        state_fluents.push_back(std::make_pair(i, s[i]));
+        state_fluents.push_back(make_pair(i, s[i]));
     }
     get_m_sets(m, subsets, state_fluents);
 }
@@ -322,11 +328,11 @@ void HMLandmarks::print_proposition(const pair<int, int> &fluent) const {
 void get_operator_precondition(int op_index, FluentSet &pc) {
     GlobalOperator &op = g_operators[op_index];
 
-    const std::vector<GlobalCondition> &preconditions = op.get_preconditions();
+    const vector<GlobalCondition> &preconditions = op.get_preconditions();
     for (size_t i = 0; i < preconditions.size(); ++i)
         pc.push_back(make_pair(preconditions[i].var, preconditions[i].val));
 
-    std::sort(pc.begin(), pc.end());
+    sort(pc.begin(), pc.end());
 }
 
 // get facts that are always true after the operator application
@@ -334,9 +340,9 @@ void get_operator_precondition(int op_index, FluentSet &pc) {
 void get_operator_postcondition(int op_index, FluentSet &post) {
     GlobalOperator &op = g_operators[op_index];
 
-    const std::vector<GlobalCondition> &preconditions = op.get_preconditions();
-    const std::vector<GlobalEffect> &effects = op.get_effects();
-    std::vector<bool> has_effect_on_var(g_variable_domain.size(), false);
+    const vector<GlobalCondition> &preconditions = op.get_preconditions();
+    const vector<GlobalEffect> &effects = op.get_effects();
+    vector<bool> has_effect_on_var(g_variable_domain.size(), false);
 
     for (size_t i = 0; i < effects.size(); ++i) {
         post.push_back(make_pair(effects[i].var, effects[i].val));
@@ -348,16 +354,16 @@ void get_operator_postcondition(int op_index, FluentSet &post) {
             post.push_back(make_pair(preconditions[i].var, preconditions[i].val));
     }
 
-    std::sort(post.begin(), post.end());
+    sort(post.begin(), post.end());
 }
 
 
 void HMLandmarks::print_pm_op(const PMOp &op) {
-    std::set<Fluent> pcs, effs, cond_pc, cond_eff;
-    std::vector<std::pair<std::set<Fluent>, std::set<Fluent>>> conds;
-    std::set<Fluent>::iterator it;
+    set<Fluent> pcs, effs, cond_pc, cond_eff;
+    vector<pair<set<Fluent>, set<Fluent>>> conds;
+    set<Fluent>::iterator it;
 
-    std::vector<int>::const_iterator v_it;
+    vector<int>::const_iterator v_it;
 
     for (v_it = op.pc.begin(); v_it != op.pc.end(); ++v_it) {
         for (size_t j = 0; j < h_m_table_[*v_it].fluents.size(); ++j) {
@@ -374,71 +380,71 @@ void HMLandmarks::print_pm_op(const PMOp &op) {
         cond_eff.clear();
         int pm_fluent;
         size_t j;
-        std::cout << "PC:" << std::endl;
+        cout << "PC:" << endl;
         for (j = 0; (pm_fluent = op.cond_noops[i][j]) != -1; ++j) {
             print_fluentset(h_m_table_[pm_fluent].fluents);
-            std::cout << std::endl;
+            cout << endl;
 
             for (size_t k = 0; k < h_m_table_[pm_fluent].fluents.size(); ++k) {
                 cond_pc.insert(h_m_table_[pm_fluent].fluents[k]);
             }
         }
         // advance to effects section
-        std::cout << std::endl;
+        cout << endl;
         ++j;
 
-        std::cout << "EFF:" << std::endl;
+        cout << "EFF:" << endl;
         for (; j < op.cond_noops[i].size(); ++j) {
             int pm_fluent = op.cond_noops[i][j];
 
             print_fluentset(h_m_table_[pm_fluent].fluents);
-            std::cout << std::endl;
+            cout << endl;
 
             for (size_t k = 0; k < h_m_table_[pm_fluent].fluents.size(); ++k) {
                 cond_eff.insert(h_m_table_[pm_fluent].fluents[k]);
             }
         }
-        conds.push_back(std::make_pair(cond_pc, cond_eff));
-        std::cout << std::endl << std::endl << std::endl;
+        conds.push_back(make_pair(cond_pc, cond_eff));
+        cout << endl << endl << endl;
     }
 
-    std::cout << "Action " << op.index << std::endl;
-    std::cout << "Precondition: ";
+    cout << "Action " << op.index << endl;
+    cout << "Precondition: ";
     for (it = pcs.begin(); it != pcs.end(); ++it) {
         print_proposition(*it);
-        std::cout << " ";
+        cout << " ";
     }
 
-    std::cout << std::endl << "Effect: ";
+    cout << endl << "Effect: ";
     for (it = effs.begin(); it != effs.end(); ++it) {
         print_proposition(*it);
-        std::cout << " ";
+        cout << " ";
     }
-    std::cout << std::endl << "Conditionals: " << std::endl;
+    cout << endl << "Conditionals: " << endl;
     for (size_t i = 0; i < conds.size(); ++i) {
-        std::cout << "Cond PC #" << i << ":" << std::endl << "\t";
+        cout << "Cond PC #" << i << ":" << endl << "\t";
         for (it = conds[i].first.begin(); it != conds[i].first.end(); ++it) {
             print_proposition(*it);
-            std::cout << " ";
+            cout << " ";
         }
-        std::cout << std::endl << "Cond Effect #" << i << ":" << std::endl << "\t";
+        cout << endl << "Cond Effect #" << i << ":" << endl << "\t";
         for (it = conds[i].second.begin(); it != conds[i].second.end(); ++it) {
             print_proposition(*it);
-            std::cout << " ";
+            cout << " ";
         }
-        std::cout << std::endl << std::endl;
+        cout << endl << endl;
     }
 }
 
 void HMLandmarks::print_fluentset(const FluentSet &fs) {
     FluentSet::const_iterator it;
 
-    std::cout << "( ";
+    cout << "( ";
     for (it = fs.begin(); it != fs.end(); ++it) {
         print_proposition(*it);
-        std::cout << " ";
+        cout << " ";
     }
-    std::cout << ")";
+    cout << ")";
 }
 
 // check whether fs2 is a possible noop set for action with fs1 as effect
@@ -458,7 +464,8 @@ bool HMLandmarks::possible_noop_set(const FluentSet &fs1, const FluentSet &fs2) 
 
     for (fs1it = fs1.begin(); fs1it != fs1.end(); ++fs1it) {
         for (fs2it = fs2.begin(); fs2it != fs2.end(); ++fs2it) {
-            if (are_mutex(make_pair(fs1it->first, fs1it->second), make_pair(fs2it->first, fs2it->second)))
+            // TODO(issue635): Use FactPair struct right away.
+            if (are_mutex(FactPair(fs1it->first, fs1it->second), FactPair(fs2it->first, fs2it->second)))
                 return false;
         }
     }
@@ -470,7 +477,7 @@ bool HMLandmarks::possible_noop_set(const FluentSet &fs1, const FluentSet &fs2) 
 // make the operators of the P_m problem
 void HMLandmarks::build_pm_ops() {
     FluentSet pc, eff;
-    std::vector<FluentSet> pc_subsets, eff_subsets, noop_pc_subsets, noop_eff_subsets;
+    vector<FluentSet> pc_subsets, eff_subsets, noop_pc_subsets, noop_eff_subsets;
 
     static int op_count = 0;
     int set_index, noop_index;
@@ -504,7 +511,7 @@ void HMLandmarks::build_pm_ops() {
             assert(set_indices_.find(pc_subsets[j]) != set_indices_.end());
             set_index = set_indices_[pc_subsets[j]];
             op.pc.push_back(set_index);
-            h_m_table_[set_index].pc_for.push_back(std::make_pair(i, -1));
+            h_m_table_[set_index].pc_for.push_back(make_pair(i, -1));
         }
 
         // same for effects
@@ -531,7 +538,7 @@ void HMLandmarks::build_pm_ops() {
                 // for each such set, add a "conditional effect" to the operator
                 op.cond_noops.resize(op.cond_noops.size() + 1);
 
-                std::vector<int> &this_cond_noop = op.cond_noops.back();
+                vector<int> &this_cond_noop = op.cond_noops.back();
 
                 noop_pc_subsets.clear();
                 noop_eff_subsets.clear();
@@ -554,7 +561,7 @@ void HMLandmarks::build_pm_ops() {
                     set_index = set_indices_[noop_pc_subsets[j]];
                     this_cond_noop.push_back(set_index);
                     // these facts are "conditional pcs" for this action
-                    h_m_table_[set_index].pc_for.push_back(std::make_pair(i, noop_index));
+                    h_m_table_[set_index].pc_for.push_back(make_pair(i, noop_index));
                 }
 
                 // separator
@@ -579,16 +586,16 @@ void HMLandmarks::build_pm_ops() {
 
 bool HMLandmarks::interesting(int var1, int val1, int var2, int val2) {
     // mutexes can always be safely pruned
-    return !are_mutex(make_pair(var1, val1), make_pair(var2, val2));
+    return !are_mutex(FactPair(var1, val1), FactPair(var2, val2));
 }
 
-HMLandmarks::HMLandmarks(const Options &opts)
+HMLandmarks::HMLandmarks(const options::Options &opts)
     : LandmarkFactory(opts),
       m_(opts.get<int>("m")) {
-    std::cout << "H_m_Landmarks(" << m_ << ")" << std::endl;
+    cout << "H_m_Landmarks(" << m_ << ")" << endl;
     if (!g_axioms.empty()) {
         cerr << "H_m_Landmarks do not support axioms" << endl;
-        exit_with(EXIT_UNSUPPORTED);
+        utils::exit_with(ExitCode::UNSUPPORTED);
     }
     // need this to be able to print propositions for debugging
     // already called in global.cc
@@ -600,9 +607,9 @@ HMLandmarks::HMLandmarks(const Options &opts)
 
 void HMLandmarks::init() {
     // get all the m or less size subsets in the domain
-    std::vector<std::vector<Fluent>> msets;
+    vector<vector<Fluent>> msets;
     get_m_sets(m_, msets);
-    //  std::cout << "P^m index\tP fluents" << std::endl;
+    //  cout << "P^m index\tP fluents" << endl;
 
     // map each set to an integer
     for (size_t i = 0; i < msets.size(); ++i) {
@@ -610,39 +617,38 @@ void HMLandmarks::init() {
         set_indices_[msets[i]] = i;
         h_m_table_[i].fluents = msets[i];
         /*
-           std::cout << i << "\t";
+           cout << i << "\t";
            print_fluentset(h_m_table_[i].fluents);
-           std::cout << std::endl;
+           cout << endl;
          */
     }
-    std::cout << "Using " << h_m_table_.size() << " P^m fluents."
-              << std::endl;
+    cout << "Using " << h_m_table_.size() << " P^m fluents." << endl;
 
     // unsatisfied pc counts are now in build pm ops
 
     build_pm_ops();
-    //  std::cout << "Built P(m) ops, total: " << pm_ops_.size() << "." << std::endl;
+    //  cout << "Built P(m) ops, total: " << pm_ops_.size() << "." << endl;
 }
 
-void HMLandmarks::calc_achievers() {
-    std::cout << "Calculating achievers." << std::endl;
+void HMLandmarks::calc_achievers(Exploration &) {
+    cout << "Calculating achievers." << endl;
 
     // first_achievers are already filled in by compute_h_m_landmarks
     // here only have to do possible_achievers
-    for (std::set<LandmarkNode *>::iterator it = lm_graph->get_nodes().begin();
+    for (set<LandmarkNode *>::iterator it = lm_graph->get_nodes().begin();
          it != lm_graph->get_nodes().end(); ++it) {
         LandmarkNode &lmn = **it;
 
-        std::set<int> candidates;
+        set<int> candidates;
         // put all possible adders in candidates set
         for (size_t i = 0; i < lmn.vars.size(); ++i) {
-            const std::vector<int> &ops =
-                lm_graph->get_operators_including_eff(std::make_pair(lmn.vars[i],
-                                                                     lmn.vals[i]));
+            const vector<int> &ops =
+                lm_graph->get_operators_including_eff(make_pair(lmn.vars[i],
+                                                                lmn.vals[i]));
             candidates.insert(ops.begin(), ops.end());
         }
 
-        for (std::set<int>::iterator cands_it = candidates.begin();
+        for (set<int>::iterator cands_it = candidates.begin();
              cands_it != candidates.end(); ++cands_it) {
             int op = *cands_it;
 
@@ -651,13 +657,16 @@ void HMLandmarks::calc_achievers() {
             get_operator_precondition(op, pre);
             size_t j;
             for (j = 0; j < lmn.vars.size(); ++j) {
-                std::pair<int, int> lm_val = std::make_pair(lmn.vars[j], lmn.vals[j]);
+                pair<int, int> lm_val = make_pair(lmn.vars[j], lmn.vals[j]);
                 // action adds this element of lm as well
-                if (std::find(post.begin(), post.end(), lm_val) != post.end())
+                if (find(post.begin(), post.end(), lm_val) != post.end())
                     continue;
                 size_t k;
                 for (k = 0; k < post.size(); ++k) {
-                    if (are_mutex(post[k], lm_val)) {
+                    if (are_mutex(
+                            // TODO(issue635): Use FactPair struct right away.
+                            FactPair(post[k].first, post[k].second),
+                            FactPair(lm_val.first, lm_val.second))) {
                         break;
                     }
                 }
@@ -667,7 +676,10 @@ void HMLandmarks::calc_achievers() {
                 for (k = 0; k < pre.size(); ++k) {
                     // we know that lm_val is not added by the operator
                     // so if it incompatible with the pc, this can't be an achiever
-                    if (are_mutex(pre[k], lm_val)) {
+                    if (are_mutex(
+                            // TODO(issue635): Use FactPair struct right away.
+                            FactPair(pre[k].first, pre[k].second),
+                            FactPair(lm_val.first, lm_val.second))) {
                         break;
                     }
                 }
@@ -684,10 +696,10 @@ void HMLandmarks::calc_achievers() {
 }
 
 void HMLandmarks::free_unneeded_memory() {
-    release_vector_memory(h_m_table_);
-    release_vector_memory(pm_ops_);
-    release_vector_memory(interesting_);
-    release_vector_memory(unsat_pc_count_);
+    utils::release_vector_memory(h_m_table_);
+    utils::release_vector_memory(pm_ops_);
+    utils::release_vector_memory(interesting_);
+    utils::release_vector_memory(unsat_pc_count_);
 
     set_indices_.clear();
     lm_node_table_.clear();
@@ -700,7 +712,7 @@ void HMLandmarks::propagate_pm_fact(int factindex, bool newly_discovered,
                                     TriggerSet &trigger) {
     // for each action/noop for which fact is a pc
     for (size_t i = 0; i < h_m_table_[factindex].pc_for.size(); ++i) {
-        std::pair<int, int> const &info = h_m_table_[factindex].pc_for[i];
+        pair<int, int> const &info = h_m_table_[factindex].pc_for[i];
 
         // a pc for the action itself
         if (info.second == -1) {
@@ -734,8 +746,8 @@ void HMLandmarks::propagate_pm_fact(int factindex, bool newly_discovered,
 
 void HMLandmarks::compute_h_m_landmarks() {
     // get subsets of initial state
-    std::vector<FluentSet> init_subsets;
-    get_m_sets(m_, init_subsets, g_initial_state());
+    vector<FluentSet> init_subsets;
+    get_m_sets(m_, init_subsets, hacked_initial_state());
 
     TriggerSet current_trigger, next_trigger;
 
@@ -756,11 +768,11 @@ void HMLandmarks::compute_h_m_landmarks() {
         }
     }
 
-    std::vector<int>::iterator it;
+    vector<int>::iterator it;
     TriggerSet::iterator op_it;
 
-    std::list<int> local_landmarks;
-    std::list<int> local_necessary;
+    list<int> local_landmarks;
+    list<int> local_necessary;
 
     size_t prev_size;
 
@@ -782,7 +794,7 @@ void HMLandmarks::compute_h_m_landmarks() {
                 union_with(local_landmarks, h_m_table_[*it].landmarks);
                 insert_into(local_landmarks, *it);
 
-                if (lm_graph->use_orders()) {
+                if (use_orders()) {
                     insert_into(local_necessary, *it);
                 }
             }
@@ -798,7 +810,7 @@ void HMLandmarks::compute_h_m_landmarks() {
                     // or add op to first achievers
                     if (!contains(local_landmarks, *it)) {
                         insert_into(h_m_table_[*it].first_achievers, op_index);
-                        if (lm_graph->use_orders()) {
+                        if (use_orders()) {
                             intersect_with(h_m_table_[*it].necessary, local_necessary);
                         }
                     }
@@ -808,7 +820,7 @@ void HMLandmarks::compute_h_m_landmarks() {
                 } else {
                     h_m_table_[*it].level = level;
                     h_m_table_[*it].landmarks = local_landmarks;
-                    if (lm_graph->use_orders()) {
+                    if (use_orders()) {
                         h_m_table_[*it].necessary = local_necessary;
                     }
                     insert_into(h_m_table_[*it].first_achievers, op_index);
@@ -833,7 +845,7 @@ void HMLandmarks::compute_h_m_landmarks() {
             // only recompute landmarks for conditions whose
             // landmarks have changed
             else {
-                for (std::set<int>::iterator noop_it = op_it->second.begin();
+                for (set<int>::iterator noop_it = op_it->second.begin();
                      noop_it != op_it->second.end(); ++noop_it) {
                     assert(unsat_pc_count_[op_index].second[*noop_it] == 0);
 
@@ -847,30 +859,30 @@ void HMLandmarks::compute_h_m_landmarks() {
         current_trigger.swap(next_trigger);
         next_trigger.clear();
 
-        std::cout << "Level " << level << " completed." << std::endl;
+        cout << "Level " << level << " completed." << endl;
         ++level;
     }
-    std::cout << "h^m landmarks computed." << std::endl;
+    cout << "h^m landmarks computed." << endl;
 }
 
 void HMLandmarks::compute_noop_landmarks(
     int op_index, int noop_index,
-    std::list<int> const &local_landmarks,
-    std::list<int> const &local_necessary,
+    list<int> const &local_landmarks,
+    list<int> const &local_necessary,
     int level,
     TriggerSet &next_trigger) {
-    std::list<int> cn_necessary, cn_landmarks;
+    list<int> cn_necessary, cn_landmarks;
     size_t prev_size;
     int pm_fluent;
 
     PMOp &action = pm_ops_[op_index];
-    std::vector<int> &pc_eff_pair = action.cond_noops[noop_index];
+    vector<int> &pc_eff_pair = action.cond_noops[noop_index];
 
     cn_landmarks.clear();
 
     cn_landmarks = local_landmarks;
 
-    if (lm_graph->use_orders()) {
+    if (use_orders()) {
         cn_necessary.clear();
         cn_necessary = local_necessary;
     }
@@ -880,7 +892,7 @@ void HMLandmarks::compute_noop_landmarks(
         union_with(cn_landmarks, h_m_table_[pm_fluent].landmarks);
         insert_into(cn_landmarks, pm_fluent);
 
-        if (lm_graph->use_orders()) {
+        if (use_orders()) {
             insert_into(cn_necessary, pm_fluent);
         }
     }
@@ -900,7 +912,7 @@ void HMLandmarks::compute_noop_landmarks(
             // or add op to first achievers
             if (!contains(cn_landmarks, pm_fluent)) {
                 insert_into(h_m_table_[pm_fluent].first_achievers, op_index);
-                if (lm_graph->use_orders()) {
+                if (use_orders()) {
                     intersect_with(h_m_table_[pm_fluent].necessary, cn_necessary);
                 }
             }
@@ -910,7 +922,7 @@ void HMLandmarks::compute_noop_landmarks(
         } else {
             h_m_table_[pm_fluent].level = level;
             h_m_table_[pm_fluent].landmarks = cn_landmarks;
-            if (lm_graph->use_orders()) {
+            if (use_orders()) {
                 h_m_table_[pm_fluent].necessary = cn_necessary;
             }
             insert_into(h_m_table_[pm_fluent].first_achievers, op_index);
@@ -920,9 +932,9 @@ void HMLandmarks::compute_noop_landmarks(
 }
 
 void HMLandmarks::add_lm_node(int set_index, bool goal) {
-    std::set<std::pair<int, int>> lm;
+    set<pair<int, int>> lm;
 
-    std::map<int, LandmarkNode *>::iterator it = lm_node_table_.find(set_index);
+    map<int, LandmarkNode *>::iterator it = lm_node_table_.find(set_index);
 
     if (it == lm_node_table_.end()) {
         for (FluentSet::iterator it = h_m_table_[set_index].fluents.begin();
@@ -942,23 +954,23 @@ void HMLandmarks::add_lm_node(int set_index, bool goal) {
     }
 }
 
-void HMLandmarks::generate_landmarks() {
+void HMLandmarks::generate_landmarks(Exploration &) {
     int set_index;
     init();
     compute_h_m_landmarks();
     // now construct landmarks graph
-    std::vector<FluentSet> goal_subsets;
+    vector<FluentSet> goal_subsets;
     get_m_sets(m_, goal_subsets, g_goal);
-    std::list<int> all_lms;
+    list<int> all_lms;
     for (size_t i = 0; i < goal_subsets.size(); ++i) {
         /*
-           std::cout << "Goal set: ";
+           cout << "Goal set: ";
            print_fluentset(goal_subsets[i]);
-           std::cout << " -- ";
+           cout << " -- ";
            for(size_t j = 0; j < goal_subsets[i].size(); ++j) {
-           std::cout << goal_subsets[i][j] << " ";
+           cout << goal_subsets[i][j] << " ";
            }
-           std::cout << std::endl;
+           cout << endl;
          */
 
         assert(set_indices_.find(goal_subsets[i]) != set_indices_.end());
@@ -966,10 +978,10 @@ void HMLandmarks::generate_landmarks() {
         set_index = set_indices_[goal_subsets[i]];
 
         if (h_m_table_[set_index].level == -1) {
-            std::cout << std::endl << std::endl << "Subset of goal not reachable !!." << std::endl << std::endl << std::endl;
-            std::cout << "Subset is: ";
+            cout << endl << endl << "Subset of goal not reachable !!." << endl << endl << endl;
+            cout << "Subset is: ";
             print_fluentset(h_m_table_[set_index].fluents);
-            std::cout << std::endl;
+            cout << endl;
         }
 
         // set up goals landmarks for processing
@@ -981,46 +993,46 @@ void HMLandmarks::generate_landmarks() {
         // make a node for the goal, with in_goal = true;
         add_lm_node(set_index, true);
         /*
-           std::cout << "Goal subset: ";
+           cout << "Goal subset: ";
            print_fluentset(h_m_table_[set_index].fluents);
-           std::cout << std::endl;
+           cout << endl;
          */
     }
     // now make remaining lm nodes
-    for (std::list<int>::iterator it = all_lms.begin(); it != all_lms.end(); ++it) {
+    for (list<int>::iterator it = all_lms.begin(); it != all_lms.end(); ++it) {
         add_lm_node(*it, false);
     }
-    if (lm_graph->use_orders()) {
+    if (use_orders()) {
         // do reduction of graph
         // if f2 is landmark for f1, subtract landmark set of f2 from that of f1
-        for (std::list<int>::iterator f1 = all_lms.begin(); f1 != all_lms.end(); ++f1) {
-            std::list<int> everything_to_remove;
-            for (std::list<int>::iterator f2 = h_m_table_[*f1].landmarks.begin();
+        for (list<int>::iterator f1 = all_lms.begin(); f1 != all_lms.end(); ++f1) {
+            list<int> everything_to_remove;
+            for (list<int>::iterator f2 = h_m_table_[*f1].landmarks.begin();
                  f2 != h_m_table_[*f1].landmarks.end(); ++f2) {
                 union_with(everything_to_remove, h_m_table_[*f2].landmarks);
             }
             set_minus(h_m_table_[*f1].landmarks, everything_to_remove);
             // remove necessaries here, otherwise they will be overwritten
             // since we are writing them as greedy nec. orderings.
-            if (lm_graph->use_orders())
+            if (use_orders())
                 set_minus(h_m_table_[*f1].landmarks, h_m_table_[*f1].necessary);
         }
 
         // and add the edges
 
-        for (std::list<int>::iterator it = all_lms.begin(); it != all_lms.end(); ++it) {
+        for (list<int>::iterator it = all_lms.begin(); it != all_lms.end(); ++it) {
             set_index = *it;
-            for (std::list<int>::iterator lms_it = h_m_table_[set_index].landmarks.begin();
+            for (list<int>::iterator lms_it = h_m_table_[set_index].landmarks.begin();
                  lms_it != h_m_table_[set_index].landmarks.end(); ++lms_it) {
                 assert(lm_node_table_.find(*lms_it) != lm_node_table_.end());
                 assert(lm_node_table_.find(set_index) != lm_node_table_.end());
 
-                edge_add(*lm_node_table_[*lms_it], *lm_node_table_[set_index], natural);
+                edge_add(*lm_node_table_[*lms_it], *lm_node_table_[set_index], EdgeType::natural);
             }
-            if (lm_graph->use_orders()) {
-                for (std::list<int>::iterator gn_it = h_m_table_[set_index].necessary.begin();
+            if (use_orders()) {
+                for (list<int>::iterator gn_it = h_m_table_[set_index].necessary.begin();
                      gn_it != h_m_table_[set_index].necessary.end(); ++gn_it) {
-                    edge_add(*lm_node_table_[*gn_it], *lm_node_table_[set_index], greedy_necessary);
+                    edge_add(*lm_node_table_[*gn_it], *lm_node_table_[set_index], EdgeType::greedy_necessary);
                 }
             }
         }
@@ -1028,7 +1040,11 @@ void HMLandmarks::generate_landmarks() {
     free_unneeded_memory();
 }
 
-static LandmarkGraph *_parse(OptionParser &parser) {
+bool HMLandmarks::supports_conditional_effects() const {
+    return false;
+}
+
+static LandmarkFactory *_parse(OptionParser &parser) {
     parser.document_synopsis(
         "h^m Landmarks",
         "The landmark generation method introduced by "
@@ -1038,26 +1054,21 @@ static LandmarkGraph *_parse(OptionParser &parser) {
         "m, reasonable_orders, conjunctive_landmarks, no_orders");
     parser.add_option<int>(
         "m", "subset size (if unsure, use the default of 2)", "2");
-    LandmarkGraph::add_options_to_parser(parser);
+    _add_options_to_parser(parser);
     Options opts = parser.parse();
     if (parser.help_mode())
-        return 0;
-
-    opts.set("explor", new Exploration(opts));
+        return nullptr;
 
     parser.document_language_support("conditional_effects",
                                      "ignored, i.e. not supported");
-    opts.set<bool>("supports_conditional_effects", false);
 
     if (parser.dry_run()) {
-        return 0;
+        return nullptr;
     } else {
-        HMLandmarks lm_graph_factory(opts);
-        LandmarkGraph *graph = lm_graph_factory.compute_lm_graph();
-        return graph;
+        return new HMLandmarks(opts);
     }
 }
 
-static Plugin<LandmarkGraph> _plugin(
+static Plugin<LandmarkFactory> _plugin(
     "lm_hm", _parse);
 }

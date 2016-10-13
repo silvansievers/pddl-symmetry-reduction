@@ -8,8 +8,9 @@
 #include <cstdlib>
 #include <sstream>
 
+using namespace std;
 
-namespace WeightedEvaluator {
+namespace weighted_evaluator {
 WeightedEvaluator::WeightedEvaluator(const Options &opts)
     : evaluator(opts.get<ScalarEvaluator *>("eval")),
       w(opts.get<int>("weight")) {
@@ -18,7 +19,6 @@ WeightedEvaluator::WeightedEvaluator(const Options &opts)
 WeightedEvaluator::WeightedEvaluator(ScalarEvaluator *eval, int weight)
     : evaluator(eval), w(weight) {
 }
-
 
 WeightedEvaluator::~WeightedEvaluator() {
 }
@@ -40,7 +40,7 @@ EvaluationResult WeightedEvaluator::compute_result(
     return result;
 }
 
-void WeightedEvaluator::get_involved_heuristics(std::set<Heuristic *> &hset) {
+void WeightedEvaluator::get_involved_heuristics(set<Heuristic *> &hset) {
     evaluator->get_involved_heuristics(hset);
 }
 

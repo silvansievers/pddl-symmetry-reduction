@@ -1,7 +1,7 @@
 #include "shrink_bucket_based.h"
 
-#include "../globals.h"
-#include "../rng.h"
+#include "../utils/rng.h"
+#include "../utils/rng_options.h"
 
 #include <cassert>
 #include <iostream>
@@ -9,13 +9,14 @@
 
 using namespace std;
 
-
-namespace MergeAndShrink {
-ShrinkBucketBased::ShrinkBucketBased(const Options &opts)
-    : ShrinkStrategy(opts) {
+namespace merge_and_shrink {
+ShrinkBucketBased::ShrinkBucketBased(const options::Options &opts)
+    : ShrinkStrategy() {
+    rng = utils::parse_rng_from_options(opts);
 }
 
-ShrinkBucketBased::~ShrinkBucketBased() {
+void ShrinkBucketBased::add_options_to_parser(options::OptionParser &parser) {
+    utils::add_rng_options(parser);
 }
 
 void ShrinkBucketBased::compute_abstraction(
@@ -71,10 +72,10 @@ void ShrinkBucketBased::compute_abstraction(
             assert(budget_for_this_bucket >= 2 &&
                    budget_for_this_bucket < static_cast<int>(groups.size()));
             while (static_cast<int>(groups.size()) > budget_for_this_bucket) {
-                auto it1 = g_rng.choose(groups);
+                auto it1 = rng->choose(groups);
                 auto it2 = it1;
                 while (it1 == it2) {
-                    it2 = g_rng.choose(groups);
+                    it2 = rng->choose(groups);
                 }
                 it1->splice_after(it1->before_begin(), *it2);
                 swap(*it2, groups.back());
@@ -91,13 +92,15 @@ void ShrinkBucketBased::compute_abstraction(
     }
 }
 
-void ShrinkBucketBased::compute_equivalence_relation(
-    const FactoredTransitionSystem &fts,
+bool ShrinkBucketBased::shrink(
+    FactoredTransitionSystem &fts,
     int index,
     int target,
-    StateEquivalenceRelation &equivalence_relation) const {
+    Verbosity verbosity) const {
     vector<Bucket> buckets;
     partition_into_buckets(fts, index, buckets);
+    StateEquivalenceRelation equivalence_relation;
     compute_abstraction(buckets, target, equivalence_relation);
+    return shrink_fts(fts, index, equivalence_relation, verbosity);
 }
 }

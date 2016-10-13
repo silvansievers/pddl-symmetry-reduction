@@ -9,21 +9,34 @@
   LP class instead.
 */
 
-#include "../utilities.h"
+#include "../utils/language.h"
 
 #include <memory>
+
+/*
+  The following two lines work around a bug regarding the visibility
+  of std::isnan that shows up with certain combinations of gcc version
+  and OSI version, such as gcc 5.4.0 and OSI 0.103.0. The include here
+  is intentionally not grouped with the regular includes because these
+  two lines together form the workaround. Hopefully we can remove this
+  workaround later once we have moved on to OSI versions where the
+  problem does not exist. (However, looking at
+  https://bugs.launchpad.net/ubuntu/+source/gcc-5/+bug/1617838 it is
+  not clear if the fault lies with OSI.)
+*/
+#include <cmath>
+using std::isnan;
 
 class CoinError;
 class OsiSolverInterface;
 
-
-namespace LP {
+namespace lp {
 enum class LPSolverType;
 
 std::unique_ptr<OsiSolverInterface> create_lp_solver(LPSolverType solver_type);
 
 /*
-  Print the CoinError and then exit with EXIT_CRITICAL_ERROR.
+  Print the CoinError and then exit with ExitCode::CRITICAL_ERROR.
   Note that out-of-memory conditions occurring within CPLEX code cannot
   be caught by a try/catch block. When CPLEX runs out of memory,
   the planner will attempt to terminate gracefully, like it does with

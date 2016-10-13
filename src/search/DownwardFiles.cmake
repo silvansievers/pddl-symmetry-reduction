@@ -2,6 +2,9 @@ set(PLANNER_SOURCES
         planner.cc
 )
 
+# See http://www.fast-downward.org/ForDevelopers/AddingSourceFiles
+# for general information on adding source files and CMake plugins.
+#
 # If you're adding a file to the codebase which *isn't* a plugin, add
 # it to the following list. We assume that every *.cc file has a
 # corresponding *.h file and add headers to the project automatically.
@@ -11,9 +14,6 @@ set(CORE_SOURCES
         abstract_task.cc
         axioms.cc
         causal_graph.cc
-        cost_adapted_task.cc
-        countdown_timer.cc
-        delegating_task.cc
         equivalence_relation.cc
         evaluation_context.cc
         evaluation_result.cc
@@ -28,9 +28,8 @@ set(CORE_SOURCES
         option_parser_util.h
         per_state_information.cc
         plugin.h
+        pruning_method.cc
         priority_queue.cc
-        rng.cc
-        root_task.cc
         sampling.cc
         scalar_evaluator.cc
         search_engine.cc
@@ -42,15 +41,8 @@ set(CORE_SOURCES
         state_id.cc
         state_registry.cc
         successor_generator.cc
-        system.cc
-        system_unix.cc
-        system_windows.cc
         task_proxy.cc
         task_tools.cc
-        timer.cc
-        tracer.cc
-        utilities.cc
-        utilities_hash.cc
         variable_order_finder.cc
 
         open_lists/alternation_open_list.cc
@@ -96,10 +88,19 @@ list(APPEND PLANNER_SOURCES ${CORE_SOURCES})
 # CORE_PLUGIN enables the plugin and hides the option to disable it in
 #     cmake GUIs like ccmake.
 
+option(
+    DISABLE_PLUGINS_BY_DEFAULT
+    "If set to YES only plugins that are specifically enabled will be compiled"
+    NO)
+# This option should not show up in cmake GUIs like ccmake where all
+# plugins are enabled or disabled manually.
+mark_as_advanced(DISABLE_PLUGINS_BY_DEFAULT)
+
 fast_downward_plugin(
     NAME OPTIONS
     HELP "Option parsing and plugin definition"
     SOURCES
+        options/any.h
         options/bounds.cc
         options/doc_printer.cc
         options/doc_store.cc
@@ -114,6 +115,28 @@ fast_downward_plugin(
         options/token_parser.cc
         options/type_documenter.cc
         options/type_namer.cc
+    CORE_PLUGIN
+)
+
+fast_downward_plugin(
+    NAME UTILS
+    HELP "System utilities"
+    SOURCES
+        utils/collections.h
+        utils/countdown_timer.cc
+        utils/dynamic_bitset.h
+        utils/hash.h
+        utils/language.h
+        utils/logging.cc
+        utils/markup.cc
+        utils/math.cc
+        utils/memory.cc
+        utils/rng.cc
+        utils/rng_options.cc
+        utils/system.cc
+        utils/system_unix.cc
+        utils/system_windows.cc
+        utils/timer.cc
     CORE_PLUGIN
 )
 
@@ -169,6 +192,37 @@ fast_downward_plugin(
 )
 
 fast_downward_plugin(
+    NAME NULL_PRUNING_METHOD
+    HELP "Pruning method that does nothing"
+    SOURCES
+        pruning/null_pruning_method.cc
+)
+
+fast_downward_plugin(
+    NAME STUBBORN_SETS
+    HELP "Base class for all stubborn set partial order reduction methods"
+    SOURCES
+        pruning/stubborn_sets.cc
+    DEPENDENCY_ONLY
+)
+
+fast_downward_plugin(
+    NAME STUBBORN_SETS_SIMPLE
+    HELP "Stubborn sets simple"
+    SOURCES
+        pruning/stubborn_sets_simple.cc
+    DEPENDS STUBBORN_SETS
+)
+
+fast_downward_plugin(
+    NAME StubbornSetsEC
+    HELP "Stubborn set method that dominates expansion core"
+    SOURCES
+        pruning/stubborn_sets_ec.cc
+    DEPENDS STUBBORN_SETS
+)
+
+fast_downward_plugin(
     NAME SEARCH_COMMON
     HELP "Basic classes used for all search engines"
     SOURCES
@@ -182,7 +236,7 @@ fast_downward_plugin(
     HELP "Eager search algorithm"
     SOURCES
         search_engines/eager_search.cc
-    DEPENDS SEARCH_COMMON
+    DEPENDS SEARCH_COMMON NULL_PRUNING_METHOD
 )
 
 fast_downward_plugin(
@@ -223,13 +277,6 @@ fast_downward_plugin(
     SOURCES
         heuristics/relaxation_heuristic.cc
     DEPENDENCY_ONLY
-)
-
-fast_downward_plugin(
-    NAME IPC_MAX_HEURISTIC
-    HELP "The IPC max heuristic"
-    SOURCES
-        heuristics/ipc_max_heuristic.cc
 )
 
 fast_downward_plugin(
@@ -310,6 +357,48 @@ fast_downward_plugin(
 )
 
 fast_downward_plugin(
+    NAME CORE_TASKS
+    HELP "Core task transformations"
+    SOURCES
+        tasks/cost_adapted_task.cc
+        tasks/delegating_task.cc
+        tasks/root_task.cc
+    CORE_PLUGIN
+)
+
+fast_downward_plugin(
+    NAME EXTRA_TASKS
+    HELP "Non-core task transformations"
+    SOURCES
+        tasks/domain_abstracted_task.cc
+        tasks/domain_abstracted_task_factory.cc
+        tasks/modified_goals_task.cc
+        tasks/modified_operator_costs_task.cc
+    DEPENDENCY_ONLY
+)
+
+fast_downward_plugin(
+    NAME CEGAR
+    HELP "Plugin containing the code for CEGAR heuristics"
+    SOURCES
+        cegar/abstraction.cc
+        cegar/abstract_search.cc
+        cegar/abstract_state.cc
+        cegar/additive_cartesian_heuristic.cc
+        cegar/cartesian_heuristic_function.cc
+        cegar/cost_saturation.cc
+        cegar/domains.cc
+        cegar/refinement_hierarchy.cc
+        cegar/split_selector.cc
+        cegar/subtask_generators.cc
+        cegar/transition.cc
+        cegar/transition_updater.cc
+        cegar/utils.cc
+        cegar/utils_landmarks.cc
+    DEPENDS ADDITIVE_HEURISTIC EXTRA_TASKS LANDMARKS
+)
+
+fast_downward_plugin(
     NAME MAS_HEURISTIC
     HELP "The Merge-and-Shrink heuristic"
     SOURCES
@@ -321,9 +410,23 @@ fast_downward_plugin(
         merge_and_shrink/label_reduction.cc
         merge_and_shrink/labels.cc
         merge_and_shrink/merge_and_shrink_heuristic.cc
-        merge_and_shrink/merge_dfp.cc
-        merge_and_shrink/merge_linear.cc
+        merge_and_shrink/merge_scoring_function.cc
+        merge_and_shrink/merge_scoring_function_dfp.cc
+        merge_and_shrink/merge_scoring_function_goal_relevance.cc
+        merge_and_shrink/merge_scoring_function_single_random.cc
+        merge_and_shrink/merge_scoring_function_total_order.cc
+        merge_and_shrink/merge_selector.cc
+        merge_and_shrink/merge_selector_score_based_filtering.cc
         merge_and_shrink/merge_strategy.cc
+        merge_and_shrink/merge_strategy_aliases.cc
+        merge_and_shrink/merge_strategy_factory.cc
+        merge_and_shrink/merge_strategy_factory_precomputed.cc
+        merge_and_shrink/merge_strategy_factory_stateless.cc
+        merge_and_shrink/merge_strategy_precomputed.cc
+        merge_and_shrink/merge_strategy_stateless.cc
+        merge_and_shrink/merge_tree.cc
+        merge_and_shrink/merge_tree_factory.cc
+        merge_and_shrink/merge_tree_factory_linear.cc
         merge_and_shrink/shrink_bisimulation.cc
         merge_and_shrink/shrink_bucket_based.cc
         merge_and_shrink/shrink_fh.cc
@@ -387,7 +490,7 @@ fast_downward_plugin(
         pdbs/pattern_generator_manual.cc
         pdbs/pattern_generator.cc
         pdbs/pdb_heuristic.cc
-        pdbs/types.cc
+        pdbs/types.h
         pdbs/validation.cc
         pdbs/zero_one_pdbs.cc
         pdbs/zero_one_pdbs_heuristic.cc

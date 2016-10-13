@@ -7,10 +7,9 @@
 
 using namespace std;
 
-
-namespace PDBs {
+namespace pdbs {
 ZeroOnePDBs get_zero_one_pdbs_from_options(
-    const shared_ptr<AbstractTask> task, const Options &opts) {
+    const shared_ptr<AbstractTask> &task, const Options &opts) {
     shared_ptr<PatternCollectionGenerator> pattern_generator =
         opts.get<shared_ptr<PatternCollectionGenerator>>("patterns");
     PatternCollectionInformation pattern_collection_info =
@@ -22,7 +21,7 @@ ZeroOnePDBs get_zero_one_pdbs_from_options(
 }
 
 ZeroOnePDBsHeuristic::ZeroOnePDBsHeuristic(
-    const Options &opts)
+    const options::Options &opts)
     : Heuristic(opts),
       zero_one_pdbs(get_zero_one_pdbs_from_options(task, opts)) {
 }

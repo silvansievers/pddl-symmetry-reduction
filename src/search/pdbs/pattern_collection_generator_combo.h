@@ -3,18 +3,17 @@
 
 #include "pattern_generator.h"
 
-
-namespace PDBs {
+namespace pdbs {
 /* Take one large pattern and then single-variable patterns for
    all goal variables that are not in the large pattern. */
 class PatternCollectionGeneratorCombo : public PatternCollectionGenerator {
     int max_states;
 public:
-    explicit PatternCollectionGeneratorCombo(const Options &opts);
+    explicit PatternCollectionGeneratorCombo(const options::Options &opts);
     virtual ~PatternCollectionGeneratorCombo() = default;
 
     virtual PatternCollectionInformation generate(
-        std::shared_ptr<AbstractTask> task) override;
+        const std::shared_ptr<AbstractTask> &task) override;
 };
 }
 

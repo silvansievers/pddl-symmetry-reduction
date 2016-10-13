@@ -15,6 +15,7 @@
 
 class SearchEngine;
 
+namespace options {
 /*
   The OptionParser stores a parse tree and an Options object. By
   calling addArgument, the parse tree is partially parsed, and the
@@ -40,7 +41,7 @@ public:
     static std::string usage(std::string progname);
 
     //this function initiates parsing of T (the root node of parse_tree
-    //will be parsed as T). Usually T=SearchEngine*, ScalarEvaluator* or LandmarkGraph*
+    //will be parsed as T). Usually T=SearchEngine*, ScalarEvaluator* or LandmarkFactory*
     template<typename T>
     T start_parsing();
 
@@ -110,8 +111,10 @@ private:
   OptionParser and before defining its methods. This obviously needs
   more work.
 */
+}
 #include "token_parser.h"
 
+namespace options {
 //Definitions of OptionParsers template functions:
 
 template<typename T>
@@ -196,6 +199,7 @@ template<typename T>
 void OptionParser::add_list_option(
     std::string k, std::string h, std::string def_val) {
     add_option<std::vector<T>>(k, h, def_val);
+}
 }
 
 #endif

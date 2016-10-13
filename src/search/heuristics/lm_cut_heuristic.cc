@@ -7,26 +7,20 @@
 #include "../task_proxy.h"
 #include "../task_tools.h"
 
+#include "../utils/memory.h"
+
 #include <iostream>
 
 using namespace std;
 
-
-namespace LandmarkCutHeuristic {
-// construction and destruction
+namespace lm_cut_heuristic {
 LandmarkCutHeuristic::LandmarkCutHeuristic(const Options &opts)
     : Heuristic(opts),
-      landmark_generator(nullptr) {
+      landmark_generator(utils::make_unique_ptr<LandmarkCutLandmarks>(task_proxy)) {
+    cout << "Initializing landmark cut heuristic..." << endl;
 }
 
 LandmarkCutHeuristic::~LandmarkCutHeuristic() {
-}
-
-// initialization
-void LandmarkCutHeuristic::initialize() {
-    cout << "Initializing landmark cut heuristic..." << endl;
-    // TODO we don't need a pointer if we initialize in the constructor.
-    landmark_generator = make_unique_ptr<LandmarkCutLandmarks>(task_proxy);
 }
 
 int LandmarkCutHeuristic::compute_heuristic(const GlobalState &global_state) {

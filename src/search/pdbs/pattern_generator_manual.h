@@ -4,17 +4,18 @@
 #include "pattern_generator.h"
 #include "types.h"
 
+namespace options {
 class Options;
+}
 
-
-namespace PDBs {
+namespace pdbs {
 class PatternGeneratorManual : public PatternGenerator {
     Pattern pattern;
 public:
-    explicit PatternGeneratorManual(const Options &opts);
+    explicit PatternGeneratorManual(const options::Options &opts);
     virtual ~PatternGeneratorManual() = default;
 
-    virtual Pattern generate(std::shared_ptr<AbstractTask> task) override;
+    virtual Pattern generate(const std::shared_ptr<AbstractTask> &task) override;
 };
 }
 

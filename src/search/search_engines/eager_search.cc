@@ -7,8 +7,8 @@
 #include "../heuristic.h"
 #include "../option_parser.h"
 #include "../plugin.h"
+#include "../pruning_method.h"
 #include "../successor_generator.h"
-#include "../utilities.h"
 
 #include "../open_lists/open_list_factory.h"
 
@@ -19,8 +19,7 @@
 
 using namespace std;
 
-
-namespace EagerSearch {
+namespace eager_search {
 EagerSearch::EagerSearch(const Options &opts)
     : SearchEngine(opts),
       reopen_closed_nodes(opts.get<bool>("reopen_closed")),
@@ -28,7 +27,8 @@ EagerSearch::EagerSearch(const Options &opts)
       open_list(opts.get<shared_ptr<OpenListFactory>>("open")->
                 create_state_open_list()),
       f_evaluator(opts.get<ScalarEvaluator *>("f_eval", nullptr)),
-      preferred_operator_heuristics(opts.get_list<Heuristic *>("preferred")) {
+      preferred_operator_heuristics(opts.get_list<Heuristic *>("preferred")),
+      pruning_method(opts.get<shared_ptr<PruningMethod>>("pruning")) {
 }
 
 void EagerSearch::initialize() {
@@ -58,7 +58,11 @@ void EagerSearch::initialize() {
     heuristics.assign(hset.begin(), hset.end());
     assert(!heuristics.empty());
 
-    const GlobalState &initial_state = g_initial_state();
+    const GlobalState &initial_state = state_registry.get_initial_state();
+    for (Heuristic *heuristic : heuristics) {
+        heuristic->notify_initial_state(initial_state);
+    }
+
     // Note: we consider the initial state as reached by a preferred
     // operator.
     EvaluationContext eval_context(initial_state, 0, true, &statistics);
@@ -89,6 +93,7 @@ void EagerSearch::print_checkpoint_line(int g) const {
 void EagerSearch::print_statistics() const {
     statistics.print_detailed_statistics();
     search_space.print_statistics();
+    pruning_method->print_statistics();
 }
 
 SearchStatus EagerSearch::step() {
@@ -106,6 +111,13 @@ SearchStatus EagerSearch::step() {
     set<const GlobalOperator *> preferred_ops;
 
     g_successor_generator->generate_applicable_ops(s, applicable_ops);
+
+    /*
+      TODO: When preferred operators are in use, a preferred operator will be
+      considered by the preferred operator queues even when it is pruned.
+    */
+    pruning_method->prune_operators(s, applicable_ops);
+
     // This evaluates the expanded state (again) to get preferred ops
     EvaluationContext eval_context(s, node.get_g(), false, &statistics, true);
     for (Heuristic *heur : preferred_operator_heuristics) {
@@ -124,7 +136,7 @@ SearchStatus EagerSearch::step() {
         if ((node.get_real_g() + op->get_cost()) >= bound)
             continue;
 
-        GlobalState succ_state = g_state_registry->get_successor_state(s, *op);
+        GlobalState succ_state = state_registry.get_successor_state(s, *op);
         statistics.inc_generated();
         bool is_preferred = (preferred_ops.find(op) != preferred_ops.end());
 
@@ -137,11 +149,11 @@ SearchStatus EagerSearch::step() {
         // update new path
         if (use_multi_path_dependence || succ_node.is_new()) {
             /*
-              Note: we must call reach_state for each heuristic, so
+              Note: we must call notify_state_transition for each heuristic, so
               don't break out of the for loop early.
             */
             for (Heuristic *heuristic : heuristics) {
-                heuristic->reach_state(s, *op, succ_state);
+                heuristic->notify_state_transition(s, *op, succ_state);
             }
         }
 
@@ -231,7 +243,8 @@ pair<SearchNode, bool> EagerSearch::fetch_next_node() {
         if (open_list->empty()) {
             cout << "Completely explored state space -- no solution!" << endl;
             // HACK! HACK! we do this because SearchNode has no default/copy constructor
-            SearchNode dummy_node = search_space.get_node(g_initial_state());
+            const GlobalState &initial_state = state_registry.get_initial_state();
+            SearchNode dummy_node = search_space.get_node(initial_state);
             return make_pair(dummy_node, false);
         }
         vector<int> last_key_removed;
@@ -241,7 +254,7 @@ pair<SearchNode, bool> EagerSearch::fetch_next_node() {
         //      recreate it outside of this function with node.get_state()?
         //      One way would be to store GlobalState objects inside SearchNodes
         //      instead of StateIDs
-        GlobalState s = g_state_registry->lookup_state(id);
+        GlobalState s = state_registry.lookup_state(id);
         SearchNode node = search_space.get_node(s);
 
         if (node.is_closed())
@@ -309,6 +322,17 @@ void EagerSearch::update_f_value_statistics(const SearchNode &node) {
     }
 }
 
+/* TODO: merge this into SearchEngine::add_options_to_parser when all search
+         engines support pruning. */
+void add_pruning_option(OptionParser &parser) {
+    parser.add_option<shared_ptr<PruningMethod>>(
+        "pruning",
+        "Pruning methods can prune or reorder the set of applicable operators in "
+        "each state and thereby influence the number and order of successor states "
+        "that are considered.",
+        "null()");
+}
+
 static SearchEngine *_parse(OptionParser &parser) {
     parser.document_synopsis("Eager best-first search", "");
 
@@ -323,6 +347,8 @@ static SearchEngine *_parse(OptionParser &parser) {
     parser.add_list_option<Heuristic *>(
         "preferred",
         "use preferred operators of these heuristics", "[]");
+
+    add_pruning_option(parser);
     SearchEngine::add_options_to_parser(parser);
     Options opts = parser.parse();
 
@@ -353,17 +379,19 @@ static SearchEngine *_parse_astar(OptionParser &parser) {
         "is equivalent to\n"
         "```\n--heuristic h=evaluator\n"
         "--search eager(tiebreaking([sum([g(), h]), h], unsafe_pruning=false),\n"
-        "               reopen_closed=true, progress_evaluator=sum([g(), h]))\n"
+        "               reopen_closed=true, f_eval=sum([g(), h]))\n"
         "```\n", true);
     parser.add_option<ScalarEvaluator *>("eval", "evaluator for h-value");
     parser.add_option<bool>("mpd",
                             "use multi-path dependence (LM-A*)", "false");
+
+    add_pruning_option(parser);
     SearchEngine::add_options_to_parser(parser);
     Options opts = parser.parse();
 
     EagerSearch *engine = nullptr;
     if (!parser.dry_run()) {
-        auto temp = SearchCommon::create_astar_open_list_factory_and_f_eval(opts);
+        auto temp = search_common::create_astar_open_list_factory_and_f_eval(opts);
         opts.set("open", temp.first);
         opts.set("f_eval", temp.second);
         opts.set("reopen_closed", true);
@@ -422,6 +450,8 @@ static SearchEngine *_parse_greedy(OptionParser &parser) {
     parser.add_option<int>(
         "boost",
         "boost value for preferred operator open lists", "0");
+
+    add_pruning_option(parser);
     SearchEngine::add_options_to_parser(parser);
 
     Options opts = parser.parse();
@@ -429,7 +459,7 @@ static SearchEngine *_parse_greedy(OptionParser &parser) {
 
     EagerSearch *engine = nullptr;
     if (!parser.dry_run()) {
-        opts.set("open", SearchCommon::create_greedy_open_list_factory(opts));
+        opts.set("open", search_common::create_greedy_open_list_factory(opts));
         opts.set("reopen_closed", false);
         opts.set("mpd", false);
         ScalarEvaluator *evaluator = nullptr;

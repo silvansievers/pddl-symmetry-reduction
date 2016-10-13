@@ -2,11 +2,15 @@
 
 #include "distances.h"
 #include "factored_transition_system.h"
+#include "label_equivalence_relation.h"
 #include "transition_system.h"
 
 #include "../option_parser.h"
 #include "../plugin.h"
-#include "../utilities.h"
+
+#include "../utils/collections.h"
+#include "../utils/markup.h"
+#include "../utils/system.h"
 
 #include <algorithm>
 #include <cassert>
@@ -16,8 +20,7 @@
 
 using namespace std;
 
-
-namespace MergeAndShrink {
+namespace merge_and_shrink {
 /* A successor signature characterizes the behaviour of an abstract
    state in so far as bisimulation cares about it. States with
    identical successor signature are not distinguished by
@@ -81,12 +84,9 @@ struct Signature {
 
 
 ShrinkBisimulation::ShrinkBisimulation(const Options &opts)
-    : ShrinkStrategy(opts),
+    : ShrinkStrategy(),
       greedy(opts.get<bool>("greedy")),
       at_limit(AtLimit(opts.get_enum("at_limit"))) {
-}
-
-ShrinkBisimulation::~ShrinkBisimulation() {
 }
 
 int ShrinkBisimulation::initialize_groups(const FactoredTransitionSystem &fts,
@@ -157,31 +157,39 @@ void ShrinkBisimulation::compute_signatures(
       If label groups were sorted (every group by increasing label numbers,
       groups by smallest label number), then the following configuration
       gives a different result on parcprinter-08-strips:p06.pddl:
-      astar(merge_and_shrink(merge_strategy=merge_dfp,
-            shrink_strategy=shrink_bisimulation(max_states=50000,threshold=1,greedy=false),
-            label_reduction=label_reduction(before_shrinking=true,before_merging=false)))
+      astar(merge_and_shrink(
+            merge_strategy=merge_stateless(merge_selector=
+                score_based_filtering(scoring_functions=[goal_relevance,dfp,
+                                                         total_order])),
+            shrink_strategy=shrink_bisimulation(greedy=false),
+            label_reduction=exact(before_shrinking=true,before_merging=false),
+            max_states=50000,threshold_before_merge=1))
 
       The same behavioral difference can be obtained even without modifying
-      the merge-and-shrink code: hg meld -r c66ee00a250a:d2e317621f2c.
-      Running the above config on those two revisions yields the same difference.
+      the merge-and-shrink code, using the two revisions c66ee00a250a and
+      d2e317621f2c. Running the above config, adapted to the old syntax,
+      yields the same difference:
+      astar(merge_and_shrink(merge_strategy=merge_dfp,
+            shrink_strategy=shrink_bisimulation(greedy=false,max_states=50000,
+                                                threshold=1),
+            label_reduction=exact(before_shrinking=true,before_merging=false)))
     */
-    for (TSConstIterator group_it = ts.begin();
-         group_it != ts.end(); ++group_it) {
-        const vector<Transition> &transitions = group_it.get_transitions();
-        for (size_t i = 0; i < transitions.size(); ++i) {
-            const Transition &trans = transitions[i];
-            assert(signatures[trans.src + 1].state == trans.src);
+    for (const GroupAndTransitions &gat : ts) {
+        const LabelGroup &label_group = gat.label_group;
+        const vector<Transition> &transitions = gat.transitions;
+        for (const Transition &transition : transitions) {
+            assert(signatures[transition.src + 1].state == transition.src);
             bool skip_transition = false;
             if (greedy) {
-                int src_h = distances.get_goal_distance(trans.src);
-                int target_h = distances.get_goal_distance(trans.target);
-                int cost = group_it.get_cost();
+                int src_h = distances.get_goal_distance(transition.src);
+                int target_h = distances.get_goal_distance(transition.target);
+                int cost = label_group.get_cost();
                 assert(target_h + cost >= src_h);
                 skip_transition = (target_h + cost != src_h);
             }
             if (!skip_transition) {
-                int target_group = state_to_group[trans.target];
-                signatures[trans.src + 1].succ_signature.push_back(
+                int target_group = state_to_group[transition.target];
+                signatures[transition.src + 1].succ_signature.push_back(
                     make_pair(label_group_counter, target_group));
             }
         }
@@ -213,11 +221,11 @@ void ShrinkBisimulation::compute_signatures(
     ::sort(signatures.begin(), signatures.end());
 }
 
-void ShrinkBisimulation::compute_abstraction(
-    const FactoredTransitionSystem &fts,
+bool ShrinkBisimulation::shrink(
+    FactoredTransitionSystem &fts,
     int index,
     int target_size,
-    StateEquivalenceRelation &equivalence_relation) const {
+    Verbosity verbosity) const {
     const TransitionSystem &ts = fts.get_ts(index);
     const Distances &distances = fts.get_dist(index);
     int num_states = ts.get_size();
@@ -229,7 +237,8 @@ void ShrinkBisimulation::compute_abstraction(
     int num_groups = initialize_groups(fts, index, state_to_group);
     // cout << "number of initial groups: " << num_groups << endl;
 
-    // assert(num_groups <= target_size); // TODO: We currently violate this; see issue250
+    // TODO: We currently violate this; see issue250
+    // assert(num_groups <= target_size);
 
     int max_h = distances.get_max_h();
     assert(max_h >= 0 && max_h != INF);
@@ -321,10 +330,10 @@ void ShrinkBisimulation::compute_abstraction(
     /* Reduce memory pressure before generating the equivalence
        relation since this is one of the code parts relevant to peak
        memory. */
-    release_vector_memory(signatures);
+    utils::release_vector_memory(signatures);
 
     // Generate final result.
-    assert(equivalence_relation.empty());
+    StateEquivalenceRelation equivalence_relation;
     equivalence_relation.resize(num_groups);
     for (int state = 0; state < num_states; ++state) {
         int group = state_to_group[state];
@@ -333,14 +342,8 @@ void ShrinkBisimulation::compute_abstraction(
             equivalence_relation[group].push_front(state);
         }
     }
-}
 
-void ShrinkBisimulation::compute_equivalence_relation(
-    const FactoredTransitionSystem &fts,
-    int index,
-    int target,
-    StateEquivalenceRelation &equivalence_relation) const {
-    compute_abstraction(fts, index, target, equivalence_relation);
+    return shrink_fts(fts, index, equivalence_relation, verbosity);
 }
 
 string ShrinkBisimulation::name() const {
@@ -363,37 +366,38 @@ void ShrinkBisimulation::dump_strategy_specific_options() const {
 static shared_ptr<ShrinkStrategy>_parse(OptionParser &parser) {
     parser.document_synopsis(
         "Bismulation based shrink strategy",
-        "This shrink strategy implements the algorithm described in the paper:\n\n"
-        " * Raz Nissim, Joerg Hoffmann and Malte Helmert.<<BR>>\n"
-        " [Computing Perfect Heuristics in Polynomial Time: On Bisimulation "
-        "and Merge-and-Shrink Abstractions in Optimal Planning "
-        "http://ai.cs.unibas.ch/papers/nissim-et-al-ijcai2011.pdf].<<BR>>\n "
-        "In //Proceedings of the Twenty-Second International Joint Conference "
-        "on Artificial Intelligence (IJCAI 2011)//, pp. 1983-1990. 2011.");
+        "This shrink strategy implements the algorithm described in"
+        " the paper:" + utils::format_paper_reference(
+            {"Raz Nissim", "Joerg Hoffmann", "Malte Helmert"},
+            "Computing Perfect Heuristics in Polynomial Time: On Bisimulation"
+            " and Merge-and-Shrink Abstractions in Optimal Planning.",
+            "http://ai.cs.unibas.ch/papers/nissim-et-al-ijcai2011.pdf",
+            "Proceedings of the Twenty-Second International Joint Conference"
+            " on Artificial Intelligence (IJCAI 2011)",
+            "1983-1990",
+            "2011"));
     parser.document_note(
-        "shrink_bisimulation(max_states=infinity, threshold=1, greedy=true)",
-        "Greedy bisimulation without size bound "
-        "(called M&S-gop in the IJCAI 2011 paper)."
-        "Combine this with the linear merge strategy "
-        "REVERSE_LEVEL to match the heuristic in the paper. "
+        "shrink_bisimulation(greedy=true)",
+        "Combine this with the merge-and-shrink options max_states=infinity "
+        "and threshold_before_merge=1 and with the linear merge strategy "
+        "reverse_level to obtain the variant 'greedy bisimulation without size "
+        "limit', called M&S-gop in the IJCAI 2011 paper. "
         "When we last ran experiments on interaction of shrink strategies "
         "with label reduction, this strategy performed best when used with "
         "label reduction before shrinking (and no label reduction before "
         "merging).");
     parser.document_note(
-        "shrink_bisimulation(max_states=N, greedy=false)",
-        "Exact bisimulation with a size limit "
-        "(called DFP-bop in the IJCAI 2011 paper), "
-        "where N is a numerical parameter for which sensible values "
-        "include 1000, 10000, 50000, 100000 and 200000. "
-        "Combine this with the linear merge strategy "
-        "REVERSE_LEVEL to match the heuristic in the paper. "
+        "shrink_bisimulation(greedy=false)",
+        "Combine this with the merge-and-shrink option max_states=N (where N "
+        "is a numerical parameter for which sensible values include 1000, "
+        "10000, 50000, 100000 and 200000) and with the linear merge strategy "
+        "reverse_level to obtain the variant 'exact bisimulation with a size "
+        "limit', called DFP-bop in the IJCAI 2011 paper. "
         "When we last ran experiments on interaction of shrink strategies "
         "with label reduction, this strategy performed best when used with "
         "label reduction before shrinking (and no label reduction before "
         "merging).");
 
-    ShrinkStrategy::add_options_to_parser(parser);
     parser.add_option<bool>("greedy", "use greedy bisimulation", "false");
 
     vector<string> at_limit;
@@ -407,8 +411,6 @@ static shared_ptr<ShrinkStrategy>_parse(OptionParser &parser) {
 
     if (parser.help_mode())
         return nullptr;
-
-    ShrinkStrategy::handle_option_defaults(opts);
 
     if (parser.dry_run())
         return nullptr;

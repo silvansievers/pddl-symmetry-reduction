@@ -7,14 +7,15 @@
 #include "../plugin.h"
 #include "../task_proxy.h"
 
+#include "../utils/markup.h"
+
 #include <algorithm>
 #include <cassert>
 #include <iostream>
 
 using namespace std;
 
-
-namespace PDBs {
+namespace pdbs {
 static bool patterns_are_disjoint(
     const Pattern &pattern1, const Pattern &pattern2) {
     size_t i = 0;
@@ -118,7 +119,7 @@ void PatternCollectionGeneratorSystematic::enqueue_pattern_if_new(
 }
 
 void PatternCollectionGeneratorSystematic::build_sga_patterns(
-    TaskProxy task_proxy, const CausalGraph &cg) {
+    const TaskProxy &task_proxy, const CausalGraph &cg) {
     assert(max_pattern_size >= 1);
     assert(pattern_set.empty());
     assert(patterns && patterns->empty());
@@ -171,7 +172,7 @@ void PatternCollectionGeneratorSystematic::build_sga_patterns(
 }
 
 void PatternCollectionGeneratorSystematic::build_patterns(
-    TaskProxy task_proxy) {
+    const TaskProxy &task_proxy) {
     int num_variables = task_proxy.get_variables().size();
     const CausalGraph &cg = task_proxy.get_causal_graph();
 
@@ -234,7 +235,7 @@ void PatternCollectionGeneratorSystematic::build_patterns(
 }
 
 void PatternCollectionGeneratorSystematic::build_patterns_naive(
-    TaskProxy task_proxy) {
+    const TaskProxy &task_proxy) {
     int num_variables = task_proxy.get_variables().size();
     PatternCollection current_patterns(1);
     PatternCollection next_patterns;
@@ -258,7 +259,7 @@ void PatternCollectionGeneratorSystematic::build_patterns_naive(
 }
 
 PatternCollectionInformation PatternCollectionGeneratorSystematic::generate(
-    shared_ptr<AbstractTask> task) {
+    const shared_ptr<AbstractTask> &task) {
     TaskProxy task_proxy(*task);
     patterns = make_shared<PatternCollection>();
     pattern_set.clear();
@@ -267,7 +268,7 @@ PatternCollectionInformation PatternCollectionGeneratorSystematic::generate(
     } else {
         build_patterns_naive(task_proxy);
     }
-    return PatternCollectionInformation(task, patterns);
+    return PatternCollectionInformation(task_proxy, patterns);
 }
 
 static shared_ptr<PatternCollectionGenerator> _parse(OptionParser &parser) {
@@ -275,13 +276,14 @@ static shared_ptr<PatternCollectionGenerator> _parse(OptionParser &parser) {
         "Systematically generated patterns",
         "Generates all (interesting) patterns with up to pattern_max_size "
         "variables. "
-        "For details, see\n"
-        " * Florian Pommerening, Gabriele Roeger and Malte Helmert.<<BR>>\n"
-        " [Getting the Most Out of Pattern Databases for Classical Planning "
-        "http://ijcai.org/papers13/Papers/IJCAI13-347.pdf].<<BR>>\n "
-        "In //Proceedings of the Twenty-Third International Joint "
-        "Conference on Artificial Intelligence (IJCAI 2013)//, "
-        "pp. 2357-2364. 2013.\n\n\n");
+        "For details, see" + utils::format_paper_reference(
+            {"Florian Pommerening", "Gabriele Roeger", "Malte Helmert"},
+            "Getting the Most Out of Pattern Databases for Classical Planning",
+            "http://ijcai.org/papers13/Papers/IJCAI13-347.pdf",
+            "Proceedings of the Twenty-Third International Joint"
+            " Conference on Artificial Intelligence (IJCAI 2013)",
+            "2357-2364",
+            "2013"));
 
     parser.add_option<int>(
         "pattern_max_size",

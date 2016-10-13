@@ -6,17 +6,18 @@
 #include "../plugin.h"
 #include "../task_proxy.h"
 
+#include "../utils/logging.h"
+
 #include <iostream>
 
 using namespace std;
 
-
-namespace PDBs {
+namespace pdbs {
 PatternGeneratorManual::PatternGeneratorManual(const Options &opts)
     : pattern(opts.get_list<int>("pattern")) {
 }
 
-Pattern PatternGeneratorManual::generate(shared_ptr<AbstractTask> task) {
+Pattern PatternGeneratorManual::generate(const shared_ptr<AbstractTask> &task) {
     TaskProxy task_proxy(*task);
     validate_and_normalize_pattern(task_proxy, pattern);
     cout << "Manual pattern: " << pattern << endl;

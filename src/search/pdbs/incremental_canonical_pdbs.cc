@@ -3,25 +3,23 @@
 #include "canonical_pdbs.h"
 #include "pattern_database.h"
 
-#include "../timer.h"
+#include "../utils/timer.h"
 
 #include <iostream>
 #include <limits>
 
 using namespace std;
 
-
-namespace PDBs {
+namespace pdbs {
 IncrementalCanonicalPDBs::IncrementalCanonicalPDBs(
-    const shared_ptr<AbstractTask> task, const PatternCollection &intitial_patterns)
-    : task(task),
-      task_proxy(*task),
+    const TaskProxy &task_proxy, const PatternCollection &intitial_patterns)
+    : task_proxy(task_proxy),
       patterns(make_shared<PatternCollection>(intitial_patterns.begin(),
                                               intitial_patterns.end())),
       pattern_databases(make_shared<PDBCollection>()),
       max_additive_subsets(nullptr),
       size(0) {
-    Timer timer;
+    utils::Timer timer;
     pattern_databases->reserve(patterns->size());
     for (const Pattern &pattern : *patterns)
         add_pdb_for_pattern(pattern);
@@ -31,7 +29,7 @@ IncrementalCanonicalPDBs::IncrementalCanonicalPDBs(
 }
 
 void IncrementalCanonicalPDBs::add_pdb_for_pattern(const Pattern &pattern) {
-    pattern_databases->emplace_back(new PatternDatabase(task_proxy, pattern));
+    pattern_databases->push_back(make_shared<PatternDatabase>(task_proxy, pattern));
     size += pattern_databases->back()->get_size();
 }
 
@@ -48,7 +46,7 @@ void IncrementalCanonicalPDBs::recompute_max_additive_subsets() {
 
 MaxAdditivePDBSubsets IncrementalCanonicalPDBs::get_max_additive_subsets(
     const Pattern &new_pattern) {
-    return PDBs::compute_max_additive_subsets_with_pattern(
+    return pdbs::compute_max_additive_subsets_with_pattern(
         *max_additive_subsets, new_pattern, are_additive);
 }
 
@@ -66,7 +64,7 @@ bool IncrementalCanonicalPDBs::is_dead_end(const State &state) const {
 
 PatternCollectionInformation
 IncrementalCanonicalPDBs::get_pattern_collection_information() const {
-    PatternCollectionInformation result(task, patterns);
+    PatternCollectionInformation result(task_proxy, patterns);
     result.set_pdbs(pattern_databases);
     result.set_max_additive_subsets(max_additive_subsets);
     return result;

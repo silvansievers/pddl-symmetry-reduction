@@ -2,8 +2,8 @@
 
 #include "pattern_database.h"
 
-#include "../timer.h"
-#include "../utilities_hash.h"
+#include "../utils/hash.h"
+#include "../utils/timer.h"
 
 #include <algorithm>
 #include <cassert>
@@ -13,8 +13,7 @@
 
 using namespace std;
 
-
-namespace PDBs {
+namespace pdbs {
 using PDBRelation = unordered_set<pair<PatternDatabase *, PatternDatabase *>>;
 
 PDBRelation compute_superset_relation(const PDBCollection &pattern_databases) {
@@ -23,9 +22,9 @@ PDBRelation compute_superset_relation(const PDBCollection &pattern_databases) {
         const Pattern &pattern1 = pdb1->get_pattern();
         for (const shared_ptr<PatternDatabase> &pdb2 : pattern_databases) {
             const Pattern &pattern2 = pdb2->get_pattern();
-            // Note that std::includes assumes that patterns are sorted.
-            if (std::includes(pattern1.begin(), pattern1.end(),
-                              pattern2.begin(), pattern2.end())) {
+            // Note that includes assumes that patterns are sorted.
+            if (includes(pattern1.begin(), pattern1.end(),
+                         pattern2.begin(), pattern2.end())) {
                 superset_relation.insert(make_pair(pdb1.get(), pdb2.get()));
                 /*
                   If we already added the inverse tuple to the relation, the
@@ -64,7 +63,7 @@ bool collection_dominates(const PDBCollection &superset,
 shared_ptr<MaxAdditivePDBSubsets> prune_dominated_subsets(
     const PDBCollection &pattern_databases,
     const MaxAdditivePDBSubsets &max_additive_subsets) {
-    Timer timer;
+    utils::Timer timer;
     int num_patterns = pattern_databases.size();
     int num_additive_subsets = max_additive_subsets.size();
 

@@ -7,10 +7,12 @@
 #include "../globals.h"
 #include "../option_parser.h"
 #include "../plugin.h"
-#include "../rng.h"
 #include "../task_proxy.h"
-#include "../timer.h"
-#include "../utilities.h"
+
+#include "../utils/markup.h"
+#include "../utils/math.h"
+#include "../utils/rng.h"
+#include "../utils/timer.h"
 
 #include <algorithm>
 #include <cassert>
@@ -20,8 +22,7 @@
 
 using namespace std;
 
-
-namespace PDBs {
+namespace pdbs {
 PatternCollectionGeneratorGenetic::PatternCollectionGeneratorGenetic(
     const Options &opts)
     : pdb_max_size(opts.get<int>("pdb_max_size")),
@@ -48,10 +49,10 @@ void PatternCollectionGeneratorGenetic::select(
         int selected;
         if (total_so_far == 0) {
             // All fitness values are 0 => choose uniformly.
-            selected = g_rng(fitness_values.size());
+            selected = (*g_rng())(fitness_values.size());
         } else {
             // [0..total_so_far)
-            double random = g_rng() * total_so_far;
+            double random = (*g_rng())() * total_so_far;
             // Find first entry which is strictly greater than random.
             selected = upper_bound(cumulative_fitness.begin(),
                                    cumulative_fitness.end(), random) -
@@ -66,7 +67,7 @@ void PatternCollectionGeneratorGenetic::mutate() {
     for (auto &collection : pattern_collections) {
         for (vector<bool> &pattern : collection) {
             for (size_t k = 0; k < pattern.size(); ++k) {
-                double random = g_rng(); // [0..1)
+                double random = (*g_rng())(); // [0..1)
                 if (random < mutation_probability) {
                     pattern[k].flip();
                 }
@@ -137,7 +138,7 @@ bool PatternCollectionGeneratorGenetic::is_pattern_too_large(
     for (size_t i = 0; i < pattern.size(); ++i) {
         VariableProxy var = variables[pattern[i]];
         int domain_size = var.get_domain_size();
-        if (!is_product_within_limit(mem, domain_size, pdb_max_size))
+        if (!utils::is_product_within_limit(mem, domain_size, pdb_max_size))
             return true;
         mem *= domain_size;
     }
@@ -217,7 +218,7 @@ void PatternCollectionGeneratorGenetic::bin_packing() {
 
     for (int i = 0; i < num_collections; ++i) {
         // Use random variable ordering for all pattern collections.
-        g_rng.shuffle(variable_ids);
+        g_rng()->shuffle(variable_ids);
         vector<vector<bool>> pattern_collection;
         vector<bool> pattern(variables.size(), false);
         int current_size = 1;
@@ -227,8 +228,8 @@ void PatternCollectionGeneratorGenetic::bin_packing() {
             if (next_var_size > pdb_max_size)
                 // var never fits into a bin.
                 continue;
-            if (!is_product_within_limit(current_size, next_var_size,
-                                         pdb_max_size)) {
+            if (!utils::is_product_within_limit(current_size, next_var_size,
+                                                pdb_max_size)) {
                 // Open a new bin for var.
                 pattern_collection.push_back(pattern);
                 pattern.clear();
@@ -253,7 +254,7 @@ void PatternCollectionGeneratorGenetic::bin_packing() {
 }
 
 void PatternCollectionGeneratorGenetic::genetic_algorithm(
-    shared_ptr<AbstractTask> task_) {
+    const shared_ptr<AbstractTask> &task_) {
     task = task_;
     best_fitness = -1;
     best_patterns = nullptr;
@@ -272,12 +273,13 @@ void PatternCollectionGeneratorGenetic::genetic_algorithm(
 }
 
 PatternCollectionInformation PatternCollectionGeneratorGenetic::generate(
-    shared_ptr<AbstractTask> task) {
-    Timer timer;
+    const shared_ptr<AbstractTask> &task) {
+    utils::Timer timer;
     genetic_algorithm(task);
     cout << "Pattern generation (Edelkamp) time: " << timer << endl;
     assert(best_patterns);
-    return PatternCollectionInformation(task, best_patterns);
+    TaskProxy task_proxy(*task);
+    return PatternCollectionInformation(task_proxy, best_patterns);
 }
 
 static shared_ptr<PatternCollectionGenerator> _parse(OptionParser &parser) {
@@ -289,12 +291,14 @@ static shared_ptr<PatternCollectionGenerator> _parse(OptionParser &parser) {
         "to optimize the pattern collections with an objective function that "
         "estimates the mean heuristic value of the the pattern collections. "
         "Pattern collections with higher mean heuristic estimates are more "
-        "likely selected for the next generation.\n\n"
-        " * Stefan Edelkamp<<BR>>"
-        " [Automated Creation of Pattern Database Search Heuristics "
-        "http://www.springerlink.com/content/20613345434608x1/].<<BR>>"
-        "In //Proceedings of the 4th Workshop on Model Checking and Artificial "
-        "Intelligence (!MoChArt 2006)//, pp. 35-50, 2007.");
+        "likely selected for the next generation." + utils::format_paper_reference(
+            {"Stefan Edelkamp"},
+            "Automated Creation of Pattern Database Search Heuristics",
+            "http://www.springerlink.com/content/20613345434608x1/",
+            "Proceedings of the 4th Workshop on Model Checking and Artificial"
+            " Intelligence (!MoChArt 2006)",
+            "35-50",
+            "2007"));
     parser.document_language_support("action costs", "supported");
     parser.document_language_support("conditional effects", "not supported");
     parser.document_language_support("axioms", "not supported");

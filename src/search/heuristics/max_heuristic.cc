@@ -8,8 +8,7 @@
 #include <vector>
 using namespace std;
 
-
-namespace MaxHeuristic {
+namespace max_heuristic {
 /*
   TODO: At the time of this writing, this shares huge amounts of code
         with h^add, and the two should be refactored so that the
@@ -25,15 +24,10 @@ namespace MaxHeuristic {
 // construction and destruction
 HSPMaxHeuristic::HSPMaxHeuristic(const Options &opts)
     : RelaxationHeuristic(opts) {
+    cout << "Initializing HSP max heuristic..." << endl;
 }
 
 HSPMaxHeuristic::~HSPMaxHeuristic() {
-}
-
-// initialization
-void HSPMaxHeuristic::initialize() {
-    cout << "Initializing HSP max heuristic..." << endl;
-    RelaxationHeuristic::initialize();
 }
 
 // heuristic computation

@@ -1,10 +1,14 @@
 #include "task_tools.h"
 
-#include "utilities.h"
+#include "../utils/system.h"
 
+#include <algorithm>
 #include <iostream>
+#include <limits>
 
 using namespace std;
+using utils::ExitCode;
+
 
 bool is_unit_cost(TaskProxy task) {
     for (OperatorProxy op : task.get_operators()) {
@@ -22,7 +26,7 @@ void verify_no_axioms(TaskProxy task) {
     if (has_axioms(task)) {
         cerr << "This configuration does not support axioms!"
              << endl << "Terminating." << endl;
-        exit_with(EXIT_UNSUPPORTED);
+        utils::exit_with(ExitCode::UNSUPPORTED);
     }
 }
 
@@ -48,7 +52,7 @@ void verify_no_conditional_effects(TaskProxy task) {
         cerr << "This configuration does not support conditional effects "
              << "(operator " << op.get_name() << ")!" << endl
              << "Terminating." << endl;
-        exit_with(EXIT_UNSUPPORTED);
+        utils::exit_with(ExitCode::UNSUPPORTED);
     }
 }
 
@@ -59,4 +63,12 @@ double get_average_operator_cost(TaskProxy task_proxy) {
     }
     average_operator_cost /= task_proxy.get_operators().size();
     return average_operator_cost;
+}
+
+int get_min_operator_cost(TaskProxy task_proxy) {
+    int min_cost = numeric_limits<int>::max();
+    for (OperatorProxy op : task_proxy.get_operators()) {
+        min_cost = min(min_cost, op.get_cost());
+    }
+    return min_cost;
 }

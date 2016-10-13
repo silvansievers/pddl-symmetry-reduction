@@ -1,28 +1,35 @@
 #include "search_engine.h"
 
-#include "countdown_timer.h"
 #include "evaluation_context.h"
 #include "globals.h"
 #include "operator_cost.h"
 #include "option_parser.h"
 #include "plugin.h"
 
+#include "utils/countdown_timer.h"
+#include "utils/system.h"
+#include "utils/timer.h"
+
 #include <cassert>
 #include <iostream>
 #include <limits>
 
 using namespace std;
+using utils::ExitCode;
 
 
 SearchEngine::SearchEngine(const Options &opts)
     : status(IN_PROGRESS),
       solution_found(false),
-      search_space(OperatorCost(opts.get_enum("cost_type"))),
-      cost_type(OperatorCost(opts.get_enum("cost_type"))),
+      state_registry(
+          *g_root_task(), *g_state_packer, *g_axiom_evaluator, g_initial_state_data),
+      search_space(state_registry,
+                   static_cast<OperatorCost>(opts.get_enum("cost_type"))),
+      cost_type(static_cast<OperatorCost>(opts.get_enum("cost_type"))),
       max_time(opts.get<double>("max_time")) {
     if (opts.get<int>("bound") < 0) {
         cerr << "error: negative cost bound " << opts.get<int>("bound") << endl;
-        exit_with(EXIT_INPUT_ERROR);
+        utils::exit_with(ExitCode::INPUT_ERROR);
     }
     bound = opts.get<int>("bound");
 }
@@ -31,6 +38,8 @@ SearchEngine::~SearchEngine() {
 }
 
 void SearchEngine::print_statistics() const {
+    cout << "Bytes per state: "
+         << state_registry.get_state_size_in_bytes() << endl;
 }
 
 bool SearchEngine::found_solution() const {
@@ -53,7 +62,7 @@ void SearchEngine::set_plan(const Plan &p) {
 
 void SearchEngine::search() {
     initialize();
-    CountdownTimer timer(max_time);
+    utils::CountdownTimer timer(max_time);
     while (status == IN_PROGRESS) {
         status = step();
         if (timer.is_expired()) {
@@ -62,8 +71,9 @@ void SearchEngine::search() {
             break;
         }
     }
+    // TODO: Revise when and which search times are logged.
     cout << "Actual search time: " << timer
-         << " [t=" << g_timer << "]" << endl;
+         << " [t=" << utils::g_timer << "]" << endl;
 }
 
 bool SearchEngine::check_goal_and_set_plan(const GlobalState &state) {

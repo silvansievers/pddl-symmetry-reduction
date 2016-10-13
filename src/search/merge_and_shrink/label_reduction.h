@@ -1,14 +1,23 @@
 #ifndef MERGE_AND_SHRINK_LABEL_REDUCTION_H
 #define MERGE_AND_SHRINK_LABEL_REDUCTION_H
 
+#include <memory>
 #include <vector>
 
 class EquivalenceRelation;
-class Options;
 class TaskProxy;
 
-namespace MergeAndShrink {
+namespace options {
+class Options;
+}
+
+namespace utils {
+class RandomNumberGenerator;
+}
+
+namespace merge_and_shrink {
 class FactoredTransitionSystem;
+enum class Verbosity;
 
 class LabelReduction {
     // Options for label reduction
@@ -47,6 +56,7 @@ class LabelReduction {
     };
     LabelReductionMethod lr_method;
     LabelReductionSystemOrder lr_system_order;
+    std::shared_ptr<utils::RandomNumberGenerator> rng;
 
     bool initialized() const;
     // Apply the given label equivalence relation to the set of labels and compute
@@ -54,15 +64,18 @@ class LabelReduction {
     void compute_label_mapping(
         const EquivalenceRelation *relation,
         const FactoredTransitionSystem &fts,
-        std::vector<std::pair<int, std::vector<int>>> &label_mapping);
+        std::vector<std::pair<int, std::vector<int>>> &label_mapping,
+        Verbosity verbosity);
     EquivalenceRelation *compute_combinable_equivalence_relation(
         int ts_index,
         const FactoredTransitionSystem &fts) const;
 public:
-    explicit LabelReduction(const Options &options);
+    explicit LabelReduction(const options::Options &options);
     void initialize(const TaskProxy &task_proxy);
-    void reduce(std::pair<int, int> next_merge,
-                FactoredTransitionSystem &fts);
+    bool reduce(
+        std::pair<int, int> next_merge,
+        FactoredTransitionSystem &fts,
+        Verbosity verbosity);
     void dump_options() const;
     bool reduce_before_shrinking() const {
         return lr_before_shrinking;

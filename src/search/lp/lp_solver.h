@@ -1,7 +1,8 @@
 #ifndef LP_LP_SOLVER_H
 #define LP_LP_SOLVER_H
 
-#include "../utilities.h"
+#include "../utils/language.h"
+#include "../utils/system.h"
 
 #include <functional>
 #include <memory>
@@ -23,11 +24,13 @@
 #endif
 
 class CoinPackedVectorBase;
-class OptionParser;
 class OsiSolverInterface;
 
+namespace options {
+class OptionParser;
+}
 
-namespace LP {
+namespace lp {
 enum class LPSolverType {
     CLP, CPLEX, GUROBI
 };
@@ -36,7 +39,7 @@ enum class LPObjectiveSense {
     MAXIMIZE, MINIMIZE
 };
 
-void add_lp_solver_option_to_parser(OptionParser &parser);
+void add_lp_solver_option_to_parser(options::OptionParser &parser);
 
 class LPConstraint {
     std::vector<int> variables;
@@ -44,8 +47,7 @@ class LPConstraint {
     double lower_bound;
     double upper_bound;
 public:
-    LPConstraint(double lower_bound_, double upper_bound_);
-    ~LPConstraint();
+    LPConstraint(double lower_bound, double upper_bound);
 
     const std::vector<int> &get_variables() const {return variables; }
     const std::vector<double> &get_coefficients() const {return coefficients; }
@@ -66,10 +68,9 @@ struct LPVariable {
     double upper_bound;
     double objective_coefficient;
 
-    LPVariable(double lower_bound_,
-               double upper_bound_,
-               double objective_coefficient_);
-    ~LPVariable();
+    LPVariable(double lower_bound,
+               double upper_bound,
+               double objective_coefficient);
 };
 
 #ifdef __GNUG__

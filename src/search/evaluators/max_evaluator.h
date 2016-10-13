@@ -5,13 +5,17 @@
 
 #include <vector>
 
+namespace options {
+class Options;
+}
 
-namespace MaxEvaluator {
-class MaxEvaluator : public CombiningEvaluator::CombiningEvaluator {
+namespace max_evaluator {
+class MaxEvaluator : public combining_evaluator::CombiningEvaluator {
 protected:
     virtual int combine_values(const std::vector<int> &values) override;
+
 public:
-    explicit MaxEvaluator(const std::vector<ScalarEvaluator *> &subevaluators);
+    explicit MaxEvaluator(const options::Options &opts);
     virtual ~MaxEvaluator() override;
 };
 }

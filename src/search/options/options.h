@@ -1,17 +1,16 @@
 #ifndef OPTIONS_OPTIONS_H
 #define OPTIONS_OPTIONS_H
 
+#include "any.h"
 #include "type_namer.h"
 
-#include "../utilities.h"
-
-#include <boost/any.hpp>
+#include "../utils/system.h"
 
 #include <map>
 #include <string>
 
-
-//Options is just a wrapper for map<string, boost::any>
+namespace options {
+//Options is just a wrapper for map<string, Any>
 class Options {
 public:
     Options(bool hm = false)
@@ -23,7 +22,7 @@ public:
         help_mode = hm;
     }
 
-    std::map<std::string, boost::any> storage;
+    std::map<std::string, Any> storage;
 
     template<typename T>
     void set(std::string key, T value) {
@@ -32,22 +31,21 @@ public:
 
     template<typename T>
     T get(std::string key) const {
-        std::map<std::string, boost::any>::const_iterator it;
-        it = storage.find(key);
+        const auto it = storage.find(key);
         if (it == storage.end()) {
             ABORT("Attempt to retrieve nonexisting object of name " +
                   key + " (type: " + TypeNamer<T>::name() +
                   ") from options.");
         }
         try {
-            T result = boost::any_cast<T>(it->second);
+            T result = any_cast<T>(it->second);
             return result;
-        } catch (const boost::bad_any_cast &) {
+        } catch (const BadAnyCast &) {
             std::cout << "Invalid conversion while retrieving config options!"
                       << std::endl
                       << key << " is not of type " << TypeNamer<T>::name()
                       << std::endl << "exiting" << std::endl;
-            exit_with(EXIT_CRITICAL_ERROR);
+            utils::exit_with(utils::ExitCode::CRITICAL_ERROR);
         }
     }
 
@@ -68,7 +66,7 @@ public:
                           << std::endl
                           << "List " << key << " is empty"
                           << std::endl;
-                exit_with(EXIT_INPUT_ERROR);
+                utils::exit_with(utils::ExitCode::INPUT_ERROR);
             }
         }
     }
@@ -97,5 +95,6 @@ private:
     std::string unparsed_config;
     bool help_mode;
 };
+}
 
 #endif

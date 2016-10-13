@@ -2,10 +2,12 @@
 
 #include "global_state.h"
 #include "task_tools.h"
-#include "utilities.h"
+
+#include "utils/collections.h"
 
 #include <algorithm>
 #include <cassert>
+
 using namespace std;
 
 /* NOTE on possible optimizations:
@@ -138,9 +140,8 @@ void GeneratorEmpty::generate_applicable_ops(
     const GlobalState &, vector<const GlobalOperator *> &) const {
 }
 
-SuccessorGenerator::SuccessorGenerator(const shared_ptr<AbstractTask> task)
-    : task(task),
-      task_proxy(*task) {
+SuccessorGenerator::SuccessorGenerator(const TaskProxy &task_proxy)
+    : task_proxy(task_proxy) {
     OperatorsProxy operators = task_proxy.get_operators();
     // We need the iterators to conditions to be stable:
     conditions.reserve(operators.size());
@@ -159,8 +160,8 @@ SuccessorGenerator::SuccessorGenerator(const shared_ptr<AbstractTask> task)
     }
 
     root = unique_ptr<GeneratorBase>(construct_recursive(0, all_operators));
-    release_vector_memory(conditions);
-    release_vector_memory(next_condition_by_op);
+    utils::release_vector_memory(conditions);
+    utils::release_vector_memory(next_condition_by_op);
 }
 
 SuccessorGenerator::~SuccessorGenerator() {
@@ -246,6 +247,6 @@ void SuccessorGenerator::generate_applicable_ops(
 
 
 void SuccessorGenerator::generate_applicable_ops(
-    const GlobalState &state, std::vector<const GlobalOperator *> &applicable_ops) const {
+    const GlobalState &state, vector<const GlobalOperator *> &applicable_ops) const {
     root->generate_applicable_ops(state, applicable_ops);
 }

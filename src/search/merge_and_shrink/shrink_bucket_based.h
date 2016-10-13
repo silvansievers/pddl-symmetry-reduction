@@ -3,12 +3,19 @@
 
 #include "shrink_strategy.h"
 
+#include <memory>
 #include <vector>
 
+namespace options {
+class OptionParser;
 class Options;
+}
 
+namespace utils {
+class RandomNumberGenerator;
+}
 
-namespace MergeAndShrink {
+namespace merge_and_shrink {
 /* A base class for bucket-based shrink strategies.
 
    A bucket-based strategy partitions the states into an ordered
@@ -31,6 +38,7 @@ namespace MergeAndShrink {
 class ShrinkBucketBased : public ShrinkStrategy {
 protected:
     typedef std::vector<int> Bucket;
+    std::shared_ptr<utils::RandomNumberGenerator> rng;
 
 private:
     void compute_abstraction(
@@ -39,19 +47,19 @@ private:
         StateEquivalenceRelation &equivalence_relation) const;
 
 protected:
-    virtual void compute_equivalence_relation(
-        const FactoredTransitionSystem &fts,
-        int index,
-        int target,
-        StateEquivalenceRelation &equivalence_relation) const override;
     virtual void partition_into_buckets(
         const FactoredTransitionSystem &fts,
         int index,
         std::vector<Bucket> &buckets) const = 0;
-
 public:
-    explicit ShrinkBucketBased(const Options &opts);
-    virtual ~ShrinkBucketBased();
+    explicit ShrinkBucketBased(const options::Options &opts);
+    virtual ~ShrinkBucketBased() override = default;
+    virtual bool shrink(
+        FactoredTransitionSystem &fts,
+        int index,
+        int target,
+        Verbosity verbosity) const override;
+    static void add_options_to_parser(options::OptionParser &parser);
 };
 }
 

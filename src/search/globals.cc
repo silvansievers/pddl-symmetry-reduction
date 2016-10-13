@@ -6,12 +6,14 @@
 #include "global_state.h"
 #include "heuristic.h"
 #include "int_packer.h"
-#include "rng.h"
-#include "root_task.h"
-#include "state_registry.h"
 #include "successor_generator.h"
-#include "timer.h"
-#include "utilities.h"
+
+#include "tasks/root_task.h"
+
+#include "utils/logging.h"
+#include "utils/rng.h"
+#include "utils/system.h"
+#include "utils/timer.h"
 
 #include <cstdlib>
 #include <fstream>
@@ -23,6 +25,7 @@
 #include <vector>
 
 using namespace std;
+using utils::ExitCode;
 
 static const int PRE_FILE_VERSION = 3;
 
@@ -33,7 +36,7 @@ static const int PRE_FILE_VERSION = 3;
 //       are_mutex, which is at least better than exposing the data
 //       structure globally.)
 
-static vector<vector<set<pair<int, int>>>> g_inconsistent_facts;
+static vector<vector<set<FactPair>>> g_inconsistent_facts;
 
 bool test_goal(const GlobalState &state) {
     for (size_t i = 0; i < g_goal.size(); ++i) {
@@ -92,7 +95,7 @@ void check_magic(istream &in, string magic) {
                  << "on a preprocessor file from " << endl
                  << "an older version." << endl;
         }
-        exit_with(EXIT_INPUT_ERROR);
+        utils::exit_with(ExitCode::INPUT_ERROR);
     }
 }
 
@@ -105,7 +108,7 @@ void read_and_verify_version(istream &in) {
         cerr << "Expected preprocessor file version " << PRE_FILE_VERSION
              << ", got " << version << "." << endl;
         cerr << "Exiting." << endl;
-        exit_with(EXIT_INPUT_ERROR);
+        utils::exit_with(ExitCode::INPUT_ERROR);
     }
 }
 
@@ -156,21 +159,18 @@ void read_mutexes(istream &in) {
         check_magic(in, "begin_mutex_group");
         int num_facts;
         in >> num_facts;
-        vector<pair<int, int>> invariant_group;
+        vector<FactPair> invariant_group;
         invariant_group.reserve(num_facts);
         for (int j = 0; j < num_facts; ++j) {
-            int var, val;
-            in >> var >> val;
-            invariant_group.push_back(make_pair(var, val));
+            int var;
+            int value;
+            in >> var >> value;
+            invariant_group.emplace_back(var, value);
         }
         check_magic(in, "end_mutex_group");
-        for (size_t j = 0; j < invariant_group.size(); ++j) {
-            const pair<int, int> &fact1 = invariant_group[j];
-            int var1 = fact1.first, val1 = fact1.second;
-            for (size_t k = 0; k < invariant_group.size(); ++k) {
-                const pair<int, int> &fact2 = invariant_group[k];
-                int var2 = fact2.first;
-                if (var1 != var2) {
+        for (const FactPair &fact1 : invariant_group) {
+            for (const FactPair &fact2 : invariant_group) {
+                if (fact1.var != fact2.var) {
                     /* The "different variable" test makes sure we
                        don't mark a fact as mutex with itself
                        (important for correctness) and don't include
@@ -181,7 +181,7 @@ void read_mutexes(istream &in) {
                        groups which lead to *some* redundant mutexes,
                        where some but not all facts talk about the
                        same variable. */
-                    g_inconsistent_facts[var1][val1].insert(fact2);
+                    g_inconsistent_facts[fact1.var][fact1.value].insert(fact2);
                 }
             }
         }
@@ -194,7 +194,7 @@ void read_goal(istream &in) {
     in >> count;
     if (count < 1) {
         cerr << "Task has no goal condition!" << endl;
-        exit_with(EXIT_INPUT_ERROR);
+        utils::exit_with(ExitCode::INPUT_ERROR);
     }
     for (int i = 0; i < count; ++i) {
         int var, val;
@@ -224,11 +224,11 @@ void read_axioms(istream &in) {
     for (int i = 0; i < count; ++i)
         g_axioms.push_back(GlobalOperator(in, true));
 
-    g_axiom_evaluator = new AxiomEvaluator;
+    g_axiom_evaluator = new AxiomEvaluator(TaskProxy(*g_root_task()));
 }
 
 void read_everything(istream &in) {
-    cout << "reading input... [t=" << g_timer << "]" << endl;
+    cout << "reading input... [t=" << utils::g_timer << "]" << endl;
     read_and_verify_version(in);
     read_metric(in);
     read_variables(in);
@@ -254,16 +254,12 @@ void read_everything(istream &in) {
 
     check_magic(in, "begin_DTG"); // ignore everything from here
 
-    cout << "done reading input! [t=" << g_timer << "]" << endl;
+    cout << "done reading input! [t=" << utils::g_timer << "]" << endl;
 
     cout << "packing state variables..." << flush;
     assert(!g_variable_domain.empty());
     g_state_packer = new IntPacker(g_variable_domain);
-    cout << "done! [t=" << g_timer << "]" << endl;
-
-    // NOTE: state registry stores the sizes of the state, so must be
-    // built after the problem has been read in.
-    g_state_registry = new StateRegistry;
+    cout << "done! [t=" << utils::g_timer << "]" << endl;
 
     int num_vars = g_variable_domain.size();
     int num_facts = 0;
@@ -271,16 +267,17 @@ void read_everything(istream &in) {
         num_facts += g_variable_domain[var];
 
     cout << "Variables: " << num_vars << endl;
-    cout << "Facts: " << num_facts << endl;
+    cout << "FactPairs: " << num_facts << endl;
     cout << "Bytes per state: "
-         << g_state_packer->get_num_bins() *
-        g_state_packer->get_bin_size_in_bytes() << endl;
+         << g_state_packer->get_num_bins() * sizeof(IntPacker::Bin)
+         << endl;
 
     cout << "Building successor generator..." << flush;
-    g_successor_generator = new SuccessorGenerator(g_root_task());
-    cout << "done! [t=" << g_timer << "]" << endl;
+    TaskProxy task_proxy(*g_root_task());
+    g_successor_generator = new SuccessorGenerator(task_proxy);
+    cout << "done! [t=" << utils::g_timer << "]" << endl;
 
-    cout << "done initalizing global data [t=" << g_timer << "]" << endl;
+    cout << "done initalizing global data [t=" << utils::g_timer << "]" << endl;
 }
 
 void dump_everything() {
@@ -292,7 +289,7 @@ void dump_everything() {
     for (size_t i = 0; i < g_variable_name.size(); ++i)
         cout << "  " << g_variable_name[i]
              << " (range " << g_variable_domain[i] << ")" << endl;
-    GlobalState initial_state = g_initial_state();
+    State initial_state = TaskProxy(*g_root_task()).get_initial_state();
     cout << "Initial State (PDDL):" << endl;
     initial_state.dump_pddl();
     cout << "Initial State (FDR):" << endl;
@@ -316,7 +313,7 @@ void verify_no_axioms() {
     if (has_axioms()) {
         cerr << "Heuristic does not support axioms!" << endl << "Terminating."
              << endl;
-        exit_with(EXIT_UNSUPPORTED);
+        utils::exit_with(ExitCode::UNSUPPORTED);
     }
 }
 
@@ -342,7 +339,7 @@ void verify_no_conditional_effects() {
         cerr << "Heuristic does not support conditional effects "
              << "(operator " << g_operators[op_id].get_name() << ")" << endl
              << "Terminating." << endl;
-        exit_with(EXIT_UNSUPPORTED);
+        utils::exit_with(ExitCode::UNSUPPORTED);
     }
 }
 
@@ -351,21 +348,24 @@ void verify_no_axioms_no_conditional_effects() {
     verify_no_conditional_effects();
 }
 
-bool are_mutex(const pair<int, int> &a, const pair<int, int> &b) {
-    if (a.first == b.first) {
+bool are_mutex(const FactPair &a, const FactPair &b) {
+    if (a.var == b.var) {
         // Same variable: mutex iff different value.
-        return a.second != b.second;
+        return a.value != b.value;
     }
-    return bool(g_inconsistent_facts[a.first][a.second].count(b));
-}
-
-const GlobalState &g_initial_state() {
-    return g_state_registry->get_initial_state();
+    return bool(g_inconsistent_facts[a.var][a.value].count(b));
 }
 
 const shared_ptr<AbstractTask> g_root_task() {
-    static shared_ptr<AbstractTask> root_task = make_shared<RootTask>();
+    static shared_ptr<AbstractTask> root_task = make_shared<tasks::RootTask>();
     return root_task;
+}
+
+shared_ptr<utils::RandomNumberGenerator> g_rng() {
+    // Use an arbitrary default seed.
+    static shared_ptr<utils::RandomNumberGenerator> rng =
+        make_shared<utils::RandomNumberGenerator>(2011);
+    return rng;
 }
 
 bool g_use_metric;
@@ -384,9 +384,8 @@ vector<GlobalOperator> g_axioms;
 AxiomEvaluator *g_axiom_evaluator;
 SuccessorGenerator *g_successor_generator;
 
-Timer g_timer;
 string g_plan_filename = "sas_plan";
 int g_num_previously_generated_plans = 0;
 bool g_is_part_of_anytime_portfolio = false;
-RandomNumberGenerator g_rng(2011); // Use an arbitrary default seed.
-StateRegistry *g_state_registry = 0;
+
+utils::Log g_log;
