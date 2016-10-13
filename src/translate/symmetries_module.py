@@ -533,8 +533,7 @@ class SymmetryGraph:
         # the generators, we should remap init indices when required.
         # The same is true for operators.
         automorphisms = self.graph.find_automorphisms()
-        if len(automorphisms) == 0:
-            print "Task does not contain symmetries."
+        print "Found %d generators" % len(automorphisms)
         for generator in automorphisms:
             print("generator:")
             file.write("generator:\n")
