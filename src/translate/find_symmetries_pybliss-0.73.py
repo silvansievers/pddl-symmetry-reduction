@@ -219,20 +219,6 @@ class SymmetryGraph:
             assert (Color.function is not None)
             self.graph.add_vertex(func_node,
                                   Color.function + len(function.arguments))
-#            prev_node = func_node
-#            for no, arg in enumerate(function.arguments):
-#                arg_node = self._get_function_node(function.name, no+1)
-#                self.graph.add_vertex(arg_node, Color.function)
-#                self.graph.add_edge(prev_node, arg_node)
-#                prev_node = arg_node
-#                if arg.type_name != "object":
-#                    type = type_dict[arg.type_name]
-#                    type_node = self._get_pred_node(type.get_predicate_name())
-#                    self.graph.add_edge(type_node, arg_node)
-#            val_node = self._get_function_node(function.name, -1)
-#            self.graph.add_vertex(val_node, Color.function)
-#            self.graph.add_edge(prev_node, val_node)
-
 
     def _add_pne(self, node_type, color, pne, id_indices, param_dicts=()):
         function_node = self._get_function_node(pne.symbol)
