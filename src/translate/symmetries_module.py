@@ -121,6 +121,7 @@ class SymmetryGraph:
         Color.derived_predicate = Color.predicate + self.max_predicate_arity + 1
         Color.function = Color.derived_predicate + self.max_predicate_arity + 1
         Color.number = Color.function + self.max_function_arity + 1
+        self.type_dict = dict((type.name, type) for type in task.types)
 
         if self.only_object_symmetries:
             # TODO: are there planning tasks with numbers larger than that?
@@ -205,7 +206,6 @@ class SymmetryGraph:
         All functions f of the same arity share the same color
         Color.function + arity(f).
         """
-        type_dict = dict((type.name, type) for type in task.types)
         for function in task.functions:
             if function.name == "total-cost":
                 continue
@@ -295,14 +295,13 @@ class SymmetryGraph:
 
         # add types
         counter = len(init)
-        type_dict = dict((type.name, type) for type in task.types)
         for o in task.objects:
-            type = type_dict[o.type_name]
+            type = self.type_dict[o.type_name]
             while type.name != "object":
                 literal = pddl.Atom(type.get_predicate_name(), (o.name,))
                 self._add_literal(NodeType.init, Color.init, literal, (counter,))
                 counter += 1
-                type = type_dict[type.basetype_name]
+                type = self.type_dict[type.basetype_name]
 
     def _add_goal(self, task):
         for no, fact in enumerate(task.goal.parts):
@@ -336,10 +335,9 @@ class SymmetryGraph:
             assert isinstance(condition, pddl.Truth)
 
         # condition from types
-        type_dict = dict((type.name, type) for type in task.types)
         for param in params:
             if param.type_name != "object":
-                pred_name = type_dict[param.type_name].get_predicate_name()
+                pred_name = self.type_dict[param.type_name].get_predicate_name()
                 literal = pddl.Atom(pred_name, (param.name,))
                 self._add_condition(node_type, color,literal,
                                     id_indices + (pre_index,), base_node,

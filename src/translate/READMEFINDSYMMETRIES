@@ -1,5 +1,6 @@
-To use /find_symmetries_pybliss-0.73.py, you need to compile PyBliss
-first. To do so, change tino pybliss-0.73 and type "Make".
+To use find symmetries with the symmtries module
+(symmetries_module.py), you need to compile the pybind PyBliss
+extension first. To do so, change into pybliss-0.73 and type "Make".
 
-Example usage:
-./find_symmetries_pybliss-0.73.py ../../benchmarks/simple-drive/domain.pddl ../../benchmarks/simple-drive/p01.pddl
+External usage with find_symmetries.py:
+./find_symmetries.py ../../benchmarks/simple-drive/domain.pddl ../../benchmarks/simple-drive/p01.pddl [--only-object-symmetries]
