@@ -1,6 +1,5 @@
 #! /usr/bin/env python
 
-import normalize
 import pddl
 
 import sys
@@ -14,7 +13,6 @@ else:
     import pybind11_blissmodule as bliss
 
 # HACK
-ONLY_OBJECTS = False
 GLOBAL_COLOR_COUNT = -1
 
 class PyblissModuleWrapper:
@@ -23,11 +21,12 @@ class PyblissModuleWrapper:
     On demand, it creates the pybliss module and computes the
     automorphisms.
     """
-    def __init__(self):
+    def __init__(self, only_object_symmetries):
         self.vertex_to_color = {}
         self.edges = set()
         # To exclude "="-predicates and all related nodes from dot output
         self.excluded_vertices = set()
+        self.only_object_symmetries = only_object_symmetries
 
     def find_automorphisms(self):
         # Create and fill the graph
@@ -77,7 +76,7 @@ class PyblissModuleWrapper:
         return self.vertex_to_color[vertex]
 
     def add_vertex(self, vertex, color, exclude=False):
-        if ONLY_OBJECTS and color not in [Color.constant, Color.init, Color.goal]:
+        if self.only_object_symmetries and color not in [Color.constant, Color.init, Color.goal]:
             global GLOBAL_COLOR_COUNT
             assert GLOBAL_COLOR_COUNT != -1
             color = GLOBAL_COLOR_COUNT
@@ -127,8 +126,9 @@ class Color:
     number = None # will be set by Symmetry Graph
 
 class SymmetryGraph:
-    def __init__(self, task):
-        self.graph = PyblissModuleWrapper()
+    def __init__(self, task, only_object_symmetries):
+        self.only_object_symmetries = only_object_symmetries
+        self.graph = PyblissModuleWrapper(only_object_symmetries)
         self.numbers = set()
         self.constant_functions = dict()
         self.max_predicate_arity = \
@@ -140,9 +140,10 @@ class SymmetryGraph:
         Color.function = Color.derived_predicate + self.max_predicate_arity + 1
         Color.number = Color.function + self.max_function_arity + 1
 
-        # TODO: are there planning tasks with numbers larger than that?
-        global GLOBAL_COLOR_COUNT
-        GLOBAL_COLOR_COUNT = Color.number + 10000
+        if self.only_object_symmetries:
+            # TODO: are there planning tasks with numbers larger than that?
+            global GLOBAL_COLOR_COUNT
+            GLOBAL_COLOR_COUNT = Color.number + 10000
 
         self._add_objects(task)
         self._add_predicates(task)
@@ -527,7 +528,7 @@ class SymmetryGraph:
             if hide_equal_predicates and vertex in self.graph.excluded_vertices:
                 continue
             color = self.graph.get_color(vertex)
-            if ONLY_OBJECTS and color not in [Color.constant, Color.init, Color.goal]:
+            if self.only_object_symmetries and color not in [Color.constant, Color.init, Color.goal]:
                 dot_color_scheme = "X11"
                 dot_color = "red"
             else:
@@ -565,12 +566,8 @@ class SymmetryGraph:
                     print ("%s => %s" % (from_vertex, to_vertex))
                     file.write("%s => %s\n" % (from_vertex, to_vertex))
 
-if __name__ == "__main__":
-    import pddl_parser
-    task = pddl_parser.open()
-    normalize.normalize(task)
-    task.dump()
-    G = SymmetryGraph(task)
+def main(normalized_task, only_object_symmetries):
+    G = SymmetryGraph(normalized_task, only_object_symmetries)
     f = open('out.dot', 'w')
     G.write_dot(f, True)
     f.close()
@@ -578,3 +575,13 @@ if __name__ == "__main__":
     G.print_automorphism_generators(f, True)
     f.close()
     sys.stdout.flush()
+
+if __name__ == "__main__":
+    import options
+    only_object_symmetries = options.only_object_symmetries
+    import pddl_parser
+    task = pddl_parser.open()
+    import normalize
+    normalize.normalize(task)
+    task.dump()
+    main(task, only_object_symmetries)
