@@ -24,8 +24,8 @@
   https://bugs.launchpad.net/ubuntu/+source/gcc-5/+bug/1617838 it is
   not clear if the fault lies with OSI.)
 */
-#include <cmath>
-using std::isnan;
+//#include <cmath>
+//using std::isnan;
 
 class CoinError;
 class OsiSolverInterface;
