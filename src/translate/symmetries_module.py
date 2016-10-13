@@ -2,8 +2,11 @@
 
 import pddl
 
+import os
+dir_path = os.path.dirname(os.path.realpath(__file__))
+
 import sys
-sys.path.append('pybliss-0.73')
+sys.path.append(os.path.join(dir_path, 'pybliss-0.73'))
 import pybind11_blissmodule as bliss
 
 # HACK
