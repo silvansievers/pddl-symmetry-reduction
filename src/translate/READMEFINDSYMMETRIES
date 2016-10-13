@@ -4,3 +4,6 @@ extension first. To do so, change into pybliss-0.73 and type "Make".
 
 External usage with find_symmetries.py:
 ./find_symmetries.py ../../benchmarks/simple-drive/domain.pddl ../../benchmarks/simple-drive/p01.pddl [--only-object-symmetries]
+
+Usage from within the translator:
+./translate.py ../../benchmarks/simple-drive/domain.pddl ../../benchmarks/simple-drive/p01.pddl --only-find-symmetries [--only-object-symmetries]

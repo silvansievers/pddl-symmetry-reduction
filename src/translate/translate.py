@@ -663,6 +663,13 @@ def main():
     with timers.timing("Normalizing task"):
         normalize.normalize(task)
 
+    if options.only_find_symmetries:
+        import symmetries_module
+        only_object_symmetries = options.only_object_symmetries
+        task.dump()
+        symmetries_module.main(task, only_object_symmetries)
+        exit(0)
+
     if options.generate_relaxed_task:
         # Remove delete effects.
         for action in task.actions:
