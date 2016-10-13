@@ -13,6 +13,9 @@ if USE_PYEXT:
 else:
     import pybind11_blissmodule as bliss
 
+# HACK
+ONLY_OBJECTS = False
+GLOBAL_COLOR_COUNT = -1
 
 class PyblissModuleWrapper:
     """
@@ -74,8 +77,12 @@ class PyblissModuleWrapper:
         return self.vertex_to_color[vertex]
 
     def add_vertex(self, vertex, color, exclude=False):
+        if ONLY_OBJECTS and color not in [Color.constant, Color.init, Color.goal]:
+            global GLOBAL_COLOR_COUNT
+            assert GLOBAL_COLOR_COUNT != -1
+            color = GLOBAL_COLOR_COUNT
+            GLOBAL_COLOR_COUNT += 1
         vertex = tuple(vertex)
-        # TODO: not sure if this should ever trigger
         if vertex in self.vertex_to_color:
             assert color == self.vertex_to_color[vertex]
             return
@@ -132,6 +139,10 @@ class SymmetryGraph:
         Color.derived_predicate = Color.predicate + self.max_predicate_arity + 1
         Color.function = Color.derived_predicate + self.max_predicate_arity + 1
         Color.number = Color.function + self.max_function_arity + 1
+
+        # TODO: are there planning tasks with numbers larger than that?
+        global GLOBAL_COLOR_COUNT
+        GLOBAL_COLOR_COUNT = Color.number + 10000
 
         self._add_objects(task)
         self._add_predicates(task)
@@ -516,8 +527,14 @@ class SymmetryGraph:
             if hide_equal_predicates and vertex in self.graph.excluded_vertices:
                 continue
             color = self.graph.get_color(vertex)
+            if ONLY_OBJECTS and color not in [Color.constant, Color.init, Color.goal]:
+                dot_color_scheme = "X11"
+                dot_color = "red"
+            else:
+                dot_color_scheme = colors[color][0]
+                dot_color = colors[color][1]
             file.write("\"%s\" [style=filled, label=\"%s\", colorscheme=%s, fillcolor=%s];\n" %
-                (vertex, dot_label(vertex), colors[color][0], colors[color][1]))
+                (vertex, dot_label(vertex), dot_color_scheme, dot_color))
         for vertex in self.graph.get_vertices():
             if hide_equal_predicates and vertex in self.graph.excluded_vertices:
                 continue
