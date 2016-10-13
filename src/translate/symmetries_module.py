@@ -557,13 +557,3 @@ def main(normalized_task, only_object_symmetries):
     G.print_automorphism_generators(f, True)
     f.close()
     sys.stdout.flush()
-
-if __name__ == "__main__":
-    import options
-    only_object_symmetries = options.only_object_symmetries
-    import pddl_parser
-    task = pddl_parser.open()
-    import normalize
-    normalize.normalize(task)
-    task.dump()
-    main(task, only_object_symmetries)
