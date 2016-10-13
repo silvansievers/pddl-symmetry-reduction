@@ -103,6 +103,7 @@ def build(config_name, cmake_parameters, make_parameters):
                           + [rel_src_path],
                           cwd=build_path)
     subprocess.check_call([MAKE] + make_parameters, cwd=build_path)
+    subprocess.check_call([MAKE], cwd='src/translate/pybliss-0.73')
     print("Built configuration " + config_name + " successfully")
 
 
