@@ -4,9 +4,9 @@
 /*
   Copyright (c) 2003-2015 Tommi Junttila
   Released under the GNU Lesser General Public License version 3.
-  
+
   This file is part of bliss.
-  
+
   bliss is free software: you can redistribute it and/or modify
   it under the terms of the GNU Lesser General Public License as published by
   the Free Software Foundation, version 3 of the License.
@@ -27,11 +27,11 @@ namespace bliss {
 #include <cstdlib>
 #include <cstdio>
 #include <climits>
-#include "kstack.hh"
-#include "kqueue.hh"
-#include "heap.hh"
-#include "orbit.hh"
-#include "graph.hh"
+#include "kstack.h"
+#include "kqueue.h"
+#include "heap.h"
+#include "orbit.h"
+#include "graph.h"
 
 
 namespace bliss {
@@ -140,10 +140,10 @@ public:
    * @return         the new unit Cell \a newcell
    */
   Cell* individualize(Cell* const cell,
-		      const unsigned int element);
+          const unsigned int element);
 
   Cell* aux_split_in_two(Cell* const cell,
-			 const unsigned int first_half_size);
+       const unsigned int first_half_size);
 
 
 private:
@@ -214,7 +214,7 @@ public:
   void cr_free();
   unsigned int cr_get_level(const unsigned int cell_index) const;
   unsigned int cr_split_level(const unsigned int level,
-			      const std::vector<unsigned int>& cells);
+            const std::vector<unsigned int>& cells);
 
   /** Clear the invariant_values of the elements in the Cell \a cell. */
   void clear_ivs(Cell* const cell);
@@ -234,7 +234,7 @@ private:
     CRCell** prev_next_ptr;
     void detach() {
       if(next)
-	next->prev_next_ptr = prev_next_ptr;
+  next->prev_next_ptr = prev_next_ptr;
       *(prev_next_ptr) = next;
       level = UINT_MAX;
       next = 0;

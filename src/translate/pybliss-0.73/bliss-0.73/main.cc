@@ -1,4 +1,4 @@
-#include "digraph_wrapper.hh"
+#include "digraph_wrapper.h"
 
 #include <iostream>
 

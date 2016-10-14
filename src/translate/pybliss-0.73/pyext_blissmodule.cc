@@ -1,6 +1,6 @@
 #include <Python.h>
 
-#include "bliss-0.73/digraph_wrapper.hh"
+#include "bliss-0.73/digraph_wrapper.h"
 
 using namespace std;
 

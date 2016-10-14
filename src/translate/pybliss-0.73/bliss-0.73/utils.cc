@@ -1,13 +1,13 @@
 #include <cassert>
 #include <vector>
-#include "utils.hh"
+#include "utils.h"
 
 /*
   Copyright (c) 2003-2015 Tommi Junttila
   Released under the GNU Lesser General Public License version 3.
-  
+
   This file is part of bliss.
-  
+
   bliss is free software: you can redistribute it and/or modify
   it under the terms of the GNU Lesser General Public License as published by
   the Free Software Foundation, version 3 of the License.
@@ -25,9 +25,9 @@ namespace bliss {
 
 void
 print_permutation(FILE* const fp,
-		  const unsigned int N,
-		  const unsigned int* perm,
-		  const unsigned int offset)
+      const unsigned int N,
+      const unsigned int* perm,
+      const unsigned int offset)
 {
   assert(N > 0);
   assert(perm);
@@ -59,8 +59,8 @@ print_permutation(FILE* const fp,
 
 void
 print_permutation(FILE* const fp,
-		  const std::vector<unsigned int>& perm,
-		  const unsigned int offset)
+      const std::vector<unsigned int>& perm,
+      const unsigned int offset)
 {
   const unsigned int N = perm.size();
   for(unsigned int i = 0; i < N; i++) {

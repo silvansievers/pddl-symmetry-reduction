@@ -1,7 +1,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#include "bliss-0.73/digraph_wrapper.hh"
+#include "bliss-0.73/digraph_wrapper.h"
 
 using namespace std;
 using namespace pybind11::literals;

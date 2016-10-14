@@ -1,15 +1,15 @@
 BLISS_DIR = bliss-0.73
-BLISS_HEADERS = $(BLISS_DIR)/defs.hh \
-                $(BLISS_DIR)/digraph_wrapper.hh \
-                $(BLISS_DIR)/graph.hh \
-                $(BLISS_DIR)/heap.hh \
-                $(BLISS_DIR)/orbit.hh \
-                $(BLISS_DIR)/partition.hh \
-                $(BLISS_DIR)/timer.hh \
-                $(BLISS_DIR)/uintseqhash.hh \
-                $(BLISS_DIR)/utils.hh \
+BLISS_HEADERS = $(BLISS_DIR)/defs.h \
+                $(BLISS_DIR)/digraph_wrapper.h \
+                $(BLISS_DIR)/graph.h \
+                $(BLISS_DIR)/heap.h \
+                $(BLISS_DIR)/orbit.h \
+                $(BLISS_DIR)/partition.h \
+                $(BLISS_DIR)/timer.h \
+                $(BLISS_DIR)/uintseqhash.h \
+                $(BLISS_DIR)/utils.h \
 
-BLISS_SOURCES = $(BLISS_HEADERS:%.hh=%.cc)
+BLISS_SOURCES = $(BLISS_HEADERS:%.h=%.cc)
 
 default: pybind11-blissmodule
 

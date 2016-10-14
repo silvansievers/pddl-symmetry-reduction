@@ -1,6 +1,6 @@
-#include "digraph_wrapper.hh"
+#include "digraph_wrapper.h"
 
-#include "graph.hh"
+#include "graph.h"
 
 #include <cassert>
 #include <iostream>
