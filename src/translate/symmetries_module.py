@@ -86,15 +86,23 @@ class PyblissModuleWrapper:
         return self.vertex_to_color[vertex]
 
     def add_vertex(self, vertex, color, exclude=False):
+        vertex = tuple(vertex)
+        # Do nothing if the vertex has already been added
+        if vertex in self.vertex_to_color:
+            if not self.only_object_symmetries:
+                # This test potentially fails when using object symmetries,
+                # because the color manually gets overwritten.
+                assert color == self.vertex_to_color[vertex]
+            return
+
+        # Update color to a unique number if using object symmetries and not adding an object node
         if self.only_object_symmetries and color not in [Color.constant, Color.init, Color.goal]:
             global GLOBAL_COLOR_COUNT
             assert GLOBAL_COLOR_COUNT != -1
             color = GLOBAL_COLOR_COUNT
             GLOBAL_COLOR_COUNT += 1
-        vertex = tuple(vertex)
-        if vertex in self.vertex_to_color:
-            assert color == self.vertex_to_color[vertex]
-            return
+
+        # Add the vertex
         self.vertex_to_color[vertex] = color
         if exclude:
             self.excluded_vertices.add(vertex)
