@@ -32,7 +32,7 @@ vector<vector<int> > DigraphWrapper::find_automorphisms() {
     automorphisms.clear();
     graph->set_splitting_heuristic(bliss::Digraph::shs_fs);
     bliss::Stats stats;
-    cout << "DigraphWrapper: searching for automorphisms... " << endl;
+    //cout << "DigraphWrapper: searching for automorphisms... " << endl;
     graph->find_automorphisms(stats, &(_add_automorphism), this);
     vector<vector<int> > result;
     result.swap(automorphisms);
@@ -42,7 +42,7 @@ vector<vector<int> > DigraphWrapper::find_automorphisms() {
 void DigraphWrapper::add_automorphism(
     unsigned int automorphism_size, const unsigned int *automorphism) {
     assert(automorphisms_size == graph->get_nof_vertices());
-    cout << "DigraphWrapper: found generator" << endl;
+    //cout << "DigraphWrapper: found generator" << endl;
     // Copy the array to the vector (do not just store a pointer to the array!)
     vector<int> new_aut;
     new_aut.reserve(automorphism_size);

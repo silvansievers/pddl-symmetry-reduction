@@ -664,10 +664,16 @@ def main():
         normalize.normalize(task)
 
     if options.only_find_symmetries:
-        import symmetries_module
+        from symmetries_module import SymmetryGraph
         only_object_symmetries = options.only_object_symmetries
-        task.dump()
-        symmetries_module.main(task, only_object_symmetries)
+        time_limit = options.bliss_time_limit
+        graph = SymmetryGraph(task, only_object_symmetries)
+        if options.write_dot_graph:
+            f = open('out.dot', 'w')
+            graph.write_dot_graph(f, hide_equal_predicates=True)
+            f.close()
+        automorphisms = graph.find_automorphisms(time_limit)
+        graph.write_or_print_automorphisms(automorphisms, hide_equal_predicates=True, write=True, dump=False)
         exit(0)
 
     if options.generate_relaxed_task:

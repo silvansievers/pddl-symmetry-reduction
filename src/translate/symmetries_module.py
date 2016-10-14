@@ -12,6 +12,29 @@ import pybind11_blissmodule as bliss
 # HACK
 GLOBAL_COLOR_COUNT = -1
 
+# From http://stackoverflow.com/questions/492519/timeout-on-a-function-call
+def timeout(func, args=(), kwargs={}, timeout_duration=1800, default=None):
+    import signal
+
+    class TimeoutError(Exception):
+        pass
+
+    def handler(signum, frame):
+        raise TimeoutError()
+
+    # set the timeout handler
+    signal.signal(signal.SIGALRM, handler)
+    signal.alarm(timeout_duration)
+    try:
+        result = func(*args, **kwargs)
+    except TimeoutError as exc:
+        print "Bliss timeout!"
+        result = default
+    finally:
+        signal.alarm(0)
+
+    return result
+
 class PyblissModuleWrapper:
     """
     Class that collets all vertices and edges of a symmetry graph.
@@ -25,7 +48,7 @@ class PyblissModuleWrapper:
         self.excluded_vertices = set()
         self.only_object_symmetries = only_object_symmetries
 
-    def find_automorphisms(self):
+    def find_automorphisms(self, time_limit):
         # Create and fill the graph
         graph = bliss.DigraphWrapper()
         vertices = self.get_vertices()
@@ -42,8 +65,10 @@ class PyblissModuleWrapper:
             v2 = self.vertex_to_id[edge[1]]
             graph.add_edge(v1, v2)
 
-        # Get the automorphisms
-        automorphisms = graph.find_automorphisms()
+        # Find automorphisms, use a time limit:
+        automorphisms = timeout(
+            graph.find_automorphisms, args=(), kwargs={},
+            timeout_duration=time_limit, default=[])
         translated_auts = []
         for aut in automorphisms:
             translated_auts.append(self._translate_generator(aut))
@@ -464,7 +489,7 @@ class SymmetryGraph:
                 prev_node = arg_node
 
 
-    def write_dot(self, file, hide_equal_predicates=False):
+    def write_dot_graph(self, file, hide_equal_predicates=False):
         """Write the graph into a file in the graphviz dot format."""
         def dot_label(node):
             if node[0] == NodeType.function:
@@ -528,15 +553,23 @@ class SymmetryGraph:
                 file.write("\"%s\" -> \"%s\";\n" % (vertex, succ))
         file.write("}\n")
 
-    def print_automorphism_generators(self, file, hide_equal_predicates=False):
+    def find_automorphisms(self, time_limit):
         # TODO: we sorted task's init, hence if we wanted to to use
         # the generators, we should remap init indices when required.
         # The same is true for operators.
-        automorphisms = self.graph.find_automorphisms()
+        print "Searching for autmorphisms..."
+        automorphisms = self.graph.find_automorphisms(time_limit)
         print "Found %d generators" % len(automorphisms)
+        return automorphisms
+
+    def write_or_print_automorphisms(self, automorphisms, hide_equal_predicates=False, write=False, dump=False):
+        if write:
+            file = open('generators.txt', 'w')
         for generator in automorphisms:
-            print("generator:")
-            file.write("generator:\n")
+            if dump:
+                print("generator:")
+            if write:
+                file.write("generator:\n")
             keys = sorted(generator.keys())
             for from_vertex in keys:
                 if hide_equal_predicates and from_vertex in self.graph.excluded_vertices:
@@ -545,15 +578,10 @@ class SymmetryGraph:
                 if hide_equal_predicates and to_vertex in self.graph.excluded_vertices:
                     continue
                 if from_vertex != to_vertex:
-                    print ("%s => %s" % (from_vertex, to_vertex))
-                    file.write("%s => %s\n" % (from_vertex, to_vertex))
+                    if dump:
+                        print ("%s => %s" % (from_vertex, to_vertex))
+                    if write:
+                        file.write("%s => %s\n" % (from_vertex, to_vertex))
+        if write:
+            file.close()
 
-def main(normalized_task, only_object_symmetries):
-    G = SymmetryGraph(normalized_task, only_object_symmetries)
-    f = open('out.dot', 'w')
-    G.write_dot(f, True)
-    f.close()
-    f = open('generator.txt', 'w')
-    G.print_automorphism_generators(f, True)
-    f.close()
-    sys.stdout.flush()

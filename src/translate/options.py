@@ -50,6 +50,12 @@ def parse_args():
         "--only-object-symmetries", action="store_true",
         help="HACK! Only allow objects to be permuted, but not, "
         "predicates operators, axioms or functions.")
+    argparser.add_argument(
+        "--bliss-time-limit", default=300, type=int,
+        help="max time for bliss to search for automorphisms")
+    argparser.add_argument(
+        "--write-dot-graph", action="store_true",
+        help="write symmetry graph into a file in the graphviz dot format")
     return argparser.parse_args()
 
 
