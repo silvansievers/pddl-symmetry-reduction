@@ -12,29 +12,6 @@ import pybind11_blissmodule as bliss
 # HACK
 GLOBAL_COLOR_COUNT = -1
 
-# From http://stackoverflow.com/questions/492519/timeout-on-a-function-call
-def timeout(func, args=(), kwargs={}, timeout_duration=1800, default=None):
-    import signal
-
-    class TimeoutError(Exception):
-        pass
-
-    def handler(signum, frame):
-        raise TimeoutError()
-
-    # set the timeout handler
-    signal.signal(signal.SIGALRM, handler)
-    signal.alarm(timeout_duration)
-    try:
-        result = func(*args, **kwargs)
-    except TimeoutError as exc:
-        print "Bliss timeout!"
-        result = default
-    finally:
-        signal.alarm(0)
-
-    return result
-
 class PyblissModuleWrapper:
     """
     Class that collets all vertices and edges of a symmetry graph.
@@ -66,9 +43,7 @@ class PyblissModuleWrapper:
             graph.add_edge(v1, v2)
 
         # Find automorphisms, use a time limit:
-        automorphisms = timeout(
-            graph.find_automorphisms, args=(), kwargs={},
-            timeout_duration=time_limit, default=[])
+        automorphisms = graph.find_automorphisms(time_limit)
         translated_auts = []
         for aut in automorphisms:
             translated_auts.append(self._translate_generator(aut))

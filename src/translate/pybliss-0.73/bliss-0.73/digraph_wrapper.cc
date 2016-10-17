@@ -1,5 +1,6 @@
 #include "digraph_wrapper.h"
 
+#include "defs.h"
 #include "graph.h"
 
 #include <cassert>
@@ -28,12 +29,17 @@ void DigraphWrapper::add_edge(int v1, int v2) {
     graph->add_edge(v1, v2);
 }
 
-vector<vector<int> > DigraphWrapper::find_automorphisms() {
+vector<vector<int> > DigraphWrapper::find_automorphisms(double time_limit) {
     automorphisms.clear();
     graph->set_splitting_heuristic(bliss::Digraph::shs_fs);
+    graph->set_time_limit(time_limit);
     bliss::Stats stats;
     //cout << "DigraphWrapper: searching for automorphisms... " << endl;
-    graph->find_automorphisms(stats, &(_add_automorphism), this);
+    try {
+        graph->find_automorphisms(stats, &(_add_automorphism), this);
+    } catch (bliss::BlissException &e) {
+        e.dump();
+    }
     vector<vector<int> > result;
     result.swap(automorphisms);
     return result;

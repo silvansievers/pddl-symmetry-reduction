@@ -79,6 +79,8 @@ find_automorphisms(PyObject *self, PyObject *args)
   DigraphWrapper *g = (DigraphWrapper *)PyCObject_AsVoidPtr(py_g);
   assert(g);
 
+  // TODO: add support for time_limit parameter for find_automorphisms
+
   vector<vector<int> > automorphisms = g->find_automorphisms();
 
   // Map the automorphisms to a python list

@@ -16,7 +16,8 @@ PYBIND11_PLUGIN(pybind11_blissmodule) {
             "color"_a)
         .def("add_edge", &DigraphWrapper::add_edge, "doc",
             "v1"_a, "v2"_a)
-        .def("find_automorphisms", &DigraphWrapper::find_automorphisms);
+        .def("find_automorphisms", &DigraphWrapper::find_automorphisms,
+            "doc", "time_limit"_a);
 
     return m.ptr();
 }
