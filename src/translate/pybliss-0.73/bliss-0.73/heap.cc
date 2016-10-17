@@ -72,6 +72,8 @@ void Heap::init(const unsigned int size)
       if(array)
   free(array);
       array = (unsigned int*)malloc((size + 1) * sizeof(unsigned int));
+      // Silvan Sievers
+      if (!array) _OUT_OF_MEMORY(__FILE__, __LINE__);
       N = size;
     }
   n = 0;

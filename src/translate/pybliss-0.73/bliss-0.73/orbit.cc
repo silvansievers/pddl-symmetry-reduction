@@ -53,8 +53,11 @@ void Orbit::init(const unsigned int n)
   assert(n > 0);
   if(orbits) free(orbits);
   orbits = (OrbitEntry*)malloc(n * sizeof(OrbitEntry));
+  // Silvan Sievers
+  if (!orbits) _OUT_OF_MEMORY(__FILE__, __LINE__);
   if(in_orbit) free(in_orbit);
   in_orbit = (OrbitEntry**)malloc(n * sizeof(OrbitEntry*));
+  if (!in_orbit) _OUT_OF_MEMORY(__FILE__, __LINE__);
   nof_elements = n;
 
   reset();

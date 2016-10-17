@@ -55,6 +55,9 @@ Partition::~Partition()
   if(in_pos)              {free(in_pos); in_pos = 0; }
   if(invariant_values)    {free(invariant_values); invariant_values = 0; }
   N = 0;
+
+  // Silvan Sievers
+  cr_free();
 }
 
 
@@ -67,24 +70,32 @@ void Partition::init(const unsigned int M)
   if(elements)
     free(elements);
   elements = (unsigned int*)malloc(N * sizeof(unsigned int));
+  // Silvan Sievers
+  if (!elements) _OUT_OF_MEMORY(__FILE__, __LINE__);
   for(unsigned int i = 0; i < N; i++)
     elements[i] = i;
 
   if(in_pos)
     free(in_pos);
   in_pos = (unsigned int**)malloc(N * sizeof(unsigned int*));
+  // Silvan Sievers
+  if (!in_pos) _OUT_OF_MEMORY(__FILE__, __LINE__);
   for(unsigned int i = 0; i < N; i++)
     in_pos[i] = elements + i;
 
   if(invariant_values)
     free(invariant_values);
   invariant_values = (unsigned int*)malloc(N * sizeof(unsigned int));
+  // Silvan Sievers
+  if (!invariant_values) _OUT_OF_MEMORY(__FILE__, __LINE__);
   for(unsigned int i = 0; i < N; i++)
     invariant_values[i] = 0;
 
   if(cells)
     free(cells);
   cells = (Cell*)malloc(N * sizeof(Cell));
+  // Silvan Sievers
+  if (!cells) _OUT_OF_MEMORY(__FILE__, __LINE__);
 
   cells[0].first = 0;
   cells[0].length = N;
@@ -130,6 +141,8 @@ void Partition::init(const unsigned int M)
   if(element_to_cell_map)
     free(element_to_cell_map);
   element_to_cell_map = (Cell **)malloc(N * sizeof(Cell *));
+  // Silvan Sievers
+  if (!element_to_cell_map) _OUT_OF_MEMORY(__FILE__, __LINE__);
   for(unsigned int i = 0; i < N; i++)
     element_to_cell_map[i] = first_cell;
 
@@ -1002,10 +1015,14 @@ Partition::cr_init()
 
   if(cr_cells) free(cr_cells);
   cr_cells = (CRCell*)malloc(N * sizeof(CRCell));
+  // Silvan Sievers
+  if (!cr_cells) _OUT_OF_MEMORY(__FILE__, __LINE__);
   if(!cr_cells) {assert(false && "Mem out"); }
 
   if(cr_levels) free(cr_levels);
   cr_levels = (CRCell**)malloc(N * sizeof(CRCell*));
+  // Silvan Sievers
+  if (!cr_levels) _OUT_OF_MEMORY(__FILE__, __LINE__);
   if(!cr_levels) {assert(false && "Mem out"); }
 
   for(unsigned int i = 0; i < N; i++) {

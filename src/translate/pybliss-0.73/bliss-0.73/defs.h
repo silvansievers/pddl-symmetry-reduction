@@ -4,6 +4,11 @@
 #include <cassert>
 #include <cstdarg>
 
+// Silvan Sievers
+#include <exception>
+#include <new>
+#include <iostream>
+
 /*
   Copyright (c) 2003-2015 Tommi Junttila
   Released under the GNU Lesser General Public License version 3.
@@ -37,6 +42,23 @@ static const char * const version = "0.73";
  * a jump to code that deallocates the AbstractGraph instance that called this.
  */
 void fatal_error(const char* fmt, ...);
+
+// Silvan Sievers
+struct BlissException : public std::exception {
+    virtual void dump() const = 0;
+};
+struct BlissMemoryOut : public BlissException, public std::bad_alloc {
+    virtual void dump() const {
+        std::cout << "Bliss memory out" << std::endl;
+    }
+};
+struct BlissTimeOut : public BlissException {
+    virtual void dump() const {
+        std::cout << "Bliss timeout" << std::endl;
+    }
+};
+
+void _OUT_OF_MEMORY(const char *file, int line);
 
 
 #if defined(BLISS_DEBUG)

@@ -110,14 +110,20 @@ KStack<Type>::KStack()
   cursor = 0;
 }
 
-template <class Type>
-KStack<Type>::KStack(int k)
-{
-  assert(k > 0);
-  kapacity = k;
-  entries = (Type*)malloc((k+1) * sizeof(Type));
-  cursor = entries;
-}
+// Silvan Sievers: method not used
+//template <class Type>
+//KStack<Type>::KStack(int k)
+//{
+//  assert(k > 0);
+//  kapacity = k;
+//  // Silvan Sievers
+//  if(entries)
+//    free(entries);
+//  entries = (Type*)malloc((k+1) * sizeof(Type));
+//  // Silvan Sievers
+//  if (!entries) _OUT_OF_MEMORY(__FILE__, __LINE__);
+//  cursor = entries;
+//}
 
 template <class Type>
 void KStack<Type>::init(int k)
@@ -127,6 +133,8 @@ void KStack<Type>::init(int k)
     free(entries);
   kapacity = k;
   entries = (Type*)malloc((k+1) * sizeof(Type));
+  // Silvan Sievers
+  if (!entries) _OUT_OF_MEMORY(__FILE__, __LINE__);
   cursor = entries;
 }
 

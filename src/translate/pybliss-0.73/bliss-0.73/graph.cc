@@ -34,7 +34,9 @@
 namespace bliss {
 
 #define _INTERNAL_ERROR() fatal_error("%s:%d: internal error",__FILE__,__LINE__)
-#define _OUT_OF_MEMORY() fatal_error("%s:%d: out of memory",__FILE__,__LINE__)
+// Silvan Sievers
+//#define _OUT_OF_MEMORY() fatal_error("%s:%d: out of memory",__FILE__,__LINE__)
+
 
 /*-------------------------------------------------------------------------
  *
@@ -67,6 +69,10 @@ AbstractGraph::AbstractGraph()
 
   report_hook = 0;
   report_user_param = 0;
+
+  // Silvan Sievers
+  time_limit = 0.0;
+  timer = new Timer();
 }
 
 
@@ -87,6 +93,11 @@ AbstractGraph::~AbstractGraph()
 
   report_hook = 0;
   report_user_param = 0;
+
+  // Silvan Sievers
+  long_prune_deallocate();
+  delete timer;
+  timer = 0;
 }
 
 
@@ -696,10 +707,12 @@ AbstractGraph::search(const bool canonical, Stats& stats)
    */
   if(first_path_labeling) free(first_path_labeling);
   first_path_labeling = (unsigned int*)calloc(N, sizeof(unsigned int));
-  if(!first_path_labeling) _OUT_OF_MEMORY();
+  // Silvan Sievers
+  if(!first_path_labeling) _OUT_OF_MEMORY(__FILE__, __LINE__);
   if(best_path_labeling) free(best_path_labeling);
   best_path_labeling = (unsigned int*)calloc(N, sizeof(unsigned int));
-  if(!best_path_labeling) _OUT_OF_MEMORY();
+  // Silvan Sievers
+  if(!best_path_labeling) _OUT_OF_MEMORY(__FILE__, __LINE__);
 
   /*
    * Is the initial partition discrete?
@@ -718,20 +731,24 @@ AbstractGraph::search(const bool canonical, Stats& stats)
    */
   if(first_path_labeling_inv) free(first_path_labeling_inv);
   first_path_labeling_inv = (unsigned int*)calloc(N, sizeof(unsigned int));
-  if(!first_path_labeling_inv) _OUT_OF_MEMORY();
+  // Silvan Sievers
+  if(!first_path_labeling_inv) _OUT_OF_MEMORY(__FILE__, __LINE__);
   if(best_path_labeling_inv) free(best_path_labeling_inv);
   best_path_labeling_inv = (unsigned int*)calloc(N, sizeof(unsigned int));
-  if(!best_path_labeling_inv) _OUT_OF_MEMORY();
+  // Silvan Sievers
+  if(!best_path_labeling_inv) _OUT_OF_MEMORY(__FILE__, __LINE__);
 
   /*
    * Allocate space for the automorphisms
    */
   if(first_path_automorphism) free(first_path_automorphism);
   first_path_automorphism = (unsigned int*)malloc(N * sizeof(unsigned int));
-  if(!first_path_automorphism) _OUT_OF_MEMORY();
+  // Silvan Sievers
+  if(!first_path_automorphism) _OUT_OF_MEMORY(__FILE__, __LINE__);
   if(best_path_automorphism) free(best_path_automorphism);
   best_path_automorphism = (unsigned int*)malloc(N * sizeof(unsigned int));
-  if(!best_path_automorphism) _OUT_OF_MEMORY();
+  // Silvan Sievers
+  if(!best_path_automorphism) _OUT_OF_MEMORY(__FILE__, __LINE__);
 
   /*
    * Initialize orbit information so that all vertices are in their own orbits
@@ -836,6 +853,11 @@ AbstractGraph::search(const bool canonical, Stats& stats)
    */
   while(!search_stack.empty())
     {
+    // Silvan Sievers
+    if (time_limit && timer->get_duration() >= time_limit) {
+      throw BlissTimeOut();
+    }
+
       TreeNode&          current_node  = search_stack.back();
       const unsigned int current_level = (unsigned int)search_stack.size()-1;
 
@@ -890,6 +912,11 @@ AbstractGraph::search(const bool canonical, Stats& stats)
         continue;
       }
   }
+
+    // Silvan Sievers
+    if (time_limit && timer->get_duration() >= time_limit) {
+      throw BlissTimeOut();
+    }
 
       /* Restore partition ... */
       p.goto_backtrack_point(current_node.partition_bt_point);
@@ -967,6 +994,10 @@ AbstractGraph::search(const bool canonical, Stats& stats)
       }
   }
 
+    // Silvan Sievers
+    if (time_limit && timer->get_duration() >= time_limit) {
+      throw BlissTimeOut();
+    }
 
       /*
        * Find the next smallest, non-isomorphic element in the cell and
@@ -1050,6 +1081,11 @@ AbstractGraph::search(const bool canonical, Stats& stats)
   /* Split on smallest */
   current_node.split_element = next_split_element;
       }
+
+    // Silvan Sievers
+    if (time_limit && timer->get_duration() >= time_limit) {
+      throw BlissTimeOut();
+    }
 
       const unsigned int child_level = current_level+1;
       /* Update some statistics */
@@ -1201,6 +1237,11 @@ AbstractGraph::search(const bool canonical, Stats& stats)
       }
   }
 
+    // Silvan Sievers
+    if (time_limit && timer->get_duration() >= time_limit) {
+      throw BlissTimeOut();
+    }
+
 #if defined(BLISS_VERIFY_EQUITABLEDNESS)
       /* The new partition should be equitable */
       if(!is_equitable())
@@ -1316,6 +1357,10 @@ AbstractGraph::search(const bool canonical, Stats& stats)
     continue;
   }
 
+    // Silvan Sievers
+    if (time_limit && timer->get_duration() >= time_limit) {
+      throw BlissTimeOut();
+    }
 
       if(p.is_discrete() and child_node.fp_cert_equal)
   {
@@ -1931,6 +1976,11 @@ Digraph::~Digraph()
 unsigned int
 Digraph::add_vertex(const unsigned int color)
 {
+  // Silvan Sievers
+  if (time_limit && timer->get_duration() >= time_limit) {
+    throw BlissTimeOut();
+  }
+
   const unsigned int new_vertex_num = vertices.size();
   vertices.resize(new_vertex_num + 1);
   vertices.back().color = color;

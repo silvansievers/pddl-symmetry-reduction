@@ -21,6 +21,9 @@
   along with bliss.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+// Silvan Sievers
+#include <iostream>
+
 namespace bliss {
 
 void
@@ -33,6 +36,11 @@ fatal_error(const char* fmt, ...)
   fprintf(stderr, "\nAborting!\n");
   va_end(ap);
   exit(1);
+}
+
+void _OUT_OF_MEMORY(const char* file, int line) {
+    std::cerr << file << ":" << line << " out of memory" << std::endl;
+    throw BlissMemoryOut();
 }
 
 }
