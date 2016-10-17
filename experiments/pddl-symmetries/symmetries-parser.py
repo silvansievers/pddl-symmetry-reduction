@@ -4,6 +4,7 @@ from lab.parser import Parser
 
 parser = Parser()
 parser.add_pattern('generators_count', 'Found (\d+) generators', required=False, type=int)
+parser.add_pattern('time_prolog_model', 'Done building program and model: (.+)s', required=False, type=float)
 
 def parse_bliss_limits(content, props):
     lines = content.split('\n')
