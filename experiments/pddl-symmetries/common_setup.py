@@ -48,9 +48,10 @@ def get_experiment_name():
     Derived from the absolute filename of the main script, e.g.
     "/ham/spam/eggs.py" => "spam-eggs"."""
     script = os.path.abspath(get_script())
-    script_dir = os.path.basename(os.path.dirname(script))
+    #script_dir = os.path.basename(os.path.dirname(script))
     script_base = os.path.splitext(os.path.basename(script))[0]
-    return "%s-%s" % (script_dir, script_base)
+    #return "%s-%s" % (script_dir, script_base)
+    return script_base
 
 
 def get_data_dir():
