@@ -673,6 +673,8 @@ def main():
             graph.write_dot_graph(f, hide_equal_predicates=True)
             f.close()
         automorphisms = graph.find_automorphisms(time_limit)
+        # TODO: writing generators can take very long (~300s) when there
+        # are many generators.
         graph.write_or_print_automorphisms(automorphisms, hide_equal_predicates=True, write=True, dump=False)
         exit(0)
 

@@ -9,6 +9,8 @@ import sys
 sys.path.append(os.path.join(dir_path, 'pybliss-0.73'))
 import pybind11_blissmodule as bliss
 
+import timers
+
 # HACK
 GLOBAL_COLOR_COUNT = -1
 
@@ -43,10 +45,17 @@ class PyblissModuleWrapper:
             graph.add_edge(v1, v2)
 
         # Find automorphisms, use a time limit:
+        timer = timers.Timer()
+        print "Searching for autmorphisms..."
         automorphisms = graph.find_automorphisms(time_limit)
+        time = timer.elapsed_time()
+        print "Done searching for automorphisms: %ss" % time
+        print "Found %d generators" % len(automorphisms)
         translated_auts = []
         for aut in automorphisms:
             translated_auts.append(self._translate_generator(aut))
+        time = timer.elapsed_time();
+        print "Done translating automorphisms: %ss" % time
         return translated_auts
 
     def _translate_generator(self, generator):
@@ -540,9 +549,7 @@ class SymmetryGraph:
         # TODO: we sorted task's init, hence if we wanted to to use
         # the generators, we should remap init indices when required.
         # The same is true for operators.
-        print "Searching for autmorphisms..."
         automorphisms = self.graph.find_automorphisms(time_limit)
-        print "Found %d generators" % len(automorphisms)
         return automorphisms
 
     def write_or_print_automorphisms(self, automorphisms, hide_equal_predicates=False, write=False, dump=False):
