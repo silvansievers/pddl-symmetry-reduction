@@ -40,17 +40,20 @@ def main(revisions=None):
     bliss_out_of_time = Attribute('bliss_out_of_time', absolute=True, min_wins=True)
     time_bliss = Attribute('time_bliss', absolute=True, min_wins=True)
     time_translate_automorphisms = Attribute('time_translate_automorphisms', absolute=True, min_wins=True)
+    time_symmetries = Attribute('time_symmetries', absolute=True, min_wins=True)
     extra_attributes = [
         generators_count,
         bliss_out_of_memory,
         bliss_out_of_time,
         time_bliss,
         time_translate_automorphisms,
+        time_symmetries,
     ]
     attributes = [] # exp.DEFAULT_TABLE_ATTRIBUTES
     attributes.extend(extra_attributes)
     #attributes.append('translator_*')
 
+    exp.add_fetcher(name='parse-again', parsers=['symmetries-parser.py'])
     exp.add_absolute_report_step(attributes=attributes)
 
     exp()

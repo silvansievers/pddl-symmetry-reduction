@@ -26,4 +26,11 @@ def parse_bliss_limits(content, props):
 
 parser.add_function(parse_bliss_limits)
 
+def parse_symmetries_time(content, props):
+    time_bliss = props.get('time_bliss', 0)
+    time_translate_automorphisms = props.get('time_translate_automorphisms', 0)
+    props['time_symmetries'] = time_bliss + time_translate_automorphisms
+
+parser.add_function(parse_symmetries_time)
+
 parser.parse()
