@@ -316,12 +316,12 @@ class SymmetryGraph:
         # add types
         counter = len(init)
         for o in task.objects:
-            type = self.type_dict[o.type_name]
-            while type.name != "object":
-                literal = pddl.Atom(type.get_predicate_name(), (o.name,))
+            the_type = self.type_dict[o.type_name]
+            while the_type.name != "object":
+                literal = pddl.Atom(the_type.get_predicate_name(), (o.name,))
                 self._add_literal(NodeType.init, Color.init, literal, (counter,))
                 counter += 1
-                type = self.type_dict[type.basetype_name]
+                the_type = self.type_dict[the_type.basetype_name]
 
     def _add_goal(self, task):
         for no, fact in enumerate(task.goal.parts):
