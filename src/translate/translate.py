@@ -666,8 +666,9 @@ def main():
     if options.only_find_symmetries:
         from symmetries_module import SymmetryGraph
         only_object_symmetries = options.only_object_symmetries
+        stabilize_initial_state = options.stabilize_initial_state
         time_limit = options.bliss_time_limit
-        graph = SymmetryGraph(task, only_object_symmetries)
+        graph = SymmetryGraph(task, only_object_symmetries, stabilize_initial_state)
         if options.write_dot_graph:
             f = open('out.dot', 'w')
             graph.write_dot_graph(f, hide_equal_predicates=True)

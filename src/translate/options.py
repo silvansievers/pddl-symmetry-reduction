@@ -51,6 +51,10 @@ def parse_args():
         help="HACK! Only allow objects to be permuted, but not, "
         "predicates operators, axioms or functions.")
     argparser.add_argument(
+        "--stabilize-initial-state", action="store_true",
+        help="If false, only those atoms in the initial state mentioning "
+        "static predicates are added.")
+    argparser.add_argument(
         "--bliss-time-limit", default=300, type=int,
         help="max time for bliss to search for automorphisms")
     argparser.add_argument(

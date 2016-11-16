@@ -128,8 +128,9 @@ class Color:
     number = None # will be set by Symmetry Graph
 
 class SymmetryGraph:
-    def __init__(self, task, only_object_symmetries):
+    def __init__(self, task, only_object_symmetries, stabilize_initial_state):
         self.only_object_symmetries = only_object_symmetries
+        self.stabilize_initial_state = stabilize_initial_state
         self.graph = PyblissModuleWrapper(only_object_symmetries)
         self.numbers = set()
         self.constant_functions = dict()
@@ -142,6 +143,12 @@ class SymmetryGraph:
         Color.function = Color.derived_predicate + self.max_predicate_arity + 1
         Color.number = Color.function + self.max_function_arity + 1
         self.type_dict = dict((type.name, type) for type in task.types)
+
+        if not self.stabilize_initial_state:
+            self.non_static_predicates = set()
+            for action in task.actions:
+                for effect in action.effects:
+                    self.non_static_predicates.add(effect.literal.predicate)
 
         if self.only_object_symmetries:
             # TODO: are there planning tasks with numbers larger than that?
@@ -302,7 +309,8 @@ class SymmetryGraph:
         init = sorted(task.init, key=get_key)
         for no, entry in enumerate(init):
             if isinstance(entry, pddl.Literal):
-                self._add_literal(NodeType.init, Color.init, entry, (no,))
+                if self.stabilize_initial_state or entry.predicate not in self.non_static_predicates:
+                    self._add_literal(NodeType.init, Color.init, entry, (no,))
             else: # numeric function
                 assert(isinstance(entry, pddl.Assign))
                 assert(isinstance(entry.fluent, pddl.PrimitiveNumericExpression))
