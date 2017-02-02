@@ -9,6 +9,8 @@
 
 #include "../utils/logging.h"
 #include "../utils/markup.h"
+#include "../utils/rng.h"
+#include "../utils/rng_options.h"
 
 #include <cassert>
 
@@ -20,14 +22,18 @@ static vector<CartesianHeuristicFunction> generate_heuristic_functions(
     g_log << "Initializing additive Cartesian heuristic..." << endl;
     vector<shared_ptr<SubtaskGenerator>> subtask_generators =
         opts.get_list<shared_ptr<SubtaskGenerator>>("subtasks");
+    shared_ptr<utils::RandomNumberGenerator> rng =
+        utils::parse_rng_from_options(opts);
     CostSaturation cost_saturation(
         subtask_generators,
         opts.get<int>("max_states"),
         opts.get<int>("max_transitions"),
         opts.get<double>("max_time"),
         opts.get<bool>("use_general_costs"),
-        static_cast<PickSplit>(opts.get<int>("pick")));
-    return cost_saturation.generate_heuristic_functions(get_task_from_options(opts));
+        static_cast<PickSplit>(opts.get<int>("pick")),
+        *rng);
+    return cost_saturation.generate_heuristic_functions(
+        opts.get<shared_ptr<AbstractTask>>("transform"));
 }
 
 AdditiveCartesianHeuristic::AdditiveCartesianHeuristic(
@@ -120,6 +126,7 @@ static Heuristic *_parse(OptionParser &parser) {
         "allow negative costs in cost partitioning",
         "true");
     Heuristic::add_options_to_parser(parser);
+    utils::add_rng_options(parser);
     Options opts = parser.parse();
 
     if (parser.dry_run())

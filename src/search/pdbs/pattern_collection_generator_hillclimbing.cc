@@ -16,6 +16,8 @@
 #include "../utils/markup.h"
 #include "../utils/math.h"
 #include "../utils/memory.h"
+#include "../utils/rng.h"
+#include "../utils/rng_options.h"
 #include "../utils/timer.h"
 
 #include <algorithm>
@@ -35,6 +37,7 @@ PatternCollectionGeneratorHillclimbing::PatternCollectionGeneratorHillclimbing(c
       num_samples(opts.get<int>("num_samples")),
       min_improvement(opts.get<int>("min_improvement")),
       max_time(opts.get<double>("max_time")),
+      rng(utils::parse_rng_from_options(opts)),
       num_rejected(0),
       hill_climbing_timer(0) {
 }
@@ -103,6 +106,7 @@ void PatternCollectionGeneratorHillclimbing::sample_states(
         samples = sample_states_with_random_walks(
             task_proxy, successor_generator, num_samples, init_h,
             average_operator_cost,
+            *rng,
             [this](const State &state) {
                 return current_pdbs->is_dead_end(state);
             },
@@ -375,6 +379,7 @@ void add_hillclimbing_options(OptionParser &parser) {
         "is performed at all.",
         "infinity",
         Bounds("0.0", "infinity"));
+    utils::add_rng_options(parser);
 }
 
 void check_hillclimbing_options(
@@ -513,13 +518,10 @@ static Heuristic *_parse_ipdb(OptionParser &parser) {
 
     shared_ptr<PatternCollectionGeneratorHillclimbing> pgh =
         make_shared<PatternCollectionGeneratorHillclimbing>(opts);
-    shared_ptr<AbstractTask> task = get_task_from_options(opts);
 
     Options heuristic_opts;
     heuristic_opts.set<shared_ptr<AbstractTask>>(
-        "transform", task);
-    heuristic_opts.set<int>(
-        "cost_type", NORMAL);
+        "transform", opts.get<shared_ptr<AbstractTask>>("transform"));
     heuristic_opts.set<bool>(
         "cache_estimates", opts.get<bool>("cache_estimates"));
     heuristic_opts.set<shared_ptr<PatternCollectionGenerator>>(

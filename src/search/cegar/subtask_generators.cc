@@ -15,6 +15,7 @@
 #include "../tasks/modified_goals_task.h"
 
 #include "../utils/rng.h"
+#include "../utils/rng_options.h"
 
 #include <algorithm>
 #include <cassert>
@@ -59,14 +60,15 @@ static void remove_initial_state_facts(
 static void order_facts(
     const shared_ptr<AbstractTask> &task,
     FactOrder fact_order,
-    vector<FactPair> &facts) {
+    vector<FactPair> &facts,
+    utils::RandomNumberGenerator &rng) {
     cout << "Sort " << facts.size() << " facts" << endl;
     switch (fact_order) {
     case FactOrder::ORIGINAL:
         // Nothing to do.
         break;
     case FactOrder::RANDOM:
-        g_rng()->shuffle(facts);
+        rng.shuffle(facts);
         break;
     case FactOrder::HADD_UP:
     case FactOrder::HADD_DOWN:
@@ -83,10 +85,11 @@ static void order_facts(
 static Facts filter_and_order_facts(
     const shared_ptr<AbstractTask> &task,
     FactOrder fact_order,
-    Facts &facts) {
+    Facts &facts,
+    utils::RandomNumberGenerator &rng) {
     TaskProxy task_proxy(*task);
     remove_initial_state_facts(task_proxy, facts);
-    order_facts(task, fact_order, facts);
+    order_facts(task, fact_order, facts, rng);
     return facts;
 }
 
@@ -105,7 +108,8 @@ SharedTasks TaskDuplicator::get_subtasks(
 }
 
 GoalDecomposition::GoalDecomposition(const Options &opts)
-    : fact_order(FactOrder(opts.get_enum("order"))) {
+    : fact_order(FactOrder(opts.get_enum("order"))),
+      rng(utils::parse_rng_from_options(opts)) {
 }
 
 SharedTasks GoalDecomposition::get_subtasks(
@@ -113,7 +117,7 @@ SharedTasks GoalDecomposition::get_subtasks(
     SharedTasks subtasks;
     TaskProxy task_proxy(*task);
     Facts goal_facts = get_fact_pairs(task_proxy.get_goals());
-    filter_and_order_facts(task, fact_order, goal_facts);
+    filter_and_order_facts(task, fact_order, goal_facts, *rng);
     for (const FactPair &goal : goal_facts) {
         shared_ptr<AbstractTask> subtask =
             make_shared<extra_tasks::ModifiedGoalsTask>(task, Facts {goal});
@@ -125,15 +129,17 @@ SharedTasks GoalDecomposition::get_subtasks(
 
 LandmarkDecomposition::LandmarkDecomposition(const Options &opts)
     : fact_order(FactOrder(opts.get_enum("order"))),
-      landmark_graph(get_landmark_graph()),
-      combine_facts(opts.get<bool>("combine_facts")) {
+      combine_facts(opts.get<bool>("combine_facts")),
+      rng(utils::parse_rng_from_options(opts)) {
 }
 
 shared_ptr<AbstractTask> LandmarkDecomposition::build_domain_abstracted_task(
-    shared_ptr<AbstractTask> &parent, const FactPair &fact) const {
+    const shared_ptr<AbstractTask> &parent,
+    const landmarks::LandmarkGraph &landmark_graph,
+    const FactPair &fact) const {
     assert(combine_facts);
     extra_tasks::VarToGroups value_groups;
-    for (auto &pair : get_prev_landmarks(*landmark_graph, fact)) {
+    for (auto &pair : get_prev_landmarks(landmark_graph, fact)) {
         int var = pair.first;
         vector<int> &group = pair.second;
         if (group.size() >= 2)
@@ -145,14 +151,16 @@ shared_ptr<AbstractTask> LandmarkDecomposition::build_domain_abstracted_task(
 SharedTasks LandmarkDecomposition::get_subtasks(
     const shared_ptr<AbstractTask> &task) const {
     SharedTasks subtasks;
-    // TODO: Use landmark graph for task once the LM code supports tasks API.
+    shared_ptr<landmarks::LandmarkGraph> landmark_graph =
+        get_landmark_graph(task);
     Facts landmark_facts = get_fact_landmarks(*landmark_graph);
-    filter_and_order_facts(task, fact_order, landmark_facts);
+    filter_and_order_facts(task, fact_order, landmark_facts, *rng);
     for (const FactPair &landmark : landmark_facts) {
         shared_ptr<AbstractTask> subtask =
             make_shared<extra_tasks::ModifiedGoalsTask>(task, Facts {landmark});
         if (combine_facts) {
-            subtask = build_domain_abstracted_task(subtask, landmark);
+            subtask = build_domain_abstracted_task(
+                subtask, *landmark_graph, landmark);
         }
         subtasks.push_back(subtask);
     }
@@ -183,6 +191,7 @@ static void add_fact_order_option(OptionParser &parser) {
         fact_orders,
         "ordering of goal or landmark facts",
         "HADD_DOWN");
+    utils::add_rng_options(parser);
 }
 
 static shared_ptr<SubtaskGenerator> _parse_goals(OptionParser &parser) {

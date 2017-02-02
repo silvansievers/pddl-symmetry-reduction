@@ -34,6 +34,13 @@ struct FactPair {
     bool operator!=(const FactPair &other) const {
         return var != other.var || value != other.value;
     }
+
+    /*
+      This special object represents "no such fact". E.g., functions
+      that search a fact can return "no_fact" when no matching fact is
+      found.
+    */
+    static const FactPair no_fact;
 };
 
 std::ostream &operator<<(std::ostream &os, const FactPair &fact_pair);
@@ -96,8 +103,5 @@ public:
         std::vector<int> &values,
         const AbstractTask *ancestor_task) const = 0;
 };
-
-const std::shared_ptr<AbstractTask> get_task_from_options(
-    const options::Options &opts);
 
 #endif

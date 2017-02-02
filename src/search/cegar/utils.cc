@@ -19,7 +19,6 @@ unique_ptr<additive_heuristic::AdditiveHeuristic> create_additive_heuristic(
     const shared_ptr<AbstractTask> &task) {
     Options opts;
     opts.set<shared_ptr<AbstractTask>>("transform", task);
-    opts.set<int>("cost_type", NORMAL);
     opts.set<bool>("cache_estimates", false);
     return utils::make_unique_ptr<additive_heuristic::AdditiveHeuristic>(opts);
 }
@@ -90,12 +89,5 @@ vector<int> get_domain_sizes(const TaskProxy &task) {
     for (VariableProxy var : task.get_variables())
         domain_sizes.push_back(var.get_domain_size());
     return domain_sizes;
-}
-
-vector<int> get_operator_costs(const TaskProxy &task) {
-    vector<int> costs;
-    for (OperatorProxy op : task.get_operators())
-        costs.push_back(op.get_cost());
-    return costs;
 }
 }

@@ -184,12 +184,6 @@ def configs_satisficing_extended():
             "--search",
             "eager(pareto([sum([g(), h]), h]), reopen_closed=true,"
             "f_eval=sum([g(), h]))"],
-        # bucket-based open list
-        "bucket_lmcut": [
-            "--heuristic",
-            "h=lmcut()",
-            "--search",
-            "eager(single_buckets(h), reopen_closed=true)"],
     }
 
 
@@ -198,13 +192,9 @@ def task_transformation_test_configs():
         "root_task": [
             "--search", "lazy_greedy(ff())"],
         "root_task_no_transform": [
-            "--search", "lazy_greedy(ff(transform=no_transform))"],
+            "--search", "lazy_greedy(ff(transform=no_transform()))"],
         "adapt_costs": [
             "--search", "lazy_greedy(ff(transform=adapt_costs(cost_type=plusone)))"],
-        "adapt_adapted_costs": [
-            "--search",
-            "lazy_greedy(ff(transform=adapt_costs(cost_type=plusone,"
-                           "transform=adapt_costs(cost_type=plusone))))"],
     }
 
 def regression_test_configs():

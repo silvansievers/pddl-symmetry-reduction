@@ -1,5 +1,3 @@
-#include "single_potential_heuristics.h"
-
 #include "potential_function.h"
 #include "potential_heuristic.h"
 #include "potential_optimizer.h"
@@ -21,8 +19,8 @@ enum class OptimizeFor {
 static unique_ptr<PotentialFunction> create_potential_function(
     const Options &opts, OptimizeFor opt_func) {
     PotentialOptimizer optimizer(opts);
-    shared_ptr<AbstractTask> task = get_task_from_options(opts);
-    TaskProxy task_proxy(*task);
+    const AbstractTask &task = *opts.get<shared_ptr<AbstractTask>>("transform");
+    TaskProxy task_proxy(task);
     switch (opt_func) {
     case OptimizeFor::INITIAL_STATE:
         optimizer.optimize_for_state(task_proxy.get_initial_state());

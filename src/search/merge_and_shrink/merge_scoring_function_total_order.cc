@@ -23,8 +23,8 @@ MergeScoringFunctionTotalOrder::MergeScoringFunctionTotalOrder(
     : atomic_ts_order(AtomicTSOrder(options.get_enum("atomic_ts_order"))),
       product_ts_order(ProductTSOrder(options.get_enum("product_ts_order"))),
       atomic_before_product(options.get<bool>("atomic_before_product")),
-      random_seed(options.get<int>("random_seed")) {
-    rng = utils::parse_rng_from_options(options);
+      random_seed(options.get<int>("random_seed")),
+      rng(utils::parse_rng_from_options(options)) {
 }
 
 vector<double> MergeScoringFunctionTotalOrder::compute_scores(
@@ -49,6 +49,7 @@ vector<double> MergeScoringFunctionTotalOrder::compute_scores(
                  other_candidate.first == ts_index2)) {
                 // use the index in the merge candidate order as score
                 scores.push_back(merge_candidate_order_index);
+                break;
             }
         }
         // We must have inserted a score for the current candidate.
@@ -57,10 +58,8 @@ vector<double> MergeScoringFunctionTotalOrder::compute_scores(
     return scores;
 }
 
-void MergeScoringFunctionTotalOrder::initialize(
-    const shared_ptr<AbstractTask> &task) {
+void MergeScoringFunctionTotalOrder::initialize(const TaskProxy &task_proxy) {
     initialized = true;
-    TaskProxy task_proxy(*task);
     int num_variables = task_proxy.get_variables().size();
     int max_transition_system_count = num_variables * 2 - 1;
     vector<int> transition_system_order;
