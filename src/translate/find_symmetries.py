@@ -6,6 +6,8 @@ import pddl_parser
 from symmetries_module import SymmetryGraph
 import sys
 
+WRITE_DOT_GRAPH = True
+
 if __name__ == "__main__":
     only_object_symmetries = options.only_object_symmetries
     stabilize_initial_state = options.stabilize_initial_state
@@ -14,7 +16,7 @@ if __name__ == "__main__":
     normalize.normalize(task)
     task.dump()
     graph = SymmetryGraph(task, only_object_symmetries, stabilize_initial_state)
-    if options.write_dot_graph:
+    if WRITE_DOT_GRAPH:
         f = open('out.dot', 'w')
         graph.write_dot_graph(f, hide_equal_predicates=True)
         f.close()

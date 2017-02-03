@@ -52,12 +52,12 @@ def parse_args():
         "--dump-task", action="store_true",
         help="dump human-readable SAS+ representation of the task")
     argparser.add_argument(
-        "--only-find-symmetries", action="store_true",
-        help="find symmetries on the normalized taks using bliss, dump "
-        "them if any have been found and exit afterwards.")
+        "--compute-symmetries", action="store_true",
+        help="compute symmetries on the normalized taks using bliss, dump "
+        "statistics")
     argparser.add_argument(
         "--only-object-symmetries", action="store_true",
-        help="HACK! Only allow objects to be permuted, but not, "
+        help="HACK! Only allow objects to be permuted, but not "
         "predicates operators, axioms or functions.")
     argparser.add_argument(
         "--stabilize-initial-state", action="store_true",
@@ -66,9 +66,6 @@ def parse_args():
     argparser.add_argument(
         "--bliss-time-limit", default=300, type=int,
         help="max time for bliss to search for automorphisms")
-    argparser.add_argument(
-        "--write-dot-graph", action="store_true",
-        help="write symmetry graph into a file in the graphviz dot format")
     return argparser.parse_args()
 
 

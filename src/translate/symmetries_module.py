@@ -582,4 +582,3 @@ class SymmetryGraph:
                         file.write("%s => %s\n" % (from_vertex, to_vertex))
         if write:
             file.close()
-
