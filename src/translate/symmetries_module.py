@@ -560,6 +560,17 @@ class SymmetryGraph:
         automorphisms = self.graph.find_automorphisms(time_limit)
         return automorphisms
 
+    def print_generator(self, generator, hide_equal_predicates=False):
+        keys = sorted(generator.keys())
+        for from_vertex in keys:
+            if hide_equal_predicates and from_vertex in self.graph.excluded_vertices:
+                continue
+            to_vertex = generator[from_vertex]
+            if hide_equal_predicates and to_vertex in self.graph.excluded_vertices:
+                continue
+            if from_vertex != to_vertex:
+                print ("%s => %s" % (from_vertex, to_vertex))
+
     def write_or_print_automorphisms(self, automorphisms, hide_equal_predicates=False, write=False, dump=False):
         if write:
             file = open('generators.txt', 'w')

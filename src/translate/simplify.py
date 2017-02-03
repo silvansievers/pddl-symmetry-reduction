@@ -264,6 +264,26 @@ class VarValueRenaming(object):
         assert all((None not in value_names) for value_names in new_value_names)
         value_names[:] = new_value_names
 
+    def apply_to_generator(self, sas_generator):
+        # Build a new generator from the given one by ignoring all variables
+        # and values that are removed
+        result = {}
+        for from_var_val, to_var_val in sas_generator.items():
+            from_var = from_var_val[0]
+            to_var = to_var_val[0]
+            new_from_var = self.new_var_nos[from_var]
+            new_to_var = self.new_var_nos[to_var]
+            if new_from_var is None or new_to_var is None:
+                continue
+            from_val = from_var_val[1]
+            to_val = to_var_val[1]
+            new_from_val = self.new_values[from_var][from_val]
+            new_to_val = self.new_values[to_var][to_val]
+            if new_from_val in [always_false or always_true] or new_to_val in [always_false or always_true]:
+                continue
+            result[(new_from_var, new_from_val)] = (new_to_var, new_to_val)
+        return result
+
     def apply_to_mutexes(self, mutexes):
         new_mutexes = []
         for mutex in mutexes:
@@ -488,7 +508,7 @@ def build_renaming(dtgs):
     return renaming
 
 
-def filter_unreachable_propositions(sas_task):
+def filter_unreachable_propositions(sas_task, sas_generators):
     """We remove unreachable propositions and then prune variables
     with only one value.
 
@@ -520,6 +540,8 @@ def filter_unreachable_propositions(sas_task):
     # unreachable or TriviallySolvable if it has no goal. We let the
     # exceptions propagate to the caller.
     renaming.apply_to_task(sas_task)
+    for index, sas_generator in enumerate(sas_generators):
+        sas_generators[index] = renaming.apply_to_generator(sas_generator)
     print("%d propositions removed" % renaming.num_removed_values)
     if DEBUG:
         sas_task.validate()

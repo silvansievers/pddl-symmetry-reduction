@@ -337,8 +337,20 @@ class VariableOrder(object):
                                                    len(axioms)))
         axioms[:] = new_axioms
 
+def apply_order_to_sas_generator(order, sas_generator):
+    # Build a new generator from the given one by remapping all variables
+    variable_mapping = {}
+    for index, variable in enumerate(order):
+        variable_mapping[index] = variable
+    result = {}
+    for from_var_val, to_var_val in sas_generator.items():
+        new_from_var_val = (variable_mapping[from_var_val[0]], from_var_val[1])
+        new_to_var_val= (variable_mapping[to_var_val[0]], to_var_val[1])
+        result[new_from_var_val] = new_to_var_val
+    return result
 
-def find_and_apply_variable_order(sas_task, reorder_vars=True,
+def find_and_apply_variable_order(sas_task, sas_generators,
+                                  reorder_vars=True,
                                   filter_unimportant_vars=True):
     if reorder_vars or filter_unimportant_vars:
         cg = CausalGraph(sas_task)
@@ -352,3 +364,5 @@ def find_and_apply_variable_order(sas_task, reorder_vars=True,
                                                      len(order)))
             order = [var for var in order if necessary[var]]
         VariableOrder(order).apply_to_task(sas_task)
+        for index, sas_generator in enumerate(sas_generators):
+            sas_generators[index] = apply_order_to_sas_generator(order, sas_generator)
