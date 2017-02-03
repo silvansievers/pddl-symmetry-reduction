@@ -1,12 +1,22 @@
 #! /usr/bin/env python
 
+import re
+
 from lab.parser import Parser
 
 parser = Parser()
-parser.add_pattern('generators_count', 'Found (\d+) generators', required=False, type=int)
+parser.add_pattern('generator_count_lifted', 'Number of lifted generators: (\d+)', required=False, type=int)
+parser.add_pattern('generator_count_grounded', 'Number of remaining valid generators: (\d+)', required=False, type=int)
+parser.add_pattern('generator_count_removed', 'Removed generators: (\d+)', required=False, type=int)
 parser.add_pattern('time_prolog_model', 'Done building program and model: (.+)s', required=False, type=float)
 parser.add_pattern('time_bliss', 'Done searching for automorphisms: (.+)s', required=False, type=float)
 parser.add_pattern('time_translate_automorphisms', 'Done translating automorphisms: (.+)s', required=False, type=float)
+
+def parse_generator_orders(content, props):
+    merge_order = re.findall(r'Generator orders:  \[(.*)\]', content)
+    props['generator_orders'] = merge_order
+
+parser.add_function(parse_generator_orders)
 
 def parse_bliss_limits(content, props):
     lines = content.split('\n')
