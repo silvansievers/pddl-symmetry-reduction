@@ -587,9 +587,9 @@ def pddl_to_sas(task, graph, generators):
                     "with --compute-symmetries is not implemented!")
                 sas_to_strips[var_val[0]] = atom
 
+    sas_generators = []
     if len(generators):
         with timers.timing("Transforming generators into SAS", block=True):
-            sas_generators = []
             # For each generator, create its sas mapping from var-vals to var-vals
             for generator in generators:
                 if DUMP:
@@ -825,6 +825,7 @@ def main():
                 if effect.literal.negated:
                     del action.effects[index]
 
+    graph = None
     generators = []
     if options.compute_symmetries:
         only_object_symmetries = options.only_object_symmetries
