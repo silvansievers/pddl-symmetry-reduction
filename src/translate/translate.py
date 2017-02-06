@@ -554,7 +554,7 @@ def compute_order(generator):
             order = lcm(order, cycle_size)
     return order
 
-def pddl_to_sas(task, graph, generators):
+def pddl_to_sas(task):
     with timers.timing("Instantiating", block=True):
         (relaxed_reachable, atoms, actions, axioms,
          reachable_action_params) = instantiate.explore(task)
@@ -577,7 +577,7 @@ def pddl_to_sas(task, graph, generators):
     with timers.timing("Building STRIPS to SAS dictionary"):
         ranges, strips_to_sas = strips_to_sas_dictionary(
             groups, assert_partial=options.use_partial_encoding)
-        if len(generators):
+        if task.generators:
             # Build the back-mapping dict sas_to_strips
             sas_to_strips = {}
             for atom, var_val in strips_to_sas.items():
@@ -588,13 +588,13 @@ def pddl_to_sas(task, graph, generators):
                 sas_to_strips[var_val[0]] = atom
 
     sas_generators = []
-    if len(generators):
+    if task.generators:
         with timers.timing("Transforming generators into SAS", block=True):
             # For each generator, create its sas mapping from var-vals to var-vals
-            for generator in generators:
+            for generator in task.generators:
                 if DUMP:
                     print("Considering generator: ")
-                    graph.print_generator(generator)
+                    task.graph.print_generator(generator)
                 sas_generator = {}
                 valid_generator = True
                 for var_val, atom in sas_to_strips.items():
@@ -614,6 +614,8 @@ def pddl_to_sas(task, graph, generators):
                             mapped_predicate = to_node[1]
                     mapped_atom = pddl.Atom(mapped_predicate, mapped_args)
                     mapped_var_val_list = strips_to_sas.get(mapped_atom, None)
+                    if DUMP:
+                        print("mapping atom {} to atom {}".format(atom, mapped_atom))
                     if mapped_var_val_list is None:
                         if DUMP:
                             print("need to skip generator because it maps an atom to some "
@@ -635,7 +637,7 @@ def pddl_to_sas(task, graph, generators):
                     else:
                         if DUMP:
                             print("need to skip generator because it is the identiy")
-            print("{} out of {} generators left after transforming them".format(len(sas_generators), len(generators)))
+            print("{} out of {} generators left after transforming them".format(len(sas_generators), len(task.generators)))
 
 
     with timers.timing("Building dictionary for full mutex groups"):
@@ -664,7 +666,7 @@ def pddl_to_sas(task, graph, generators):
     print("%d implied preconditions added" %
           added_implied_precondition_counter)
 
-    if len(sas_generators):
+    if sas_generators:
         # Go over all facts of the sas task and all generators to remove all
         # facts from the generators that are not present in the task anymore.
         facts = set()
@@ -676,7 +678,7 @@ def pddl_to_sas(task, graph, generators):
                 if from_var_val not in facts or to_var_val not in facts:
                     del sas_generator[from_var_val]
         sas_generators = filter_out_identities_or_nonpermutations(sas_generators)
-        print("{} out of {} generators left after the sas task has been created".format(len(sas_generators), len(generators)))
+        print("{} out of {} generators left after the sas task has been created".format(len(sas_generators), len(task.generators)))
 
     if options.filter_unreachable_facts:
         with timers.timing("Detecting unreachable propositions", block=True):
@@ -688,7 +690,7 @@ def pddl_to_sas(task, graph, generators):
                 return solvable_sas_task("Simplified to empty goal")
         if len(sas_generators):
             sas_generators = filter_out_identities_or_nonpermutations(sas_generators)
-            print("{} out of {} generators left after filtering unreachable propositions".format(len(sas_generators), len(generators)))
+            print("{} out of {} generators left after filtering unreachable propositions".format(len(sas_generators), len(task.generators)))
 
     if options.reorder_variables or options.filter_unimportant_vars:
         with timers.timing("Reordering and filtering variables", block=True):
@@ -697,14 +699,14 @@ def pddl_to_sas(task, graph, generators):
                 sas_generators,
                 options.reorder_variables,
                 options.filter_unimportant_vars)
-        if len(sas_generators):
+        if sas_generators:
             # Renaming cannot affect the validity of a generator.
             for sas_generator in sas_generators:
                 assert not is_identity(sas_generator) and is_permutation(sas_generator)
 
-    if len(generators):
+    if task.generators:
         print("Number of remaining valid generators: {}".format(len(sas_generators)))
-        print("Removed generators: {}".format(len(generators) - len(sas_generators)))
+        print("Removed generators: {}".format(len(task.generators) - len(sas_generators)))
         order_to_generator_count = defaultdict(int)
         for sas_generator in sas_generators:
             order = compute_order(sas_generator)
@@ -825,17 +827,16 @@ def main():
                 if effect.literal.negated:
                     del action.effects[index]
 
-    graph = None
-    generators = []
     if options.compute_symmetries:
-        only_object_symmetries = options.only_object_symmetries
-        stabilize_initial_state = options.stabilize_initial_state
-        time_limit = options.bliss_time_limit
-        graph = symmetries_module.SymmetryGraph(task, only_object_symmetries, stabilize_initial_state)
-        generators = graph.find_automorphisms(time_limit)
-        print("Number of lifted generators: {}".format(len(generators)))
+        with timers.timing("Computing symmetries", block=True):
+            only_object_symmetries = options.only_object_symmetries
+            stabilize_initial_state = options.stabilize_initial_state
+            time_limit = options.bliss_time_limit
+            task.graph = symmetries_module.SymmetryGraph(task, only_object_symmetries, stabilize_initial_state)
+            task.generators = task.graph.find_automorphisms(time_limit)
+            print("Number of lifted generators: {}".format(len(task.generators)))
 
-    sas_task = pddl_to_sas(task, graph, generators)
+    sas_task = pddl_to_sas(task)
     dump_statistics(sas_task)
 
     with timers.timing("Writing output"):

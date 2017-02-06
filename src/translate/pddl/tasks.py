@@ -21,6 +21,8 @@ class Task(object):
         self.axioms = axioms
         self.axiom_counter = 0
         self.use_min_cost_metric = use_metric
+        self.graph = None
+        self.generators = []
 
     def add_axiom(self, parameters, condition):
         name = "new-axiom@%d" % self.axiom_counter
