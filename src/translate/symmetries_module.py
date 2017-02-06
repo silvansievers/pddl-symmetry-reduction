@@ -145,12 +145,15 @@ class SymmetryGraph:
         self.type_dict = dict((type.name, type) for type in task.types)
 
         if not self.stabilize_initial_state:
-            self.non_static_predicates = set()
+            #task_predicate_names = set([predicate.name for predicate in task.predicates])
+            self.fluent_predicates = set()
             for action in task.actions:
                 for effect in action.effects:
-                    self.non_static_predicates.add(effect.literal.predicate)
+                    self.fluent_predicates.add(effect.literal.predicate)
             for axiom in task.axioms:
-                fluent_predicates.add(axiom.name)
+                self.fluent_predicates.add(axiom.name)
+            #assert self.fluent_predicates.issubset(task_predicate_names)
+            #self.static_predicates = task_predicate_names.difference(self.fluent_predicates)
 
         if self.only_object_symmetries:
             # TODO: are there planning tasks with numbers larger than that?
@@ -311,7 +314,7 @@ class SymmetryGraph:
         init = sorted(task.init, key=get_key)
         for no, entry in enumerate(init):
             if isinstance(entry, pddl.Literal):
-                if self.stabilize_initial_state or entry.predicate not in self.non_static_predicates:
+                if self.stabilize_initial_state or entry.predicate not in self.fluent_predicates:
                     self._add_literal(NodeType.init, Color.init, entry, (no,))
             else: # numeric function
                 assert(isinstance(entry, pddl.Assign))
