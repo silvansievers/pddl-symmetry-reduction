@@ -12,6 +12,13 @@ parser.add_pattern('time_prolog_model', 'Done building program and model: (.+)s'
 parser.add_pattern('time_bliss', 'Done searching for automorphisms: (.+)s', required=False, type=float)
 parser.add_pattern('time_translate_automorphisms', 'Done translating automorphisms: (.+)s', required=False, type=float)
 
+def add_lifted_grounded(content, props):
+    generator_count_lifted = props.get('generator_count_lifted', 0)
+    generator_count_grounded = props.get('generator_count_grounded', 0)
+    props['generator_count_lifted_grounded'] = "{}/{}".format(generator_count_lifted, generator_count_grounded)
+
+parser.add_function(add_lifted_grounded)
+
 def parse_generator_orders(content, props):
     merge_order = re.findall(r'Generator orders:  \[(.*)\]', content)
     props['generator_orders'] = merge_order
@@ -42,5 +49,16 @@ def parse_symmetries_time(content, props):
     props['time_symmetries'] = time_bliss + time_translate_automorphisms
 
 parser.add_function(parse_symmetries_time)
+
+def parse_action_axiom_symmetry(content, props):
+    lines = content.split('\n')
+    generator_count_mapping_actions_axioms = False
+    for line in lines:
+        if 'Generator maps operators or axioms' in line:
+            generator_count_mapping_actions_axioms = True
+            break
+    props['generator_count_mapping_actions_axioms'] = generator_count_mapping_actions_axioms
+
+parser.add_function(parse_action_axiom_symmetry)
 
 parser.parse()
