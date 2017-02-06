@@ -149,6 +149,8 @@ class SymmetryGraph:
             for action in task.actions:
                 for effect in action.effects:
                     self.non_static_predicates.add(effect.literal.predicate)
+            for axiom in task.axioms:
+                fluent_predicates.add(axiom.name)
 
         if self.only_object_symmetries:
             # TODO: are there planning tasks with numbers larger than that?
