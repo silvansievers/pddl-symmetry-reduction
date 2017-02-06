@@ -835,6 +835,13 @@ def main():
             task.graph = symmetries_module.SymmetryGraph(task, only_object_symmetries, stabilize_initial_state)
             task.generators = task.graph.find_automorphisms(time_limit)
             print("Number of lifted generators: {}".format(len(task.generators)))
+            if DUMP:
+                task.graph.write_or_print_automorphisms(task.generators, dump=True)
+            for generator in task.generators:
+                for from_node, to_node in generator.items():
+                    assert isinstance(from_node, tuple)
+                    if from_node != to_node and from_node[0] in [symmetries_module.NodeType.operator, symmetries_module.NodeType.axiom]:
+                        print("Generator maps operators or axioms")
 
     sas_task = pddl_to_sas(task)
     dump_statistics(sas_task)
