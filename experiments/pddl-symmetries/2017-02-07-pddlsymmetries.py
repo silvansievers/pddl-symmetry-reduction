@@ -25,9 +25,11 @@ def main(revisions=None):
         environment = LocalEnvironment(processes=4)
 
     configs = {
-        IssueConfig('translate', [], driver_options=['--translate']),
-        IssueConfig('translate-allsymmetries', ['--translate-options', '--compute-symmetries', '--bliss-time-limit', '300'], driver_options=['--translate']),
-        #IssueConfig('translate-objectsymmetries', ['--translate-options', '--compute-symmetries', '--bliss-time-limit', '300', '--only-object-symmetries'], driver_options=['--translate']),
+        IssueConfig('translate', [], driver_options=['--translate', '--translate-time-limit', '30m']),
+        IssueConfig('translate-allsymmetries-staticinit', ['--translate-options', '--compute-symmetries', '--bliss-time-limit', '300'], driver_options=['--translate', '--translate-time-limit', '30m']),
+        #IssueConfig('translate-objectsymmetries', ['--translate-options', '--compute-symmetries', '--bliss-time-limit', '300', '--only-object-symmetries'], driver_options=['--translate', '--translate-time-limit', '30m']),
+        IssueConfig('translate-allsymmetries-onlyPNEinit', ['--translate-options', '--compute-symmetries', '--only-functions-from-initial-state', '--bliss-time-limit', '300'], driver_options=['--translate', '--translate-time-limit', '30m']),
+        IssueConfig('translate-allsymmetries-staticinit-preserve', ['--translate-options', '--compute-symmetries', '--preserve-symmetries-during-grounding', '--bliss-time-limit', '300'], driver_options=['--translate', '--translate-time-limit', '30m']),
     }
 
     exp = IssueExperiment(
@@ -60,6 +62,7 @@ def main(revisions=None):
     time_symmetries = Attribute('time_symmetries', absolute=False, min_wins=True)
     bliss_out_of_memory = Attribute('bliss_out_of_memory', absolute=True, min_wins=True)
     bliss_out_of_time = Attribute('bliss_out_of_time', absolute=True, min_wins=True)
+    translator_completed = Attribute('translator_completed', absolute=True, min_wins=False)
 
     extra_attributes = [
         generator_count_lifted,
@@ -82,13 +85,22 @@ def main(revisions=None):
         time_symmetries,
         bliss_out_of_memory,
         bliss_out_of_time,
+        translator_completed,
     ]
     attributes = [] # exp.DEFAULT_TABLE_ATTRIBUTES
     attributes.extend(extra_attributes)
     attributes.append('translator_*')
 
-    exp.add_absolute_report_step(attributes=attributes)
+    def check_completion(props):
+        translator_time_done = props.get('translator_time_done', None)
+        translator_completed = False
+        if translator_time_done is not None:
+            translator_completed = True
+        props['translator_completed'] = translator_completed
+        return props
+
+    exp.add_absolute_report_step(attributes=attributes,filter=[check_completion])
 
     exp.run_steps()
 
-main(revisions=['743877dd42fb'])
+main(revisions=['fff1dcaaa4ff'])
