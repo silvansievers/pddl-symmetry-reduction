@@ -341,7 +341,7 @@ def apply_order_to_sas_generator(order, sas_generator):
     # Build a new generator from the given one by remapping all variables
     variable_mapping = {}
     for index, variable in enumerate(order):
-        variable_mapping[index] = variable
+        variable_mapping[variable] = index
     result = {}
     for from_var_val, to_var_val in sas_generator.items():
         new_from_var_val = (variable_mapping[from_var_val[0]], from_var_val[1])
