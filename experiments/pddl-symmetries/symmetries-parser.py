@@ -11,6 +11,14 @@ parser.add_pattern('generator_count_removed', 'Removed generators: (\d+)', requi
 parser.add_pattern('time_prolog_model', 'Done building program and model: (.+)s', required=False, type=float)
 parser.add_pattern('time_bliss', 'Done searching for automorphisms: (.+)s', required=False, type=float)
 parser.add_pattern('time_translate_automorphisms', 'Done translating automorphisms: (.+)s', required=False, type=float)
+parser.add_pattern('generator_order_2', 'Order 2: (\d+)', required=False, type=int)
+parser.add_pattern('generator_order_3', 'Order 3: (\d+)', required=False, type=int)
+parser.add_pattern('generator_order_4', 'Order 4: (\d+)', required=False, type=int)
+parser.add_pattern('generator_order_5', 'Order 5: (\d+)', required=False, type=int)
+parser.add_pattern('generator_order_6', 'Order 6: (\d+)', required=False, type=int)
+parser.add_pattern('generator_order_7', 'Order 7: (\d+)', required=False, type=int)
+parser.add_pattern('generator_order_8', 'Order 8: (\d+)', required=False, type=int)
+parser.add_pattern('generator_order_9', 'Order 9: (\d+)', required=False, type=int)
 
 def add_lifted_grounded(content, props):
     generator_count_lifted = props.get('generator_count_lifted', 0)
