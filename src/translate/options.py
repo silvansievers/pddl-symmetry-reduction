@@ -64,6 +64,10 @@ def parse_args():
         help="If false, only those atoms in the initial state mentioning "
         "static predicates are added.")
     argparser.add_argument(
+        "--preserve-symmetries-during-grounding", action="store_true",
+        help="If true, grounding preserves unreachable structures (axioms, "
+        "operators, ...) if they are symmetric to a reachable structure.")
+    argparser.add_argument(
         "--bliss-time-limit", default=300, type=int,
         help="max time for bliss to search for automorphisms")
     return argparser.parse_args()
