@@ -279,7 +279,7 @@ class VarValueRenaming(object):
             to_val = to_var_val[1]
             new_from_val = self.new_values[from_var][from_val]
             new_to_val = self.new_values[to_var][to_val]
-            if new_from_val in [always_false or always_true] or new_to_val in [always_false or always_true]:
+            if new_from_val in [always_false, always_true] or new_to_val in [always_false, always_true]:
                 continue
             result[(new_from_var, new_from_val)] = (new_to_var, new_to_val)
         return result
