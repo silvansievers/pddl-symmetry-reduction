@@ -730,6 +730,8 @@ def pddl_to_sas(task):
             order_to_generator_count[order] += 1
         printable_order_to_count = [(order, count) for order, count in order_to_generator_count.items()]
         print("Generator orders: ", printable_order_to_count)
+        for order in range(2, 10):
+            print("Order {}: {}".format(order, order_to_generator_count[order]))
 
     if sas_generators:
         # Transform the sas generators into the format used by the search
