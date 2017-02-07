@@ -514,18 +514,18 @@ def unsolvable_sas_task(msg):
     print("%s! Generating unsolvable task..." % msg)
     return trivial_task(solvable=False)
 
-def is_permutation(generator):
-    for start_key in generator.keys():
-        current_key = generator[start_key]
+def is_permutation(sas_generator):
+    for start_key in sas_generator.keys():
+        current_key = sas_generator[start_key]
         while current_key != start_key:
-            if not current_key in generator.keys():
+            if not current_key in sas_generator.keys():
                 return False
-            current_key = tuple(generator[current_key])
+            current_key = tuple(sas_generator[current_key])
     return True
 
-def is_identity(generator):
-    for key in generator.keys():
-        if generator[key] != key:
+def is_identity(sas_generator):
+    for key in sas_generator.keys():
+        if sas_generator[key] != key:
             return False
     return True
 
@@ -539,20 +539,24 @@ def lcm(a, b):
     """Return lowest common multiple."""
     return a * b // gcd(a, b)
 
-def compute_order(generator):
+def compute_order(sas_generator):
     visited_keys = set()
     order = 1
-    for start_key in generator.keys():
+    for start_key in sas_generator.keys():
         if not start_key in visited_keys:
             cycle_size = 1
             visited_keys.add(start_key)
-            current_key = generator[start_key]
+            current_key = sas_generator[start_key]
             while current_key != start_key:
-                current_key = tuple(generator[current_key])
+                current_key = tuple(sas_generator[current_key])
                 visited_keys.add(current_key)
                 cycle_size += 1
             order = lcm(order, cycle_size)
     return order
+
+def print_sas_generator(sas_generator):
+    for from_fact in sorted(sas_generator.keys()):
+        print("{} -> {}".format(from_fact, sas_generator[from_fact]))
 
 def pddl_to_sas(task):
     with timers.timing("Instantiating", block=True):
@@ -609,8 +613,8 @@ def pddl_to_sas(task):
                             mapped_predicate = to_node[1]
                     mapped_atom = pddl.Atom(mapped_predicate, mapped_args)
                     mapped_var_val_list = strips_to_sas.get(mapped_atom, None)
-                    if DUMP:
-                        print("mapping atom {} to atom {}".format(atom, mapped_atom))
+                    #if DUMP:
+                        #print("mapping atom {} to atom {}".format(atom, mapped_atom))
                     if mapped_var_val_list is None:
                         if DUMP:
                             print("need to skip generator because it maps an atom to some "
@@ -624,8 +628,8 @@ def pddl_to_sas(task):
                     sas_generator[var_val] = mapped_var_val
                 if valid_generator:
                     if DUMP:
-                        print("Transformed generator: ")
-                        print(sas_generator)
+                        print("Transformed generator (without none-of-those values!): ")
+                        print_sas_generator(sas_generator)
                     assert is_permutation(sas_generator)
                     if not is_identity(sas_generator):
                         sas_generators.append(sas_generator)
@@ -662,17 +666,27 @@ def pddl_to_sas(task):
           added_implied_precondition_counter)
 
     if sas_generators:
-        # Go over all facts of the sas task and all generators to remove all
-        # facts from the generators that are not present in the task anymore.
-        facts = set()
+        # Go over all facts of the sas task and all generators:
+        # 1) add identity mappings for all "new" facts (the strips_to_sas dict
+        #    does not contain facts for the "none-of-those" values of variables)
+        # 2) remove all facts from the generators that are not present in the
+        #    task anymore
+        facts = []
         for var, var_range in enumerate(sas_task.variables.ranges):
             for val in range(var_range):
-                facts.add((var, val))
+                facts.append((var, val))
         for sas_generator in sas_generators:
+            for fact in facts:
+                if sas_generator.get(fact, None) is None:
+                    sas_generator[fact] = fact
             for from_var_val, to_var_val in sas_generator.items():
                 if from_var_val not in facts or to_var_val not in facts:
                     del sas_generator[from_var_val]
         sas_generators = filter_out_identities_or_nonpermutations(sas_generators)
+        if DUMP:
+            for sas_generator in sas_generators:
+                print("generator: ")
+                print_sas_generator(sas_generator)
         print("{} out of {} generators left after the sas task has been created".format(len(sas_generators), len(task.generators)))
 
     if options.filter_unreachable_facts:
@@ -683,8 +697,12 @@ def pddl_to_sas(task):
                 return unsolvable_sas_task("Simplified to trivially false goal")
             except simplify.TriviallySolvable:
                 return solvable_sas_task("Simplified to empty goal")
-        if len(sas_generators):
+        if sas_generators:
             sas_generators = filter_out_identities_or_nonpermutations(sas_generators)
+            if DUMP:
+                for sas_generator in sas_generators:
+                    print("generator: ")
+                    print_sas_generator(sas_generator)
             print("{} out of {} generators left after filtering unreachable propositions".format(len(sas_generators), len(task.generators)))
 
     if options.reorder_variables or options.filter_unimportant_vars:
@@ -698,6 +716,10 @@ def pddl_to_sas(task):
             # Renaming cannot affect the validity of a generator.
             for sas_generator in sas_generators:
                 assert not is_identity(sas_generator) and is_permutation(sas_generator)
+                if DUMP:
+                    for sas_generator in sas_generators:
+                        print("generator: ")
+                        print_sas_generator(sas_generator)
 
     if task.generators:
         print("Number of remaining valid generators: {}".format(len(sas_generators)))
