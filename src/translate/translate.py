@@ -731,6 +731,70 @@ def pddl_to_sas(task):
         printable_order_to_count = [(order, count) for order, count in order_to_generator_count.items()]
         print("Generator orders: ", printable_order_to_count)
 
+    if sas_generators:
+        # Transform the sas generators into the format used by the search
+        # component, i.e. [0...n-1; 0...range(var-1)-1, ..., 0...range(var-n)-1]
+        # where the first n entries represent the mapping on variables, and
+        # successive block represent the mapping of each variable's values.
+
+        # Precompute some data structures to ease mapping from facts to indices
+        # of the above representation.
+        var_by_shifted_index = []
+        var_to_start_index = []
+        num_vars = len(sas_task.variables.ranges)
+        num_indices = num_vars
+        for var in range(num_vars):
+            var_to_start_index.append(num_indices)
+            num_indices += sas_task.variables.ranges[var]
+            for val in range(sas_task.variables.ranges[var]):
+                var_by_shifted_index.append(var)
+
+        def get_var_val_by_index(index):
+            assert index >= num_vars
+            var =  var_by_shifted_index[index - num_vars]
+            val = index - var_to_start_index[var]
+            return (var, val)
+
+        def get_index_by_var_val((var, val)):
+            index = var_to_start_index[var] + val
+            assert num_vars <= index < num_indices
+            return index
+
+        facts = []
+        for var, var_range in enumerate(sas_task.variables.ranges):
+            for val in range(var_range):
+                facts.append((var, val))
+        search_generators = []
+        for sas_generator in sas_generators:
+            transformed_generator = range(num_indices) # identity
+            for from_fact in facts:
+                to_fact = sas_generator[from_fact]
+                from_index = get_index_by_var_val(from_fact)
+                to_index = get_index_by_var_val(to_fact)
+                transformed_generator[from_index] = to_index
+                from_var = from_fact[0]
+                to_var = to_fact[0]
+                if from_var != to_var:
+                    if transformed_generator[from_var] != from_var:
+                        assert transformed_generator[from_var] == to_var
+                    else:
+                        transformed_generator[from_var] = to_var
+            search_generators.append(transformed_generator)
+            #for from_index, to_index in enumerate(transformed_generator):
+                #if from_index < num_vars:
+                    #continue
+                #from_fact = get_var_val_by_index(from_index)
+                #to_fact = get_var_val_by_index(to_index)
+                #assert sas_generator.get(from_fact, from_fact) == to_fact
+            if DUMP:
+                print("original generator:")
+                print_sas_generator(sas_generator)
+                print("transformed_generator:")
+                print(transformed_generator)
+        # Append the transformed generators to the task so that they are
+        # written to the output.sas file.
+        sas_task.search_generators = search_generators
+
     return sas_task
 
 def filter_out_identities_or_nonpermutations(sas_generators):

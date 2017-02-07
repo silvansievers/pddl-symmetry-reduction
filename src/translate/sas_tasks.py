@@ -26,6 +26,7 @@ class SASTask:
         self.metric = metric
         if DEBUG:
             self.validate()
+        self.search_generators = []
 
     def validate(self):
         """Fail an assertion if the task is invalid.
@@ -76,6 +77,9 @@ class SASTask:
         for axiom in self.axioms:
             axiom.dump()
         print("metric: %s" % self.metric)
+        print("generators:")
+        for generator in self.search_generators:
+            print("generator: {}".format(generator))
 
     def output(self, stream):
         print("begin_version", file=stream)
@@ -96,6 +100,12 @@ class SASTask:
         print(len(self.axioms), file=stream)
         for axiom in self.axioms:
             axiom.output(stream)
+        print(len(self.search_generators), file=stream)
+        for generator in self.search_generators:
+            print("begin_generator", file=stream)
+            string = " ".join([str(x) for x in generator])
+            print(string, file=stream)
+            print("end_generator", file=stream)
 
     def get_encoding_size(self):
         task_size = 0
