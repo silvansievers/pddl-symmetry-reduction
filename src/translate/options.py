@@ -64,6 +64,10 @@ def parse_args():
         help="If false, only those atoms in the initial state mentioning "
         "static predicates are added.")
     argparser.add_argument(
+        "--only-functions-from-initial-state", action="store_true",
+        help="If true, include only the functions mentioned in the initial "
+        "states, but not the fluents or types.")
+    argparser.add_argument(
         "--preserve-symmetries-during-grounding", action="store_true",
         help="If true, grounding preserves unreachable structures (axioms, "
         "operators, ...) if they are symmetric to a reachable structure.")
