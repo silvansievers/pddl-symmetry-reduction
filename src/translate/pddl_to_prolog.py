@@ -3,9 +3,11 @@
 from __future__ import print_function
 
 import itertools
+import options
 
 import normalize
 import pddl
+import symmetries_module
 import timers
 
 class PrologProgram:
@@ -152,10 +154,44 @@ def translate_facts(prog, task):
     type_dict = dict((type.name, type) for type in task.types)
     for obj in task.objects:
         translate_typed_object(prog, obj, type_dict)
-    for fact in task.init:
+    init = task.init
+    if options.preserve_symmetries_during_grounding:
+        init = all_symmetric_atoms(init, task.generators)
+    for fact in init:
         assert isinstance(fact, pddl.Atom) or isinstance(fact, pddl.Assign)
         if isinstance(fact, pddl.Atom):
             prog.add_fact(fact)
+
+def all_symmetric_atoms(init, generators):
+    def apply_permutation_to_atom(permutation, atom):
+        predicate = permutation[0].get(atom.predicate, atom.predicate)
+        args = tuple(permutation[1].get(a, a) for a in atom.args)
+        return pddl.Atom(predicate, args)
+    
+    permutations = []
+    for generator in generators:
+        predicates = dict()
+        objects = dict()
+        for from_node, to_node in generator.items():
+            if (from_node[0] == symmetries_module.NodeType.predicate
+                and from_node[1] != to_node[1]):
+                predicates[from_node[1]] = to_node[1]
+            if (from_node[0] == symmetries_module.NodeType.constant
+                and from_node[1] != to_node[1]):
+                objects[from_node[1]] = to_node[1]
+        if predicates or objects:
+            permutations.append((predicates, objects))
+        
+    open_list = list(init)
+    closed = set()
+    while open_list:
+        atom = open_list.pop()
+        if atom not in closed:
+            for p in permutations:
+                succ = apply_permutation_to_atom(p, atom)
+                open_list.append(succ)
+        closed.add(atom)
+    return closed 
 
 def translate(task):
     # Note: The function requires that the task has been normalized.
