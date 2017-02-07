@@ -577,15 +577,6 @@ def pddl_to_sas(task):
     with timers.timing("Building STRIPS to SAS dictionary"):
         ranges, strips_to_sas = strips_to_sas_dictionary(
             groups, assert_partial=options.use_partial_encoding)
-        if task.generators:
-            # Build the back-mapping dict sas_to_strips
-            sas_to_strips = {}
-            for atom, var_val in strips_to_sas.items():
-                assert isinstance(atom, pddl.Atom)
-                if not len(var_val) == 1:
-                    raise NotImplementedError("Using the option --full-encoding "
-                    "with --compute-symmetries is not implemented!")
-                sas_to_strips[var_val[0]] = atom
 
     sas_generators = []
     if task.generators:
@@ -597,7 +588,11 @@ def pddl_to_sas(task):
                     task.graph.print_generator(generator)
                 sas_generator = {}
                 valid_generator = True
-                for var_val, atom in sas_to_strips.items():
+                for atom, var_val_list in strips_to_sas.items():
+                    if not len(var_val_list) == 1:
+                        raise NotImplementedError("Using the option --full-encoding "
+                        "with --compute-symmetries is not implemented!")
+                    var_val = var_val_list[0]
                     predicate = atom.predicate
                     args = atom.args
                     mapped_predicate = predicate
