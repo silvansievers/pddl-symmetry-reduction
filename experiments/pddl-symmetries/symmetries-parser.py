@@ -72,4 +72,21 @@ def parse_action_axiom_symmetry(content, props):
 
 parser.add_function(parse_action_axiom_symmetry)
 
+def parse_errors(content, props):
+    if 'error' in props:
+        return
+
+    exitcode_to_error = {
+        0: 'none',
+        1: 'unexplained-critical-error',
+    }
+
+    exitcode = props['fast-downward_returncode']
+    if exitcode in exitcode_to_error:
+        props['error'] = exitcode_to_error[exitcode]
+    else:
+        props['error'] = 'unexplained-exitcode-%d' % exitcode
+
+parser.add_function(parse_errors)
+
 parser.parse()
