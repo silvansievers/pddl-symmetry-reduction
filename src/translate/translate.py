@@ -737,13 +737,13 @@ def pddl_to_sas(task):
                 sas_generators,
                 options.reorder_variables,
                 options.filter_unimportant_vars)
-        if sas_generators:
-            # Renaming cannot affect the validity of a generator.
-            for sas_generator in sas_generators:
-                assert not is_identity(sas_generator) and is_permutation(sas_generator)
-                if DUMP:
-                    print("generator: ")
-                    print_sas_generator(sas_generator)
+            if sas_generators:
+                # Renaming cannot affect the validity of a generator.
+                for sas_generator in sas_generators:
+                    assert not is_identity(sas_generator) and is_permutation(sas_generator)
+                    if DUMP:
+                        print("generator: ")
+                        print_sas_generator(sas_generator)
 
     if task.generators:
         print("Number of remaining valid generators: {}".format(len(sas_generators)))
