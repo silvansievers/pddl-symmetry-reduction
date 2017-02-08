@@ -45,6 +45,7 @@ def main(revisions=None):
     generator_count_lifted = Attribute('generator_count_lifted', absolute=True, min_wins=False)
     generator_count_grounded = Attribute('generator_count_grounded', absolute=True, min_wins=False)
     generator_count_removed = Attribute('generator_count_removed', absolute=True, min_wins=True)
+    generator_count_affecting_actions_axioms = Attribute('generator_count_affecting_actions_axioms', absolute=True, min_wins=True)
     generator_count_mapping_actions_axioms = Attribute('generator_count_mapping_actions_axioms', absolute=True, min_wins=True)
     generator_count_lifted_grounded = Attribute('generator_count_lifted_grounded')
     generator_orders = Attribute('generator_orders', absolute=True)
@@ -68,6 +69,7 @@ def main(revisions=None):
         generator_count_lifted,
         generator_count_grounded,
         generator_count_removed,
+        generator_count_affecting_actions_axioms,
         generator_count_mapping_actions_axioms,
         generator_count_lifted_grounded,
         generator_orders,
@@ -103,4 +105,4 @@ def main(revisions=None):
 
     exp.run_steps()
 
-main(revisions=['fff1dcaaa4ff'])
+main(revisions=['06a548131d3b'])

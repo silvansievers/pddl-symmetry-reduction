@@ -60,11 +60,14 @@ parser.add_function(parse_symmetries_time)
 
 def parse_action_axiom_symmetry(content, props):
     lines = content.split('\n')
+    generator_count_affecting_actions_axioms = False
     generator_count_mapping_actions_axioms = False
     for line in lines:
-        if 'Generator maps operators or axioms' in line:
+        if 'Generator affects operator or axiom' in line:
+            generator_count_affecting_actions_axioms = True
+        if 'Generator entirely maps operator or axioms' in line:
             generator_count_mapping_actions_axioms = True
-            break
+    props['generator_count_affecting_actions_axioms'] = generator_count_affecting_actions_axioms
     props['generator_count_mapping_actions_axioms'] = generator_count_mapping_actions_axioms
 
 parser.add_function(parse_action_axiom_symmetry)
