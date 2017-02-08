@@ -717,9 +717,8 @@ def pddl_to_sas(task):
             for sas_generator in sas_generators:
                 assert not is_identity(sas_generator) and is_permutation(sas_generator)
                 if DUMP:
-                    for sas_generator in sas_generators:
-                        print("generator: ")
-                        print_sas_generator(sas_generator)
+                    print("generator: ")
+                    print_sas_generator(sas_generator)
 
     if task.generators:
         print("Number of remaining valid generators: {}".format(len(sas_generators)))
@@ -924,7 +923,11 @@ def main():
                 for from_node, to_node in generator.items():
                     assert isinstance(from_node, tuple)
                     if from_node != to_node and from_node[0] in [symmetries_module.NodeType.operator, symmetries_module.NodeType.axiom]:
-                        print("Generator maps operators or axioms")
+                        print("Generator affects operator or axiom")
+                        assert len(from_node) == 3
+                        name = from_node[2]
+                        if name in [action.name for action in task.actions] or name in [axiom.name for axiom in task.axioms]:
+                            print("Generator entirely maps operator or axioms")
 
     sas_task = pddl_to_sas(task)
     dump_statistics(sas_task)
