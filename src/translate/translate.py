@@ -514,6 +514,7 @@ def unsolvable_sas_task(msg):
     print("%s! Generating unsolvable task..." % msg)
     return trivial_task(solvable=False)
 
+
 def is_permutation(sas_generator):
     for start_key in sas_generator.keys():
         current_key = sas_generator[start_key]
@@ -523,11 +524,27 @@ def is_permutation(sas_generator):
             current_key = tuple(sas_generator[current_key])
     return True
 
+
 def is_identity(sas_generator):
     for key in sas_generator.keys():
         if sas_generator[key] != key:
             return False
     return True
+
+
+def filter_out_identities_or_nonpermutations(sas_generators):
+    # Return an updated list of generators, containing only "valid" generators,
+    # i.e. generators that are a permutation and not the identity.
+    remaining_generators = []
+    for sas_generator in sas_generators:
+        if not is_permutation(sas_generator) or is_identity(sas_generator):
+            if DUMP:
+                print(sas_generator)
+                print("is not a permutation or is the identiy!")
+        else:
+            remaining_generators.append(sas_generator)
+    return remaining_generators
+
 
 def gcd(a, b):
     """Return greatest common divisor using Euclid's Algorithm."""
@@ -535,9 +552,11 @@ def gcd(a, b):
         a, b = b, a % b
     return a
 
+
 def lcm(a, b):
     """Return lowest common multiple."""
     return a * b // gcd(a, b)
+
 
 def compute_order(sas_generator):
     visited_keys = set()
@@ -554,9 +573,13 @@ def compute_order(sas_generator):
             order = lcm(order, cycle_size)
     return order
 
+
 def print_sas_generator(sas_generator):
     for from_fact in sorted(sas_generator.keys()):
-        print("{} -> {}".format(from_fact, sas_generator[from_fact]))
+        to_fact = sas_generator[from_fact]
+        if from_fact != to_fact:
+            print("{} -> {}".format(from_fact, sas_generator[from_fact]))
+
 
 def pddl_to_sas(task):
     with timers.timing("Instantiating", block=True):
@@ -699,13 +722,13 @@ def pddl_to_sas(task):
                 return unsolvable_sas_task("Simplified to trivially false goal")
             except simplify.TriviallySolvable:
                 return solvable_sas_task("Simplified to empty goal")
-        if sas_generators:
-            sas_generators = filter_out_identities_or_nonpermutations(sas_generators)
-            if DUMP:
-                for sas_generator in sas_generators:
-                    print("generator: ")
-                    print_sas_generator(sas_generator)
-            print("{} out of {} generators left after filtering unreachable propositions".format(len(sas_generators), len(task.generators)))
+            if sas_generators:
+                sas_generators = filter_out_identities_or_nonpermutations(sas_generators)
+                if DUMP:
+                    for sas_generator in sas_generators:
+                        print("generator: ")
+                        print_sas_generator(sas_generator)
+                print("{} out of {} generators left after filtering unreachable propositions".format(len(sas_generators), len(task.generators)))
 
     if options.reorder_variables or options.filter_unimportant_vars:
         with timers.timing("Reordering and filtering variables", block=True):
@@ -800,19 +823,6 @@ def pddl_to_sas(task):
             sas_task.search_generators = search_generators
 
     return sas_task
-
-def filter_out_identities_or_nonpermutations(sas_generators):
-    # Return an updated list of generators, containing only "valid" generators,
-    # i.e. generators that are a permutation and not the identity.
-    remaining_generators = []
-    for sas_generator in sas_generators:
-        if not is_permutation(sas_generator) or is_identity(sas_generator):
-            if DUMP:
-                print(sas_generator)
-                print("is not a permutation or is the identiy!")
-        else:
-            remaining_generators.append(sas_generator)
-    return remaining_generators
 
 
 def build_mutex_key(strips_to_sas, groups):
