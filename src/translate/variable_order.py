@@ -344,8 +344,20 @@ def apply_order_to_sas_generator(order, sas_generator):
         variable_mapping[variable] = index
     result = {}
     for from_var_val, to_var_val in sas_generator.items():
-        new_from_var_val = (variable_mapping[from_var_val[0]], from_var_val[1])
-        new_to_var_val= (variable_mapping[to_var_val[0]], to_var_val[1])
+        from_var = from_var_val[0]
+        new_from_var = variable_mapping.get(from_var, None)
+        if new_from_var is None:
+            continue
+        from_val = from_var_val[1]
+        new_from_var_val = (new_from_var, from_val)
+
+        to_var = to_var_val[0]
+        new_to_var = variable_mapping.get(to_var, None)
+        if new_to_var is None:
+            continue
+        to_val = to_var_val[1]
+        new_to_var_val= (new_to_var, to_val)
+
         result[new_from_var_val] = new_to_var_val
     return result
 
