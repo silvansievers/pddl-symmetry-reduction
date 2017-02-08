@@ -64,6 +64,7 @@ def main(revisions=None):
     bliss_out_of_memory = Attribute('bliss_out_of_memory', absolute=True, min_wins=True)
     bliss_out_of_time = Attribute('bliss_out_of_time', absolute=True, min_wins=True)
     translator_completed = Attribute('translator_completed', absolute=True, min_wins=False)
+    timeout = Attribute('timeout', absolute=True, min_wins=True)
 
     extra_attributes = [
         generator_count_lifted,
@@ -88,6 +89,7 @@ def main(revisions=None):
         bliss_out_of_memory,
         bliss_out_of_time,
         translator_completed,
+        timeout
     ]
     attributes = ['error', 'run_dir'] # exp.DEFAULT_TABLE_ATTRIBUTES
     attributes.extend(extra_attributes)
@@ -105,4 +107,4 @@ def main(revisions=None):
 
     exp.run_steps()
 
-main(revisions=['f0167451b88d'])
+main(revisions=['0e94cbd4a31f'])

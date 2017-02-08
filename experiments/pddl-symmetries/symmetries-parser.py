@@ -76,12 +76,18 @@ def parse_errors(content, props):
     if 'error' in props:
         return
 
+    # Error names that start with "unexplained" will show up in the errors table.
     exitcode_to_error = {
         0: 'none',
         1: 'unexplained-critical-error',
+        232: 'timeout',
+        247: 'unexplained-bliss-timeout', # TODO: remove "unexplained" once explained
     }
 
     exitcode = props['fast-downward_returncode']
+    props['timeout'] = False
+    if exitcode == 232:
+        props['timeout'] = True
     if exitcode in exitcode_to_error:
         props['error'] = exitcode_to_error[exitcode]
     else:
