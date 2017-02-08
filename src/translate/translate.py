@@ -608,7 +608,7 @@ def pddl_to_sas(task):
             groups, assert_partial=options.use_partial_encoding)
 
     sas_generators = []
-    with timers.timing("Transforming generators (step1) ground into SAS", block=True):
+    with timers.timing("Transforming generators step1 ground into SAS", block=True):
         # For each generator, create its sas mapping from var-vals to var-vals
         for generator in task.generators:
             if DUMP:
@@ -693,7 +693,7 @@ def pddl_to_sas(task):
     print("%d implied preconditions added" %
           added_implied_precondition_counter)
 
-    with timers.timing("Transforming generators (step2) add none-of-those and remove deleted facts", block=True):
+    with timers.timing("Transforming generators step2 add none-of-those and remove deleted facts", block=True):
         if sas_generators:
             # Go over all facts of the sas task and all generators:
             # 1) add identity mappings for all "new" facts (the strips_to_sas dict
@@ -761,7 +761,7 @@ def pddl_to_sas(task):
         for order in range(2, 10):
             print("Order {}: {}".format(order, order_to_generator_count[order]))
 
-    with timers.timing("Transforming generators (step3) transform into search representation", block=True):
+    with timers.timing("Transforming generators step3 transform into search representation", block=True):
         if sas_generators:
             # Transform the sas generators into the format used by the search
             # component, i.e. [0...n-1; 0...range(var-1)-1, ..., 0...range(var-n)-1]
