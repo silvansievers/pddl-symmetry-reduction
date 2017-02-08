@@ -516,6 +516,8 @@ def unsolvable_sas_task(msg):
 
 
 def is_permutation(sas_generator):
+    # Caution! If the given sas_generator maps two keys to the same value,
+    # this check may fail and loop forever.
     for start_key in sas_generator.keys():
         current_key = sas_generator[start_key]
         while current_key != start_key:
@@ -631,13 +633,15 @@ def pddl_to_sas(task):
                         for index, arg in enumerate(args):
                             if arg == from_node[1]:
                                 mapped_args[index] = to_node[1]
-                                break
+                                # Do not add a break here! We need to map on(x, x)
+                                # to on(y, y) (and not on(y, x)) if the generator maps x to y
                     if from_node[0] == symmetries_module.NodeType.predicate and from_node[1] == predicate:
                         mapped_predicate = to_node[1]
                 mapped_atom = pddl.Atom(mapped_predicate, mapped_args)
                 mapped_var_val_list = strips_to_sas.get(mapped_atom, None)
-                #if DUMP:
-                    #print("mapping atom {} to atom {}".format(atom, mapped_atom))
+                if DUMP:
+                    if atom != mapped_atom:
+                        print("mapping atom {} to atom {}".format(atom, mapped_atom))
                 if mapped_var_val_list is None:
                     if DUMP:
                         print("need to skip generator because it maps an atom to some "
