@@ -89,7 +89,7 @@ def main(revisions=None):
         bliss_out_of_time,
         translator_completed,
     ]
-    attributes = [] # exp.DEFAULT_TABLE_ATTRIBUTES
+    attributes = ['error', 'run_dir'] # exp.DEFAULT_TABLE_ATTRIBUTES
     attributes.extend(extra_attributes)
     attributes.append('translator_*')
 
