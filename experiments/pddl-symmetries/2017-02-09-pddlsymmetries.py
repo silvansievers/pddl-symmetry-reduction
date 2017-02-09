@@ -29,7 +29,7 @@ def main(revisions=None):
         IssueConfig('translate-allsymmetries-staticinit', ['--translate-options', '--compute-symmetries', '--bliss-time-limit', '300'], driver_options=['--translate', '--translate-time-limit', '30m']),
         #IssueConfig('translate-objectsymmetries', ['--translate-options', '--compute-symmetries', '--bliss-time-limit', '300', '--only-object-symmetries'], driver_options=['--translate', '--translate-time-limit', '30m']),
         IssueConfig('translate-allsymmetries-onlyPNEinit', ['--translate-options', '--compute-symmetries', '--only-functions-from-initial-state', '--bliss-time-limit', '300'], driver_options=['--translate', '--translate-time-limit', '30m']),
-        IssueConfig('translate-allsymmetries-staticinit-preserve', ['--translate-options', '--compute-symmetries', '--preserve-symmetries-during-grounding', '--keep-unimportant-variables', '--bliss-time-limit', '300'], driver_options=['--translate', '--translate-time-limit', '30m']),
+        IssueConfig('translate-allsymmetries-staticinit-preserve', ['--translate-options', '--compute-symmetries', '--preserve-symmetries-during-grounding', '--keep-unreachable-facts', '--keep-unimportant-variables', '--bliss-time-limit', '300'], driver_options=['--translate', '--translate-time-limit', '30m']),
     }
 
     exp = IssueExperiment(
@@ -109,4 +109,4 @@ def main(revisions=None):
 
     exp.run_steps()
 
-main(revisions=['bfb0319d7c42'])
+main(revisions=['c720d45a7ead'])
