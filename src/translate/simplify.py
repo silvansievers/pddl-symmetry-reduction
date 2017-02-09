@@ -266,9 +266,14 @@ class VarValueRenaming(object):
 
     def apply_to_generator(self, sas_generator):
         # Build a new generator from the given one by updating all mappings
-        # (var, val) -> (x, y) if var, val is mapped to a new valid fact.
-        # If x, y is removed, the generator is invalid and an empty (i.e.
-        # identity) generator is returned.
+        # var, val -> var', val'. If var is mapped to None, ignore the mapping
+        # entirely. Otherwise  (var is not mapped None), if var' is mapped to
+        # None, the generator is invalid and an empty (i.e. identity) generator
+        # is returned. Otherwise (var' is not mapped to None), the value
+        # mappings need to be checked in an analogous way: first test whether
+        # val is mapped to None, then whether val' is mapped to None, and if
+        # both tests pass, the updated mapping is generated and added to the
+        # new generator.
         result = {}
         for from_var_val, to_var_val in sas_generator.items():
             from_var = from_var_val[0]
@@ -281,6 +286,7 @@ class VarValueRenaming(object):
             if new_to_var is None:
                 # to_var has been removed, generator is invalid
                 return {} # will be removed because it is the identity
+
             from_val = from_var_val[1]
             to_val = to_var_val[1]
             new_from_val = self.new_values[from_var][from_val]
@@ -291,6 +297,7 @@ class VarValueRenaming(object):
             if new_to_val in [always_false, always_true]:
                 # to_val has been removed, generator is invalid
                 return {} # will be removed because it is the identity
+
             result[(new_from_var, new_from_val)] = (new_to_var, new_to_val)
         return result
 

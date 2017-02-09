@@ -707,7 +707,7 @@ def pddl_to_sas(task):
             for sas_generator in sas_generators:
                 for fact in facts:
                     if sas_generator.get(fact, None) is None:
-                        sas_generator[fact] = fact
+                        sas_generator[fact] = fact # add identity for none-of-those values
                 for from_var_val, to_var_val in sas_generator.items():
                     if from_var_val not in facts or to_var_val not in facts:
                         del sas_generator[from_var_val]
@@ -729,9 +729,15 @@ def pddl_to_sas(task):
             if sas_generators:
                 sas_generators = filter_out_identities_or_nonpermutations(sas_generators)
                 if DUMP:
+                    #facts = []
+                    #for var, var_range in enumerate(sas_task.variables.ranges):
+                        #for val in range(var_range):
+                            #facts.append((var, val))
                     for sas_generator in sas_generators:
                         print("generator: ")
                         print_sas_generator(sas_generator)
+                        #for fact in facts:
+                            #assert fact in sas_generator.keys()
                 print("{} out of {} generators left after filtering unreachable propositions".format(len(sas_generators), len(task.generators)))
 
     if options.reorder_variables or options.filter_unimportant_vars:
@@ -744,9 +750,15 @@ def pddl_to_sas(task):
             if sas_generators:
                 sas_generators = filter_out_identities_or_nonpermutations(sas_generators)
                 if DUMP:
+                    #facts = []
+                    #for var, var_range in enumerate(sas_task.variables.ranges):
+                        #for val in range(var_range):
+                            #facts.append((var, val))
                     for sas_generator in sas_generators:
                         print("generator: ")
                         print_sas_generator(sas_generator)
+                        #for fact in facts:
+                            #assert fact in sas_generator.keys()
                 print("{} out of {} generators left after reordering and filtering variables".format(len(sas_generators), len(task.generators)))
 
     if task.generators:

@@ -338,23 +338,30 @@ class VariableOrder(object):
         axioms[:] = new_axioms
 
 def apply_order_to_sas_generator(order, sas_generator):
-    # Build a new generator from the given one by remapping all variables
+    # Build a new generator from the given one by updating all mappings
+    # var -> var'. If var is mapped to None, ignore the mapping entirely.
+    # Otherwise  (var is not mapped None), if var' is mapped to None, the
+    # generator is invalid and an empty (i.e. identity) generator is returned.
+    # Otherwise (var' is not mapped to None), the mapping can be updated and
+    # added to the new generator.
     variable_mapping = {}
     for index, variable in enumerate(order):
         variable_mapping[variable] = index
     result = {}
     for from_var_val, to_var_val in sas_generator.items():
         from_var = from_var_val[0]
+        to_var = to_var_val[0]
         new_from_var = variable_mapping.get(from_var, None)
+        new_to_var = variable_mapping.get(to_var, None)
         if new_from_var is None:
+            # from_var has been removed, ignore the entry
             continue
+        if new_to_var is None:
+            # to_var has been removed, generator is invalid
+            return {} # will be removed because it is the identity
+
         from_val = from_var_val[1]
         new_from_var_val = (new_from_var, from_val)
-
-        to_var = to_var_val[0]
-        new_to_var = variable_mapping.get(to_var, None)
-        if new_to_var is None:
-            continue
         to_val = to_var_val[1]
         new_to_var_val= (new_to_var, to_val)
 
