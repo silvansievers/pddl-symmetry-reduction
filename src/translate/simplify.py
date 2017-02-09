@@ -265,40 +265,26 @@ class VarValueRenaming(object):
         value_names[:] = new_value_names
 
     def apply_to_generator(self, sas_generator):
-        # Build a new generator from the given one by updating all mappings
-        # var, val -> var', val'. If both var and var' are updated to None and
-        # the entry is the identity, the entry can be ignored. If only one of
-        # var and var' are updated to None, the generator becomes invalid and
-        # we return None. If var and val' are updated to always_false or
-        # always_true and the entry is the identity, the entry can be ignored.
-        # If only one of val and val# are updated to always_false or
-        # always_true, the generator becomes invalid and we return None.
-        result = {}
-        for from_var_val, to_var_val in sas_generator.items():
-            identity = from_var_val == to_var_val
-            from_var = from_var_val[0]
-            to_var = to_var_val[0]
-            new_from_var = self.new_var_nos[from_var]
-            new_to_var = self.new_var_nos[to_var]
-            if new_from_var is None and new_to_var is None and identity:
-                # Ignore entry
-                continue
-            if new_from_var is None or new_to_var is None:
-                # Invalided generator
-                return None
+        """Build a new generator from the given one by renaming the mapping.
+        Return None if the generator should be discarded because the
+        simplification removed a variable/value pair that gets not mapped to
+        itself."""
 
-            from_val = from_var_val[1]
-            to_val = to_var_val[1]
-            new_from_val = self.new_values[from_var][from_val]
-            new_to_val = self.new_values[to_var][to_val]
-            if new_from_val in [always_false, always_true] and new_to_val in [always_false, always_true] and identity:
-                # Ignore entry
-                continue
-            if new_from_val in [always_false, always_true] or new_to_val in [always_false, always_true]:
-                # Invalided generator
-                return None
+        result = dict()
+        for from_fact, to_fact in sas_generator.items():
+            new_from_fact = self.translate_pair(from_fact)
+            new_to_fact = self.translate_pair(to_fact)
 
-            result[(new_from_var, new_from_val)] = (new_to_var, new_to_val)
+            # if from_fact or to_fact has been removed
+            if (None in (new_from_fact[0], new_to_fact[0]) or
+                always_false in (new_from_fact[1], new_to_fact[1])):
+                # identity mapping can be ignored
+                if from_fact == to_fact:
+                    continue
+                # otherwise the generator must be discarded
+                return None
+            
+            result[new_from_fact] = new_to_fact
         return result
 
     def apply_to_mutexes(self, mutexes):
