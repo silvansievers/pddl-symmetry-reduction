@@ -167,7 +167,7 @@ def all_symmetric_atoms(init, generators):
         predicate = permutation[0].get(atom.predicate, atom.predicate)
         args = tuple(permutation[1].get(a, a) for a in atom.args)
         return pddl.Atom(predicate, args)
-    
+
     permutations = []
     for generator in generators:
         predicates = dict()
@@ -181,17 +181,18 @@ def all_symmetric_atoms(init, generators):
                 objects[from_node[1]] = to_node[1]
         if predicates or objects:
             permutations.append((predicates, objects))
-        
+
     open_list = list(init)
     closed = set()
     while open_list:
         atom = open_list.pop()
-        if atom not in closed:
-            for p in permutations:
-                succ = apply_permutation_to_atom(p, atom)
-                open_list.append(succ)
-        closed.add(atom)
-    return closed 
+        if isinstance(atom, pddl.Atom):
+            if atom not in closed:
+                for p in permutations:
+                    succ = apply_permutation_to_atom(p, atom)
+                    open_list.append(succ)
+            closed.add(atom)
+    return closed
 
 def translate(task):
     # Note: The function requires that the task has been normalized.
