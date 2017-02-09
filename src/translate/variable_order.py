@@ -346,24 +346,25 @@ def apply_order_to_sas_generator(order, sas_generator):
     for index, variable in enumerate(order):
         variable_mapping[variable] = index
     result = {}
-    for from_var_val, to_var_val in sas_generator.items():
-        from_var = from_var_val[0]
-        to_var = to_var_val[0]
+    for from_fact, to_fact in sas_generator.items():
+        from_var = from_fact[0]
+        to_var = to_fact[0]
         new_from_var = variable_mapping.get(from_var, None)
         new_to_var = variable_mapping.get(to_var, None)
-        if new_from_var is None and new_to_var is None:
+        if from_var == to_var and new_from_var is None:
+            assert new_to_var is None
             # Ignore entry
             continue
         if new_from_var is None or new_to_var is None:
-            # Invalided generator
+            # Invalidated generator
             return None
 
-        from_val = from_var_val[1]
-        new_from_var_val = (new_from_var, from_val)
-        to_val = to_var_val[1]
-        new_to_var_val= (new_to_var, to_val)
+        from_val = from_fact[1]
+        new_from_fact = (new_from_var, from_val)
+        to_val = to_fact[1]
+        new_to_fact= (new_to_var, to_val)
 
-        result[new_from_var_val] = new_to_var_val
+        result[new_from_fact] = new_to_fact
     return result
 
 def find_and_apply_variable_order(sas_task, sas_generators,
