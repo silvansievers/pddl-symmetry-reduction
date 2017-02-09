@@ -341,8 +341,13 @@ class SymmetryGraph:
                     the_type = self.type_dict[the_type.basetype_name]
 
     def _add_goal(self, task):
-        for no, fact in enumerate(task.goal.parts):
-            self._add_literal(NodeType.goal, Color.goal, fact, (no,))
+        if isinstance(task.goal, pddl.Literal):
+            self._add_literal(NodeType.goal, Color.goal, task.goal, (0,))
+        elif isinstance(task.goal, pddl.Conjunction):
+            for no, fact in enumerate(task.goal.parts):
+                self._add_literal(NodeType.goal, Color.goal, fact, (no,))
+        else:
+            assert isinstance(task.goal, pddl.Truth)
 
     def _add_condition(self, node_type, color, literal, id_indices,
                        base_node, op_args,
