@@ -608,36 +608,19 @@ def pddl_to_sas(task):
             groups, assert_partial=options.use_partial_encoding)
 
     sas_generators = []
-    with timers.timing("Transforming generators step1 ground into SAS", block=True):
+    with timers.timing("Symmetries2: grounding generators into SAS", block=True):
         # For each generator, create its sas mapping from var-vals to var-vals
         for generator in task.generators:
             if DUMP:
                 print("Considering generator: ")
-                task.graph.print_generator(generator)
+                generator.dump()
             sas_generator = {}
             valid_generator = True
             for atom, var_val_list in strips_to_sas.items():
                 if not len(var_val_list) == 1:
                     raise NotImplementedError("Using the option --full-encoding "
                     "with --compute-symmetries is not implemented!")
-                var_val = var_val_list[0]
-                predicate = atom.predicate
-                args = atom.args
-                mapped_predicate = predicate
-                mapped_args = list(args) # should be a tuple, but we cannot assign to tuples
-                # For the atom corresponding to var_val, build the atom
-                # the generator maps to
-                for from_node, to_node in generator.items():
-                    assert isinstance(from_node, tuple)
-                    if from_node[0] == symmetries_module.NodeType.constant and from_node[1] in args:
-                        for index, arg in enumerate(args):
-                            if arg == from_node[1]:
-                                mapped_args[index] = to_node[1]
-                                # Do not add a break here! We need to map on(x, x)
-                                # to on(y, y) (and not on(y, x)) if the generator maps x to y
-                    if from_node[0] == symmetries_module.NodeType.predicate and from_node[1] == predicate:
-                        mapped_predicate = to_node[1]
-                mapped_atom = pddl.Atom(mapped_predicate, mapped_args)
+                mapped_atom = generator.apply_to_atom(atom)
                 mapped_var_val_list = strips_to_sas.get(mapped_atom, None)
                 if DUMP:
                     if atom != mapped_atom:
@@ -652,6 +635,7 @@ def pddl_to_sas(task):
                     raise NotImplementedError("Using the option --full-encoding "
                     "with --compute-symmetries is not implemented!")
                 mapped_var_val = mapped_var_val_list[0]
+                var_val = var_val_list[0]
                 sas_generator[var_val] = mapped_var_val
             if valid_generator:
                 if DUMP:
@@ -664,7 +648,7 @@ def pddl_to_sas(task):
                     if DUMP:
                         print("need to skip generator because it is the identiy")
         if task.generators:
-            print("{} out of {} generators left after transforming them".format(len(sas_generators), len(task.generators)))
+            print("{} out of {} generators left after grounding them".format(len(sas_generators), len(task.generators)))
 
 
     with timers.timing("Building dictionary for full mutex groups"):
@@ -693,7 +677,7 @@ def pddl_to_sas(task):
     print("%d implied preconditions added" %
           added_implied_precondition_counter)
 
-    with timers.timing("Transforming generators step2 add none-of-those and remove deleted facts", block=True):
+    with timers.timing("Symmetries3: add none-of-those mappings and remove deleted facts", block=True):
         if sas_generators:
             # Go over all facts of the sas task and all generators:
             # 1) add identity mappings for all "new" facts (the strips_to_sas dict
@@ -773,7 +757,7 @@ def pddl_to_sas(task):
         for order in range(2, 10):
             print("Order {}: {}".format(order, order_to_generator_count[order]))
 
-    with timers.timing("Transforming generators step3 transform into search representation", block=True):
+    with timers.timing("Symmetries4: transforming generators into search representation", block=False):
         if sas_generators:
             # Transform the sas generators into the format used by the search
             # component, i.e. [0...n-1; 0...range(var-1)-1, ..., 0...range(var-n)-1]
@@ -921,6 +905,46 @@ def dump_statistics(sas_task):
     else:
         print("Translator peak memory: %d KB" % peak_memory)
 
+class Generator:
+    def __init__(self, generator):
+        # Transform generator into a tuple of dicts, mapping predicates
+        # and objects, ignoring identity mappings.
+        predicates = dict()
+        objects = dict()
+        for from_node, to_node in generator.items():
+            assert isinstance(from_node, tuple)
+            if (from_node[0] == symmetries_module.NodeType.predicate
+                and from_node[1] != to_node[1]):
+                predicates[from_node[1]] = to_node[1]
+            if (from_node[0] == symmetries_module.NodeType.constant
+                and from_node[1] != to_node[1]):
+                objects[from_node[1]] = to_node[1]
+
+            if from_node != to_node and from_node[0] in [symmetries_module.NodeType.operator, symmetries_module.NodeType.axiom]:
+                print("Generator affects operator or axiom")
+                assert len(from_node) == 3
+                name = from_node[2]
+                if name in [action.name for action in task.actions] or name in [axiom.name for axiom in task.axioms]:
+                    print("Generator entirely maps operator or axioms")
+
+        if predicates or objects:
+            self.generator = (predicates, objects)
+        else:
+            self.generator = None
+
+    def is_valid(self):
+        return self.generator is not None
+
+    def apply_to_atom(self, atom):
+        assert self.is_valid()
+        # If no entry is present, use identity mapping.
+        predicate = self.generator[0].get(atom.predicate, atom.predicate)
+        args = tuple(self.generator[1].get(a, a) for a in atom.args)
+        return pddl.Atom(predicate, args)
+
+    def dump():
+        print(self.generator[0])
+        print(self.generator[1])
 
 def main():
     timer = timers.Timer()
@@ -939,24 +963,27 @@ def main():
                     del action.effects[index]
 
     if options.compute_symmetries:
-        with timers.timing("Computing symmetries", block=True):
+        with timers.timing("Symmetries0: computing symmetries", block=True):
             only_object_symmetries = options.only_object_symmetries
             stabilize_initial_state = options.stabilize_initial_state
             time_limit = options.bliss_time_limit
-            task.graph = symmetries_module.SymmetryGraph(task, only_object_symmetries, stabilize_initial_state)
-            task.generators = task.graph.find_automorphisms(time_limit)
-            print("Number of lifted generators: {}".format(len(task.generators)))
+            graph = symmetries_module.SymmetryGraph(task, only_object_symmetries, stabilize_initial_state)
+            generators = graph.find_automorphisms(time_limit)
             if DUMP:
-                task.graph.write_or_print_automorphisms(task.generators, dump=True)
-            for generator in task.generators:
-                for from_node, to_node in generator.items():
-                    assert isinstance(from_node, tuple)
-                    if from_node != to_node and from_node[0] in [symmetries_module.NodeType.operator, symmetries_module.NodeType.axiom]:
-                        print("Generator affects operator or axiom")
-                        assert len(from_node) == 3
-                        name = from_node[2]
-                        if name in [action.name for action in task.actions] or name in [axiom.name for axiom in task.axioms]:
-                            print("Generator entirely maps operator or axioms")
+                graph.write_or_print_automorphisms(generators, dump=True)
+            print("Number of lifted generators: {}".format(len(generators)))
+
+        with timers.timing("Symmetries1: transforming generators into predicate object mappings", block=True):
+            # Transform generators into suitable format, mapping predicates and objects.
+            assert isinstance(task.generators, list)
+            assert not task.generators
+            for generator in generators:
+                gen = Generator(generator)
+                if gen.is_valid():
+                    task.generators.append(gen)
+                else:
+                    print("Initial transformation already filtered out a generator")
+            print("Number of lifted generators mapping predicates or objects: {}".format(len(task.generators)))
 
     sas_task = pddl_to_sas(task)
     dump_statistics(sas_task)

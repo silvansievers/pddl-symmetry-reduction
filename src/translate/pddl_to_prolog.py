@@ -163,33 +163,14 @@ def translate_facts(prog, task):
             prog.add_fact(fact)
 
 def all_symmetric_atoms(init, generators):
-    def apply_permutation_to_atom(permutation, atom):
-        predicate = permutation[0].get(atom.predicate, atom.predicate)
-        args = tuple(permutation[1].get(a, a) for a in atom.args)
-        return pddl.Atom(predicate, args)
-
-    permutations = []
-    for generator in generators:
-        predicates = dict()
-        objects = dict()
-        for from_node, to_node in generator.items():
-            if (from_node[0] == symmetries_module.NodeType.predicate
-                and from_node[1] != to_node[1]):
-                predicates[from_node[1]] = to_node[1]
-            if (from_node[0] == symmetries_module.NodeType.constant
-                and from_node[1] != to_node[1]):
-                objects[from_node[1]] = to_node[1]
-        if predicates or objects:
-            permutations.append((predicates, objects))
-
     open_list = list(init)
     closed = set()
     while open_list:
         atom = open_list.pop()
         if isinstance(atom, pddl.Atom):
             if atom not in closed:
-                for p in permutations:
-                    succ = apply_permutation_to_atom(p, atom)
+                for generator in generators:
+                    succ = generator.apply_to_atom(atom)
                     open_list.append(succ)
             closed.add(atom)
     return closed
