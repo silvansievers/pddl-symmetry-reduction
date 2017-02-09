@@ -624,7 +624,7 @@ def pddl_to_sas(task):
                 predicate = atom.predicate
                 args = atom.args
                 mapped_predicate = predicate
-                mapped_args = list(args)
+                mapped_args = list(args) # should be a tuple, but we cannot assign to tuples
                 # For the atom corresponding to var_val, build the atom
                 # the generator maps to
                 for from_node, to_node in generator.items():
