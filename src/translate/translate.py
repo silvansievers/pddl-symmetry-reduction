@@ -705,7 +705,7 @@ def pddl_to_sas(task):
     if options.filter_unreachable_facts:
         with timers.timing("Detecting unreachable propositions", block=True):
             try:
-                simplify.filter_unreachable_propositions(sas_task, sas_generators)
+                sas_generators = simplify.filter_unreachable_propositions(sas_task, sas_generators)
             except simplify.Impossible:
                 return unsolvable_sas_task("Simplified to trivially false goal")
             except simplify.TriviallySolvable:
@@ -726,7 +726,7 @@ def pddl_to_sas(task):
 
     if options.reorder_variables or options.filter_unimportant_vars:
         with timers.timing("Reordering and filtering variables", block=True):
-            variable_order.find_and_apply_variable_order(
+            sas_generators = variable_order.find_and_apply_variable_order(
                 sas_task,
                 sas_generators,
                 options.reorder_variables,
@@ -906,7 +906,7 @@ def dump_statistics(sas_task):
         print("Translator peak memory: %d KB" % peak_memory)
 
 class Generator:
-    def __init__(self, generator):
+    def __init__(self, generator, task):
         # Transform generator into a tuple of dicts, mapping predicates
         # and objects, ignoring identity mappings.
         predicates = dict()
@@ -978,7 +978,7 @@ def main():
             assert isinstance(task.generators, list)
             assert not task.generators
             for generator in generators:
-                gen = Generator(generator)
+                gen = Generator(generator, task)
                 if gen.is_valid():
                     task.generators.append(gen)
                 else:

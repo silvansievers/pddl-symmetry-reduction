@@ -339,11 +339,9 @@ class VariableOrder(object):
 
 def apply_order_to_sas_generator(order, sas_generator):
     # Build a new generator from the given one by updating all mappings
-    # var -> var'. If var is mapped to None, ignore the mapping entirely.
-    # Otherwise  (var is not mapped None), if var' is mapped to None, the
-    # generator is invalid and an empty (i.e. identity) generator is returned.
-    # Otherwise (var' is not mapped to None), the mapping can be updated and
-    # added to the new generator.
+    # var -> var'. If both var and var' are updated to None and the entry is
+    # the identity, the entry can be ignored. If only one of var and var' are
+    # updated to None, the generator becomes invalid and we return None.
     variable_mapping = {}
     for index, variable in enumerate(order):
         variable_mapping[variable] = index
@@ -353,12 +351,12 @@ def apply_order_to_sas_generator(order, sas_generator):
         to_var = to_var_val[0]
         new_from_var = variable_mapping.get(from_var, None)
         new_to_var = variable_mapping.get(to_var, None)
-        if new_from_var is None:
-            # from_var has been removed, ignore the entry
+        if new_from_var is None and new_to_var is None:
+            # Ignore entry
             continue
-        if new_to_var is None:
-            # to_var has been removed, generator is invalid
-            return {} # will be removed because it is the identity
+        if new_from_var is None or new_to_var is None:
+            # Invalided generator
+            return None
 
         from_val = from_var_val[1]
         new_from_var_val = (new_from_var, from_val)
@@ -383,5 +381,9 @@ def find_and_apply_variable_order(sas_task, sas_generators,
                                                      len(order)))
             order = [var for var in order if necessary[var]]
         VariableOrder(order).apply_to_task(sas_task)
-        for index, sas_generator in enumerate(sas_generators):
-            sas_generators[index] = apply_order_to_sas_generator(order, sas_generator)
+        new_generators = []
+        for sas_generator in sas_generators:
+            new_generator = apply_order_to_sas_generator(order, sas_generator)
+            if new_generator is not None:
+                new_generators.append(new_generator)
+        return new_generators

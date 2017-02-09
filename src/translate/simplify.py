@@ -266,37 +266,37 @@ class VarValueRenaming(object):
 
     def apply_to_generator(self, sas_generator):
         # Build a new generator from the given one by updating all mappings
-        # var, val -> var', val'. If var is mapped to None, ignore the mapping
-        # entirely. Otherwise  (var is not mapped None), if var' is mapped to
-        # None, the generator is invalid and an empty (i.e. identity) generator
-        # is returned. Otherwise (var' is not mapped to None), the value
-        # mappings need to be checked in an analogous way: first test whether
-        # val is mapped to None, then whether val' is mapped to None, and if
-        # both tests pass, the updated mapping is generated and added to the
-        # new generator.
+        # var, val -> var', val'. If both var and var' are updated to None and
+        # the entry is the identity, the entry can be ignored. If only one of
+        # var and var' are updated to None, the generator becomes invalid and
+        # we return None. If var and val' are updated to always_false or
+        # always_true and the entry is the identity, the entry can be ignored.
+        # If only one of val and val# are updated to always_false or
+        # always_true, the generator becomes invalid and we return None.
         result = {}
         for from_var_val, to_var_val in sas_generator.items():
+            identity = from_var_val == to_var_val
             from_var = from_var_val[0]
             to_var = to_var_val[0]
             new_from_var = self.new_var_nos[from_var]
             new_to_var = self.new_var_nos[to_var]
-            if new_from_var is None:
-                # from_var has been removed, ignore the entry
+            if new_from_var is None and new_to_var is None and identity:
+                # Ignore entry
                 continue
-            if new_to_var is None:
-                # to_var has been removed, generator is invalid
-                return {} # will be removed because it is the identity
+            if new_from_var is None or new_to_var is None:
+                # Invalided generator
+                return None
 
             from_val = from_var_val[1]
             to_val = to_var_val[1]
             new_from_val = self.new_values[from_var][from_val]
             new_to_val = self.new_values[to_var][to_val]
-            if new_from_val in [always_false, always_true]:
-                # from_val has been removed, ignore the entry
+            if new_from_val in [always_false, always_true] and new_to_val in [always_false, always_true] and identity:
+                # Ignore entry
                 continue
-            if new_to_val in [always_false, always_true]:
-                # to_val has been removed, generator is invalid
-                return {} # will be removed because it is the identity
+            if new_from_val in [always_false, always_true] or new_to_val in [always_false, always_true]:
+                # Invalided generator
+                return None
 
             result[(new_from_var, new_from_val)] = (new_to_var, new_to_val)
         return result
@@ -557,8 +557,12 @@ def filter_unreachable_propositions(sas_task, sas_generators):
     # unreachable or TriviallySolvable if it has no goal. We let the
     # exceptions propagate to the caller.
     renaming.apply_to_task(sas_task)
-    for index, sas_generator in enumerate(sas_generators):
-        sas_generators[index] = renaming.apply_to_generator(sas_generator)
+    new_generators = []
+    for sas_generator in sas_generators:
+        new_generator = renaming.apply_to_generator(sas_generator)
+        if new_generator is not None:
+            new_generators.append(new_generator)
     print("%d propositions removed" % renaming.num_removed_values)
     if DEBUG:
         sas_task.validate()
+    return new_generators
