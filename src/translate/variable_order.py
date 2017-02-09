@@ -342,29 +342,18 @@ def apply_order_to_sas_generator(order, sas_generator):
     # var -> var'. If both var and var' are updated to None and the entry is
     # the identity, the entry can be ignored. If only one of var and var' are
     # updated to None, the generator becomes invalid and we return None.
-    variable_mapping = {}
-    for index, variable in enumerate(order):
-        variable_mapping[variable] = index
     result = {}
     for from_fact, to_fact in sas_generator.items():
-        from_var = from_fact[0]
-        to_var = to_fact[0]
-        new_from_var = variable_mapping.get(from_var, None)
-        new_to_var = variable_mapping.get(to_var, None)
-        if from_var == to_var and new_from_var is None:
-            assert new_to_var is None
-            # Ignore entry
-            continue
-        if new_from_var is None or new_to_var is None:
+        if from_fact[0] not in self.new_var or to_fact[0] not in self.new_var:
+            if from_fact == to_fact:
+                # Ignore entry
+                continue
             # Invalidated generator
             return None
 
-        from_val = from_fact[1]
-        new_from_fact = (new_from_var, from_val)
-        to_val = to_fact[1]
-        new_to_fact= (new_to_var, to_val)
-
-        result[new_from_fact] = new_to_fact
+        new_from_var = self.new_var[from_fact[0]]
+        new_to_var = self.new_var[to_fact[0]]
+        result[(new_from_var, from_fact[1])] = (new_to_var, to_fact[1])
     return result
 
 def find_and_apply_variable_order(sas_task, sas_generators,
