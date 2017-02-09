@@ -6,6 +6,7 @@ from lab.parser import Parser
 
 parser = Parser()
 parser.add_pattern('generator_count_lifted', 'Number of lifted generators: (\d+)', required=False, type=int)
+parser.add_pattern('generator_count_lifted_mapping_objects_predicates', 'Number of lifted generators mapping predicates or objects: (\d+)', required=False, type=int)
 parser.add_pattern('generator_count_grounded', 'Number of remaining valid generators: (\d+)', required=False, type=int)
 parser.add_pattern('generator_count_removed', 'Removed generators: (\d+)', required=False, type=int)
 parser.add_pattern('time_prolog_model', 'Done building program and model: (.+)s', required=False, type=float)
