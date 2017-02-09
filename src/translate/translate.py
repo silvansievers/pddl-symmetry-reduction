@@ -757,7 +757,7 @@ def pddl_to_sas(task):
         for order in range(2, 10):
             print("Order {}: {}".format(order, order_to_generator_count[order]))
 
-    with timers.timing("Symmetries4 transforming generators into search representation", block=False):
+    with timers.timing("Symmetries4 transforming generators into search representation", block=True):
         if sas_generators:
             # Transform the sas generators into the format used by the search
             # component, i.e. [0...n-1; 0...range(var-1)-1, ..., 0...range(var-n)-1]
@@ -942,9 +942,9 @@ class Generator:
         args = tuple(self.generator[1].get(a, a) for a in atom.args)
         return pddl.Atom(predicate, args)
 
-    def dump():
-        print(self.generator[0])
-        print(self.generator[1])
+    def dump(self):
+        assert self.is_valid()
+        print("Mapping objects: {}; Mapping predicates: {}".format(self.generator[0], self.generator[1]))
 
 def main():
     timer = timers.Timer()
