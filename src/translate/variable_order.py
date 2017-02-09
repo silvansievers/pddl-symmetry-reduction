@@ -351,7 +351,7 @@ def apply_order_to_sas_generator(order, sas_generator):
         to_var = to_fact[0]
         new_from_var = variable_mapping.get(from_var, None)
         new_to_var = variable_mapping.get(to_var, None)
-        if from_var == to_var and new_from_var is None:
+        if from_fact == to_fact and new_from_var is None:
             assert new_to_var is None
             # Ignore entry
             continue
