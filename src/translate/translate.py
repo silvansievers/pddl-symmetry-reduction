@@ -689,9 +689,23 @@ def pddl_to_sas(task):
                 for val in range(var_range):
                     facts.append((var, val))
             for sas_generator in sas_generators:
-                for fact in facts:
-                    if sas_generator.get(fact, None) is None:
-                        sas_generator[fact] = fact # add identity for none-of-those values
+                # 1) For each var, set the mapping for the none-of-those value.
+                # If the var is mapped to another var, map to the other var's
+                # none-of-those value. Otherwise, map to itself.
+                for from_var, var_range in enumerate(sas_task.variables.ranges):
+                    from_fact = (from_var, 0) # some fact for var
+                    to_fact = sas_generator.get(from_fact, None)
+                    assert to_fact is not None
+                    to_var = to_fact[0]
+
+                    none_of_those_from_fact = (from_var, var_range - 1)
+                    assert sas_task.variables.ranges[from_var] == sas_task.variables.ranges[to_var]
+                    none_of_those_to_fact = (to_var, var_range - 1)
+                    assert sas_generator.get(none_of_those_from_fact, None) is None
+                    assert sas_generator.get(none_of_those_from_fact, None) is None
+
+                    sas_generator[none_of_those_from_fact] = none_of_those_to_fact
+                # 2) remove facts that have been removed
                 for from_var_val, to_var_val in sas_generator.items():
                     if from_var_val not in facts or to_var_val not in facts:
                         del sas_generator[from_var_val]

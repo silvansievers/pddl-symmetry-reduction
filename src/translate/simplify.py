@@ -283,7 +283,7 @@ class VarValueRenaming(object):
                     continue
                 # otherwise the generator must be discarded
                 return None
-            
+
             result[new_from_fact] = new_to_fact
         return result
 
