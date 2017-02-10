@@ -26,7 +26,7 @@ class SASTask:
         self.metric = metric
         if DEBUG:
             self.validate()
-        self.search_generators = []
+        self.search_generators = SearchGenerators(None, None, [])
 
     def validate(self):
         """Fail an assertion if the task is invalid.
@@ -77,9 +77,7 @@ class SASTask:
         for axiom in self.axioms:
             axiom.dump()
         print("metric: %s" % self.metric)
-        print("generators:")
-        for generator in self.search_generators:
-            print("generator: {}".format(generator))
+        self.search_generators.dump()
 
     def output(self, stream):
         print("begin_version", file=stream)
@@ -100,12 +98,7 @@ class SASTask:
         print(len(self.axioms), file=stream)
         for axiom in self.axioms:
             axiom.output(stream)
-        print(len(self.search_generators), file=stream)
-        for generator in self.search_generators:
-            print("begin_generator", file=stream)
-            string = " ".join([str(x) for x in generator])
-            print(string, file=stream)
-            print("end_generator", file=stream)
+        self.search_generators.output(stream)
 
     def get_encoding_size(self):
         task_size = 0
@@ -487,3 +480,36 @@ class SASAxiom:
 
     def get_encoding_size(self):
         return 1 + len(self.condition)
+
+class SearchGenerators:
+    def __init__(self, var_by_shifted_index, var_to_start_index, search_generators):
+        self.var_by_shifted_index = var_by_shifted_index
+        self.var_to_start_index = var_to_start_index
+        self.search_generators = search_generators
+
+    def dump(self):
+        print("number of generators: {}".format(len(self.search_generators)))
+        if self.search_generators:
+            print("var_by_shifted_index: {}".format(self.var_by_shifted_index))
+            print("var_to_start_index: {}".format(self.var_to_start_index))
+            for generator in self.search_generators:
+                print("generator: {}".format(generator))
+
+    def output(self, stream):
+        print(len(self.search_generators), file=stream)
+        if self.search_generators:
+            print("begin_dom_sum_by_var", file=stream)
+            string = " ".join([str(x) for x in self.var_to_start_index])
+            print(string, file=stream)
+            print("end_dom_sum_by_var", file=stream)
+
+            print("begin_var_by_val", file=stream)
+            string = " ".join([str(x) for x in self.var_by_shifted_index])
+            print(string, file=stream)
+            print("end_var_by_val", file=stream)
+
+            for generator in self.search_generators:
+                print("begin_generator", file=stream)
+                string = " ".join([str(x) for x in generator])
+                print(string, file=stream)
+                print("end_generator", file=stream)

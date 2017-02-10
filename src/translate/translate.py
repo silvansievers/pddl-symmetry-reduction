@@ -820,7 +820,9 @@ def pddl_to_sas(task):
                     print(transformed_generator)
             # Append the transformed generators to the task so that they are
             # written to the output.sas file.
-            sas_task.search_generators = search_generators
+            sas_task.search_generators = sas_tasks.SearchGenerators(
+                var_by_shifted_index, var_to_start_index, search_generators)
+            sas_task.dump()
 
     return sas_task
 
