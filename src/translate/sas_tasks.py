@@ -499,13 +499,13 @@ class SearchGenerators:
         print(len(self.search_generators), file=stream)
         if self.search_generators:
             print("begin_dom_sum_by_var", file=stream)
-            print(len(self.var_to_start_index))
+            print(len(self.var_to_start_index), file=stream)
             string = " ".join([str(x) for x in self.var_to_start_index])
             print(string, file=stream)
             print("end_dom_sum_by_var", file=stream)
 
             print("begin_var_by_val", file=stream)
-            print(len(self.var_by_shifted_index))
+            print(len(self.var_by_shifted_index), file=stream)
             string = " ".join([str(x) for x in self.var_by_shifted_index])
             print(string, file=stream)
             print("end_var_by_val", file=stream)
