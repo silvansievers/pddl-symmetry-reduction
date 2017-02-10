@@ -17,11 +17,27 @@
 using namespace std;
 using namespace utils;
 
+enum class SourceOfSymmetries {
+    NoSource,
+    GraphCreator,
+    Translator
+};
+
 Group::Group(const options::Options &opts)
     : stabilize_initial_state(opts.get<bool>("stabilize_initial_state")),
-      search_symmetries(SearchSymmetries(opts.get_enum("search_symmetries"))),
-      initialized(false) {
-    graph_creator = new GraphCreator(opts);
+      search_symmetries(SearchSymmetries(opts.get_enum("search_symmetries"))) {
+    SourceOfSymmetries sos(static_cast<SourceOfSymmetries>(opts.get_enum("source_of_symmetries")));
+    if (sos == SourceOfSymmetries::NoSource) {
+        cerr << "no source of symmetries given" << endl;
+        exit_with(ExitCode::INPUT_ERROR);
+    } else if (sos == SourceOfSymmetries::GraphCreator) {
+        graph_creator = new GraphCreator(opts);
+        initialized = false;
+    } else if (sos == SourceOfSymmetries::Translator) {
+        graph_creator = nullptr;
+        initialized = true;
+        generators = move(g_permutations);
+    }
 }
 
 Group::~Group() {
@@ -202,6 +218,17 @@ static Group *_parse(OptionParser &parser) {
                            "search or DKS for storing the canonical "
                            "representative of every state during search",
                            "NOSEARCHSYMMETRIES");
+
+    // Source of symmetries
+    vector<string> source_of_symmetries;
+    source_of_symmetries.push_back("nosource");
+    source_of_symmetries.push_back("graphcreator");
+    source_of_symmetries.push_back("translator");
+    parser.add_enum_option(
+        "source_of_symmetries",
+        source_of_symmetries,
+        "the source of symmetries",
+        "graphcreator");
 
     Options opts = parser.parse();
 

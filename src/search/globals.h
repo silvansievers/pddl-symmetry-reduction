@@ -14,6 +14,7 @@ struct FactPair;
 class GlobalOperator;
 class GlobalState;
 class IntPacker;
+class Permutation;
 class StateRegistry;
 class SuccessorGenerator;
 
@@ -66,6 +67,7 @@ extern std::vector<std::pair<int, int>> g_goal;
 extern std::vector<GlobalOperator> g_operators;
 extern std::vector<GlobalOperator> g_axioms;
 extern AxiomEvaluator *g_axiom_evaluator;
+extern std::vector<const Permutation *> g_permutations;
 extern SuccessorGenerator *g_successor_generator;
 extern std::string g_plan_filename;
 extern int g_num_previously_generated_plans;

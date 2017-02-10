@@ -1,6 +1,7 @@
 #ifndef SYMMETRIES_PERMUTATION_H
 #define SYMMETRIES_PERMUTATION_H
 
+#include <iosfwd>
 #include <vector>
 
 class GlobalState;
@@ -11,6 +12,7 @@ public:
     explicit Permutation(const unsigned int *full_perm);
     Permutation(const Permutation *perm, bool invert=false);
     Permutation(const Permutation *perm1, const Permutation *perm2);
+    explicit Permutation(std::istream &in);
     ~Permutation();
 
     Permutation& operator =(const Permutation&);

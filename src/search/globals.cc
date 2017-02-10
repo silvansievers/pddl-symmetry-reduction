@@ -8,6 +8,8 @@
 #include "int_packer.h"
 #include "successor_generator.h"
 
+#include "structural_symmetries/permutation.h"
+
 #include "tasks/root_task.h"
 
 #include "utils/logging.h"
@@ -227,6 +229,41 @@ void read_axioms(istream &in) {
     g_axiom_evaluator = new AxiomEvaluator(TaskProxy(*g_root_task()));
 }
 
+void read_symmetry_generators(istream &in) {
+    int count;
+    in >> count;
+    if (count) {
+        check_magic(in, "begin_dom_sum_by_var");
+        int size;
+        in >> size;
+        Permutation::dom_sum_by_var.reserve(size);
+        for (int i = 0; i < size; ++i) {
+            int val;
+            in >> val;
+            Permutation::dom_sum_by_var.push_back(val);
+        }
+        check_magic(in, "end_dom_sum_by_var");
+
+        check_magic(in, "begin_var_by_val");
+        in >> size;
+        Permutation::var_by_val.reserve(size);
+        for (int i = 0; i < size; ++i) {
+            int val;
+            in >> val;
+            Permutation::var_by_val.push_back(val);
+        }
+        check_magic(in, "end_var_by_val");
+
+        Permutation::num_vars = g_variable_domain.size();
+        Permutation::length = g_variable_domain.size() + size;
+
+        g_permutations.reserve(count);
+        for (int i = 0; i < count; ++i) {
+            g_permutations.push_back(new Permutation(in));
+        }
+    }
+}
+
 void read_everything(istream &in) {
     cout << "reading input... [t=" << utils::g_timer << "]" << endl;
     read_and_verify_version(in);
@@ -244,6 +281,7 @@ void read_everything(istream &in) {
     read_goal(in);
     read_operators(in);
     read_axioms(in);
+    read_symmetry_generators(in);
 
     /* TODO: We should be stricter here and verify that we
        have reached the end of "in". */
@@ -369,6 +407,7 @@ vector<pair<int, int>> g_goal;
 vector<GlobalOperator> g_operators;
 vector<GlobalOperator> g_axioms;
 AxiomEvaluator *g_axiom_evaluator;
+vector<const Permutation *> g_permutations;
 SuccessorGenerator *g_successor_generator;
 
 string g_plan_filename = "sas_plan";

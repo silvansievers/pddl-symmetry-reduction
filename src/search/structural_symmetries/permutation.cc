@@ -101,6 +101,18 @@ Permutation::Permutation(const Permutation *perm1, const Permutation *perm2){
     finalize();
 }
 
+Permutation::Permutation(std::istream &in) {
+    _allocate();
+    check_magic(in, "begin_generator");
+    for (int i = 0; i < length; ++i) {
+        int val;
+        in >> val;
+        set_value(i, val);
+    }
+    check_magic(in, "end_generator");
+    finalize();
+}
+
 
 
 Permutation::~Permutation(){
