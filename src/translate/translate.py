@@ -639,7 +639,7 @@ def pddl_to_sas(task):
                 sas_generator[var_val] = mapped_var_val
             if valid_generator:
                 if DUMP:
-                    print("Transformed generator (without none-of-those values!): ")
+                    print("Transformed generator: ")
                     print_sas_generator(sas_generator)
                 assert is_permutation(sas_generator)
                 if not is_identity(sas_generator):
@@ -679,33 +679,14 @@ def pddl_to_sas(task):
 
     with timers.timing("Symmetries3 add none-of-those mappings and remove deleted facts", block=True):
         if sas_generators:
-            # Go over all facts of the sas task and all generators:
-            # 1) add identity mappings for all "new" facts (the strips_to_sas dict
-            #    does not contain facts for the "none-of-those" values of variables)
-            # 2) remove all facts from the generators that are not present in the
-            #    task anymore
+            # Go over all facts of the sas task and all generators and remove
+            # all facts from the generators that are not present in the task
+            # anymore. We do not add mappings for none-of-those values.
             facts = []
             for var, var_range in enumerate(sas_task.variables.ranges):
                 for val in range(var_range):
                     facts.append((var, val))
             for sas_generator in sas_generators:
-                # 1) For each var, set the mapping for the none-of-those value.
-                # If the var is mapped to another var, map to the other var's
-                # none-of-those value. Otherwise, map to itself.
-                for from_var, var_range in enumerate(sas_task.variables.ranges):
-                    from_fact = (from_var, 0) # some fact for var
-                    to_fact = sas_generator.get(from_fact, None)
-                    assert to_fact is not None
-                    to_var = to_fact[0]
-
-                    none_of_those_from_fact = (from_var, var_range - 1)
-                    assert sas_task.variables.ranges[from_var] == sas_task.variables.ranges[to_var]
-                    none_of_those_to_fact = (to_var, var_range - 1)
-                    assert sas_generator.get(none_of_those_from_fact, None) is None
-                    assert sas_generator.get(none_of_those_from_fact, None) is None
-
-                    sas_generator[none_of_those_from_fact] = none_of_those_to_fact
-                # 2) remove facts that have been removed
                 for from_var_val, to_var_val in sas_generator.items():
                     if from_var_val not in facts or to_var_val not in facts:
                         del sas_generator[from_var_val]
@@ -727,15 +708,9 @@ def pddl_to_sas(task):
             if sas_generators:
                 sas_generators = filter_out_identities_or_nonpermutations(sas_generators)
                 if DUMP:
-                    #facts = []
-                    #for var, var_range in enumerate(sas_task.variables.ranges):
-                        #for val in range(var_range):
-                            #facts.append((var, val))
                     for sas_generator in sas_generators:
                         print("generator: ")
                         print_sas_generator(sas_generator)
-                        #for fact in facts:
-                            #assert fact in sas_generator.keys()
                 print("{} out of {} generators left after filtering unreachable propositions".format(len(sas_generators), len(task.generators)))
 
     if options.reorder_variables or options.filter_unimportant_vars:
@@ -748,15 +723,9 @@ def pddl_to_sas(task):
             if sas_generators:
                 sas_generators = filter_out_identities_or_nonpermutations(sas_generators)
                 if DUMP:
-                    #facts = []
-                    #for var, var_range in enumerate(sas_task.variables.ranges):
-                        #for val in range(var_range):
-                            #facts.append((var, val))
                     for sas_generator in sas_generators:
                         print("generator: ")
                         print_sas_generator(sas_generator)
-                        #for fact in facts:
-                            #assert fact in sas_generator.keys()
                 print("{} out of {} generators left after reordering and filtering variables".format(len(sas_generators), len(task.generators)))
 
     if task.generators:
@@ -777,6 +746,8 @@ def pddl_to_sas(task):
             # component, i.e. [0...n-1; 0...range(var-1)-1, ..., 0...range(var-n)-1]
             # where the first n entries represent the mapping on variables, and
             # successive block represent the mapping of each variable's values.
+            # For none-of-those-values, we use -1 to denote that the symmetry
+            # is not defined for these.
 
             # Precompute some data structures to ease mapping from facts to indices
             # of the above representation.
@@ -807,19 +778,22 @@ def pddl_to_sas(task):
                     facts.append((var, val))
             search_generators = []
             for sas_generator in sas_generators:
-                transformed_generator = range(num_indices) # identity
+                transformed_generator = [-1 for x in range(num_indices)]
                 for from_fact in facts:
-                    to_fact = sas_generator[from_fact]
+                    to_fact = sas_generator.get(from_fact, None)
+                    if to_fact is None:
+                        continue
                     from_index = get_index_by_var_val(from_fact)
                     to_index = get_index_by_var_val(to_fact)
                     transformed_generator[from_index] = to_index
+
                     from_var = from_fact[0]
                     to_var = to_fact[0]
-                    if from_var != to_var:
-                        if transformed_generator[from_var] != from_var:
-                            assert transformed_generator[from_var] == to_var
-                        else:
-                            transformed_generator[from_var] = to_var
+                    if transformed_generator[from_var] == -1:
+                        transformed_generator[from_var] = to_var
+                    else:
+                        assert transformed_generator[from_var] == to_var
+
                 search_generators.append(transformed_generator)
                 #for from_index, to_index in enumerate(transformed_generator):
                     #if from_index < num_vars:
