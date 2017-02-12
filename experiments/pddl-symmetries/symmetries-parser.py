@@ -63,13 +63,17 @@ def parse_action_axiom_symmetry(content, props):
     lines = content.split('\n')
     generator_count_affecting_actions_axioms = False
     generator_count_mapping_actions_axioms = False
+    generator_not_well_defined_for_search = False
     for line in lines:
         if 'Generator affects operator or axiom' in line:
             generator_count_affecting_actions_axioms = True
         if 'Generator entirely maps operator or axioms' in line:
             generator_count_mapping_actions_axioms = True
+        if 'Transformed generator contains -1' in line:
+            generator_not_well_defined_for_search = True
     props['generator_count_affecting_actions_axioms'] = generator_count_affecting_actions_axioms
     props['generator_count_mapping_actions_axioms'] = generator_count_mapping_actions_axioms
+    props['generator_not_well_defined_for_search'] = generator_not_well_defined_for_search
 
 parser.add_function(parse_action_axiom_symmetry)
 
