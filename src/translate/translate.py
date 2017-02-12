@@ -793,6 +793,8 @@ def pddl_to_sas(task):
                         transformed_generator[from_var] = to_var
                     else:
                         assert transformed_generator[from_var] == to_var
+                if -1 in transformed_generator:
+                    print("Transformed generator contains -1")
 
                 search_generators.append(transformed_generator)
                 #for from_index, to_index in enumerate(transformed_generator):
