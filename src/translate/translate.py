@@ -624,29 +624,6 @@ def print_sas_generator(sas_generator):
 
 
 def pddl_to_sas(task):
-    if options.compute_symmetries:
-        with timers.timing("Symmetries0 computing symmetries", block=True):
-            only_object_symmetries = options.only_object_symmetries
-            stabilize_initial_state = options.stabilize_initial_state
-            time_limit = options.bliss_time_limit
-            graph = symmetries_module.SymmetryGraph(task, only_object_symmetries, stabilize_initial_state)
-            generators = graph.find_automorphisms(time_limit)
-            if DUMP:
-                graph.write_or_print_automorphisms(generators, dump=True)
-            print("Number of lifted generators: {}".format(len(generators)))
-
-        with timers.timing("Symmetries1 transforming generators into predicate object mappings", block=True):
-            # Transform generators into suitable format, mapping predicates and objects.
-            assert isinstance(task.generators, list)
-            assert not task.generators
-            for generator in generators:
-                gen = Generator(generator, task)
-                if gen.is_valid():
-                    task.generators.append(gen)
-                else:
-                    print("Initial transformation already filtered out a generator")
-            print("Number of lifted generators mapping predicates or objects: {}".format(len(task.generators)))
-
     with timers.timing("Instantiating", block=True):
         (relaxed_reachable, atoms, actions, axioms,
          reachable_action_params) = instantiate.explore(task)
@@ -669,6 +646,31 @@ def pddl_to_sas(task):
     with timers.timing("Building STRIPS to SAS dictionary"):
         ranges, strips_to_sas = strips_to_sas_dictionary(
             groups, assert_partial=options.use_partial_encoding)
+
+    if options.compute_symmetries:
+        with timers.timing("Symmetries0 computing symmetries", block=True):
+            only_object_symmetries = options.only_object_symmetries
+            stabilize_initial_state = options.stabilize_initial_state
+            time_limit = options.bliss_time_limit
+            graph = symmetries_module.SymmetryGraph(task, only_object_symmetries, stabilize_initial_state)
+            if options.add_mutex_groups:
+                graph.add_mutex_groups(mutex_groups)
+            generators = graph.find_automorphisms(time_limit)
+            if DUMP:
+                graph.write_or_print_automorphisms(generators, dump=True)
+            print("Number of lifted generators: {}".format(len(generators)))
+
+        with timers.timing("Symmetries1 transforming generators into predicate object mappings", block=True):
+            # Transform generators into suitable format, mapping predicates and objects.
+            assert isinstance(task.generators, list)
+            assert not task.generators
+            for generator in generators:
+                gen = Generator(generator, task)
+                if gen.is_valid():
+                    task.generators.append(gen)
+                else:
+                    print("Initial transformation already filtered out a generator")
+            print("Number of lifted generators mapping predicates or objects: {}".format(len(task.generators)))
 
     sas_generators = []
     with timers.timing("Symmetries2 grounding generators into SAS", block=True):

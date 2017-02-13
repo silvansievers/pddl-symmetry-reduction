@@ -72,6 +72,10 @@ def parse_args():
         help="If true, grounding preserves unreachable structures (axioms, "
         "operators, ...) if they are symmetric to a reachable structure.")
     argparser.add_argument(
+        "--add-mutex-groups", action="store_true",
+        help="If true, add mutex groups to the symmetry graph prior computing "
+        "symmetries. Does not work with --preserve-symmetries-during-grounding.")
+    argparser.add_argument(
         "--bliss-time-limit", default=300, type=int,
         help="max time for bliss to search for automorphisms")
     return argparser.parse_args()

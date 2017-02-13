@@ -113,7 +113,8 @@ class PyblissModuleWrapper:
 class NodeType:
     """Used by SymmetryGraph to make nodes of different types distinguishable."""
     (constant, init, goal, operator, condition, effect, effect_literal,
-    function, axiom, axiom_cond, axiom_eff, predicate, cost, number) = range(14)
+    function, axiom, axiom_cond, axiom_eff, predicate, cost, mutex_group,
+    number) = range(15)
 
 
 class Color:
@@ -122,7 +123,7 @@ class Color:
     # used for predicates of arity 0, predicates of higher arity get assigned
     # subsequent numbers
     (constant, init, goal, operator, condition, effect, effect_literal,
-    cost, axiom, axiom_cond, axiom_eff, predicate) = range(12)
+    cost, axiom, axiom_cond, axiom_eff, mutex_group, predicate) = range(13)
     derived_predicate = None # will be set by Symmetry Graph, depending on
                              # the colors required for predicate symbols
     function = None # will be set by Symmetry Graph
@@ -196,6 +197,9 @@ class SymmetryGraph:
         # init nodes for constant functions, where it is used to distinguish
         # them
         return (node_type, id_indices, arg_index, name)
+
+    def _get_mutex_group_node(self, id_indices):
+        return (NodeType.mutex_group, id_indices)
 
     def _add_objects(self, task):
         """Add a node for each object of the task.
@@ -607,3 +611,14 @@ class SymmetryGraph:
                         file.write("%s => %s\n" % (from_vertex, to_vertex))
         if write:
             file.close()
+
+    def add_mutex_groups(self, mutex_groups):
+        for index, mutex_group in enumerate(mutex_groups):
+            assert isinstance(mutex_group, list)
+            group_node = self._get_mutex_group_node((index))
+            self.graph.add_vertex(group_node, Color.mutex_group)
+            for atom in mutex_group:
+                assert isinstance(atom, pddl.Atom)
+                lit_node = self._add_literal(NodeType.mutex_group, Color.mutex_group, atom, (index))
+                self.graph.add_edge(group_node, lit_node)
+
