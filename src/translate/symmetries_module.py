@@ -531,6 +531,7 @@ class SymmetryGraph:
                 Color.axiom: ("X11", "orange4"),
                 Color.axiom_cond: ("X11", "orange2"),
                 Color.axiom_eff: ("X11", "orange3"),
+                Color.mutex_group: ("X11", "violetred"),
             }
         # TODO: these color schemes only work for max arities of at least 3 and at most 9
         vals = self.max_predicate_arity + 1
