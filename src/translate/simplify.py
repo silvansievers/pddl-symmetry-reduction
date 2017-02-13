@@ -31,6 +31,7 @@ from __future__ import print_function
 from collections import defaultdict
 from itertools import count
 
+import options
 import sas_tasks
 
 DEBUG = False
@@ -281,6 +282,15 @@ class VarValueRenaming(object):
                 # identity mapping can be ignored
                 if from_fact == to_fact:
                     continue
+                if options.add_none_of_those_mappings:
+                    # A variable's value can only be always_false if it represents
+                    # the none-of-those value of that variable. In this case,
+                    # if the generator maps none-of-those to none-of-those of
+                    # another variable, this is only because we manually
+                    # added this mapping. We can hence ignore it.
+                    if new_from_fact[1] == new_to_fact[1]:
+                        assert new_from_fact[1] == always_false
+                        continue
                 # otherwise the generator must be discarded
                 return None
 

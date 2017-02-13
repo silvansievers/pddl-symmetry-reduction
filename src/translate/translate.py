@@ -704,7 +704,7 @@ def pddl_to_sas(task):
                 sas_generator[var_val] = mapped_var_val
             if valid_generator:
                 if DUMP:
-                    print("Transformed generator: ")
+                    print("Transformed generator (without none-of-those values!): ")
                     print_sas_generator(sas_generator)
                 assert is_permutation(sas_generator)
                 if not is_identity(sas_generator):
@@ -744,14 +744,32 @@ def pddl_to_sas(task):
 
     with timers.timing("Symmetries3 add none-of-those mappings and remove deleted facts", block=True):
         if sas_generators:
-            # Go over all facts of the sas task and all generators and remove
-            # all facts from the generators that are not present in the task
-            # anymore. We do not add mappings for none-of-those values.
+            # Go over all facts of the sas task and all generators:
+            # 1) If the option is set, add mappings for none-of-those values.
+            # 2) Remove all facts from the generators that are not present in
+            # the task anymore.
             facts = []
             for var, var_range in enumerate(sas_task.variables.ranges):
                 for val in range(var_range):
                     facts.append((var, val))
             for sas_generator in sas_generators:
+                if options.add_none_of_those_mappings:
+                    # 1) For each var, set the mapping for the none-of-those value.
+                    # If the var is mapped to another var, map to the other var's
+                    # none-of-those value. Otherwise, map to itself.
+                    for from_var, var_range in enumerate(sas_task.variables.ranges):
+                        from_fact = (from_var, 0) # some fact for var
+                        to_fact = sas_generator.get(from_fact, None)
+                        assert to_fact is not None
+                        to_var = to_fact[0]
+
+                        none_of_those_from_fact = (from_var, var_range - 1)
+                        assert sas_generator.get(none_of_those_from_fact, None) is None
+                        assert sas_task.variables.ranges[from_var] == sas_task.variables.ranges[to_var]
+                        none_of_those_to_fact = (to_var, var_range - 1)
+
+                        sas_generator[none_of_those_from_fact] = none_of_those_to_fact
+                # 2) remove facts that have been removed
                 for from_var_val, to_var_val in sas_generator.items():
                     if from_var_val not in facts or to_var_val not in facts:
                         del sas_generator[from_var_val]
@@ -842,7 +860,7 @@ def pddl_to_sas(task):
                 for val in range(var_range):
                     facts.append((var, val))
             search_generators = []
-            for sas_generator in sas_generators:
+            for gen_no, sas_generator in enumerate(sas_generators):
                 transformed_generator = [-1 for x in range(num_indices)]
                 for from_fact in facts:
                     to_fact = sas_generator.get(from_fact, None)
@@ -860,6 +878,7 @@ def pddl_to_sas(task):
                         assert transformed_generator[from_var] == to_var
                 if -1 in transformed_generator:
                     print("Transformed generator contains -1")
+                    assert not options.add_none_of_those_mappings
 
                 search_generators.append(transformed_generator)
                 #for from_index, to_index in enumerate(transformed_generator):
@@ -869,9 +888,9 @@ def pddl_to_sas(task):
                     #to_fact = get_var_val_by_index(to_index)
                     #assert sas_generator.get(from_fact, from_fact) == to_fact
                 if DUMP:
-                    print("original generator:")
+                    print("original generator number {}:".format(gen_no))
                     print_sas_generator(sas_generator)
-                    print("transformed_generator:")
+                    print("transformed_generator number {}:".format(gen_no))
                     print(transformed_generator)
             # Append the transformed generators to the task so that they are
             # written to the output.sas file.
