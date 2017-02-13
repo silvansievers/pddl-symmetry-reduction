@@ -288,8 +288,7 @@ class VarValueRenaming(object):
                     # if the generator maps none-of-those to none-of-those of
                     # another variable, this is only because we manually
                     # added this mapping. We can hence ignore it.
-                    if new_from_fact[1] == new_to_fact[1]:
-                        assert new_from_fact[1] == always_false
+                    if new_from_fact[1] == new_to_fact[1] and new_from_fact[1] == always_false:
                         continue
                 # otherwise the generator must be discarded
                 return None
