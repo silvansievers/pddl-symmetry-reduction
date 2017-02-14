@@ -659,18 +659,27 @@ def pddl_to_sas(task):
             if DUMP:
                 graph.write_or_print_automorphisms(generators, dump=True)
             print("Number of lifted generators: {}".format(len(generators)))
+            order_to_generator_count = defaultdict(int)
+            for generator in generators:
+                order = compute_order(generator)
+                order_to_generator_count[order] += 1
+            printable_order_to_count = [(order, count) for order, count in order_to_generator_count.items()]
+            print("Lifted generator orders: ", printable_order_to_count)
+            for order in range(2, 10):
+                print("Lifted generator order {}: {}".format(order, order_to_generator_count[order]))
 
         with timers.timing("Symmetries1 transforming generators into predicate object mappings", block=True):
-            # Transform generators into suitable format, mapping predicates and objects.
-            assert isinstance(task.generators, list)
-            assert not task.generators
-            for generator in generators:
-                gen = Generator(generator, task)
-                if gen.is_valid():
-                    task.generators.append(gen)
-                else:
-                    print("Initial transformation already filtered out a generator")
-            print("Number of lifted generators mapping predicates or objects: {}".format(len(task.generators)))
+            if options.ground_symmetries:
+                # Transform generators into suitable format, mapping predicates and objects.
+                assert isinstance(task.generators, list)
+                assert not task.generators
+                for generator in generators:
+                    gen = Generator(generator, task)
+                    if gen.is_valid():
+                        task.generators.append(gen)
+                    else:
+                        print("Initial transformation already filtered out a generator")
+                print("Number of lifted generators mapping predicates or objects: {}".format(len(task.generators)))
 
     sas_generators = []
     with timers.timing("Symmetries2 grounding generators into SAS", block=True):
@@ -812,16 +821,16 @@ def pddl_to_sas(task):
                 print("{} out of {} generators left after reordering and filtering variables".format(len(sas_generators), len(task.generators)))
 
     if task.generators:
-        print("Number of remaining valid generators: {}".format(len(sas_generators)))
-        print("Removed generators: {}".format(len(task.generators) - len(sas_generators)))
+        print("Number of remaining grounded generators: {}".format(len(sas_generators)))
+        print("Number of removed generators: {}".format(len(task.generators) - len(sas_generators)))
         order_to_generator_count = defaultdict(int)
         for sas_generator in sas_generators:
             order = compute_order(sas_generator)
             order_to_generator_count[order] += 1
         printable_order_to_count = [(order, count) for order, count in order_to_generator_count.items()]
-        print("Generator orders: ", printable_order_to_count)
+        print("Grounded generator orders: ", printable_order_to_count)
         for order in range(2, 10):
-            print("Order {}: {}".format(order, order_to_generator_count[order]))
+            print("Grounded generator order {}: {}".format(order, order_to_generator_count[order]))
 
     with timers.timing("Symmetries4 transforming generators into search representation", block=True):
         if sas_generators:

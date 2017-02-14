@@ -76,8 +76,13 @@ def parse_args():
         help="If true, add mutex groups to the symmetry graph prior computing "
         "symmetries. Does not work with --preserve-symmetries-during-grounding.")
     argparser.add_argument(
+        "--ground-symmetries", action="store_true",
+        help="If true, ground lifted symmetries to the search representation, "
+        "mapping facts to facts.")
+    argparser.add_argument(
         "--add-none-of-those-mappings", action="store_true",
-        help="If true, add mappings to generators for none-of-those values: "
+        help="This option is only useful if using --ground-symmetries."
+        "If true, add mappings to generators for none-of-those values: "
         "if the var is not mapped to another var, then set identity. Otherwise, "
         "map to the none-of-those-value of the mapped variable. This assumes "
         "that vars are entirely mapped to vars, or not mapped at all. This has "
