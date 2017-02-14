@@ -16,6 +16,9 @@ if __name__ == "__main__":
     normalize.normalize(task)
     task.dump()
     graph = SymmetryGraph(task, only_object_symmetries, stabilize_initial_state)
+    if options.add_mutex_groups:
+        print("cannot add mutex groups -- translator is not run!")
+        exit(1)
     if WRITE_DOT_GRAPH:
         f = open('out.dot', 'w')
         graph.write_dot_graph(f, hide_equal_predicates=True)
