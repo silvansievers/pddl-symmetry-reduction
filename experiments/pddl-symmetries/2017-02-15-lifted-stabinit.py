@@ -15,7 +15,7 @@ except ImportError:
     print 'matplotlib not availabe, scatter plots not available'
     matplotlib = False
 
-REVISION = '872b5d1c3764'
+REVISION = '57a726092208'
 
 def main(revisions=None):
     benchmarks_dir=os.path.expanduser('~/repos/downward/benchmarks')
@@ -86,6 +86,7 @@ def main(revisions=None):
     generator_count_lifted = Attribute('generator_count_lifted', absolute=True, min_wins=False)
     generator_count_lifted_mapping_objects_predicates = Attribute('generator_count_lifted_mapping_objects_predicates', absolute=True, min_wins=False)
     generator_orders_lifted = Attribute('generator_orders_lifted', absolute=True)
+    generator_orders_lifted_list = Attribute('generator_orders_lifted_list', absolute=True)
     generator_order_lifted_2 = Attribute('generator_order_lifted_2', absolute=True, min_wins=False)
     generator_order_lifted_3 = Attribute('generator_order_lifted_3', absolute=True, min_wins=False)
     generator_order_lifted_4 = Attribute('generator_order_lifted_4', absolute=True, min_wins=False)
@@ -102,6 +103,7 @@ def main(revisions=None):
     generator_not_well_defined_for_search = Attribute('generator_not_well_defined_for_search', absolute=True, min_wins=True)
     generator_count_lifted_grounded = Attribute('generator_count_lifted_grounded')
     generator_orders_grounded = Attribute('generator_orders_grounded', absolute=True)
+    generator_orders_grounded_list = Attribute('generator_orders_grounded_list', absolute=True)
     generator_order_grounded_2 = Attribute('generator_order_grounded_2', absolute=True, min_wins=False)
     generator_order_grounded_3 = Attribute('generator_order_grounded_3', absolute=True, min_wins=False)
     generator_order_grounded_4 = Attribute('generator_order_grounded_4', absolute=True, min_wins=False)
@@ -122,6 +124,7 @@ def main(revisions=None):
         generator_count_lifted,
         generator_count_lifted_mapping_objects_predicates,
         generator_orders_lifted,
+        generator_orders_lifted_list,
         generator_order_lifted_2,
         generator_order_lifted_3,
         generator_order_lifted_4,
@@ -138,6 +141,7 @@ def main(revisions=None):
         generator_not_well_defined_for_search,
         generator_count_lifted_grounded,
         generator_orders_grounded,
+        generator_orders_grounded_list,
         generator_order_grounded_2,
         generator_order_grounded_3,
         generator_order_grounded_4,

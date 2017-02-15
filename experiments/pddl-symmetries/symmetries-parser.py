@@ -37,10 +37,14 @@ def add_lifted_grounded(content, props):
 parser.add_function(add_lifted_grounded)
 
 def parse_generator_orders(content, props):
-    lifted_generator_orders = re.findall(r'Lifted generator orders:  \[(.*)\]', content)
+    lifted_generator_orders = re.findall(r'Lifted generator orders: \[(.*)\]', content)
     props['generator_orders_lifted'] = lifted_generator_orders
-    grounded_generator_orders = re.findall(r'Grounded generator orders:  \[(.*)\]', content)
+    lifted_generator_orders_list = re.findall(r'Lifted generator orders list: \[(.*)\]', content)
+    props['generator_orders_lifted_list'] = lifted_generator_orders
+    grounded_generator_orders = re.findall(r'Grounded generator orders: \[(.*)\]', content)
     props['generator_orders_grounded'] = grounded_generator_orders
+    grounded_generator_orders_list = re.findall(r'Grounded generator orders list: \[(.*)\]', content)
+    props['generator_orders_grounded_list'] = grounded_generator_orders_list
 
 parser.add_function(parse_generator_orders)
 
