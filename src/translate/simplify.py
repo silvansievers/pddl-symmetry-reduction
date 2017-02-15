@@ -563,15 +563,17 @@ def filter_unreachable_propositions(sas_task, sas_generators):
         sas_task.validate()
     dtgs = build_dtgs(sas_task)
     renaming = build_renaming(dtgs)
-    # apply_to_task may raise Impossible if the goal is detected as
-    # unreachable or TriviallySolvable if it has no goal. We let the
-    # exceptions propagate to the caller.
-    renaming.apply_to_task(sas_task)
+    # need to *first* transform the generators, as it accesses information
+    # from the old given sas_task
     new_generators = []
     for sas_generator in sas_generators:
         new_generator = renaming.apply_to_generator(sas_generator, sas_task)
         if new_generator is not None:
             new_generators.append(new_generator)
+    # apply_to_task may raise Impossible if the goal is detected as
+    # unreachable or TriviallySolvable if it has no goal. We let the
+    # exceptions propagate to the caller.
+    renaming.apply_to_task(sas_task)
     print("%d propositions removed" % renaming.num_removed_values)
     if DEBUG:
         sas_task.validate()
