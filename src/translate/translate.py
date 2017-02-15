@@ -669,8 +669,8 @@ def pddl_to_sas(task):
                 order_list.append(order)
             print("Maximum generator order: {}".format(max_order))
             printable_order_to_count = [(order, count) for order, count in order_to_generator_count.items()]
-            print("Lifted generator orders: ", printable_order_to_count)
-            print("Lifted generator orders list: ", order_list)
+            print("Lifted generator orders: {}".format(printable_order_to_count))
+            print("Lifted generator orders list: {}".format(order_list))
             for order in range(2, 50):
                 print("Lifted generator order {}: {}".format(order, order_to_generator_count[order]))
 
@@ -836,8 +836,8 @@ def pddl_to_sas(task):
             order_to_generator_count[order] += 1
             order_list.append(order)
         printable_order_to_count = [(order, count) for order, count in order_to_generator_count.items()]
-        print("Grounded generator orders: ", printable_order_to_count)
-        print("Grounded generator orders list: ", order_list)
+        print("Grounded generator orders: {}".format(printable_order_to_count))
+        print("Grounded generator orders list: {}".format(order_list))
         for order in range(2, 10):
             print("Grounded generator order {}: {}".format(order, order_to_generator_count[order]))
 
