@@ -156,16 +156,20 @@ def main(revisions=None):
     ]
     attributes = ['error', 'run_dir'] # exp.DEFAULT_TABLE_ATTRIBUTES
     attributes.extend(extra_attributes)
-    attributes.append('translator_*')
+    attributes.append('translator_time_symmetries*')
 
     exp.add_absolute_report_step(attributes=attributes,filter_algorithm=[
         '{}-translate'.format(REVISION),
         '{}-translate-stabinit'.format(REVISION),
-        '{}-translate-stabinit-mutexes'.format(REVISION),
+        #'{}-translate-stabinit-mutexes'.format(REVISION),
         '{}-translate-stabinit-ground'.format(REVISION),
         '{}-translate-stabinit-ground-noneofthose'.format(REVISION),
-        '{}-translate-stabinit-ground-noneofthose-mutexes'.format(REVISION),
+        #'{}-translate-stabinit-ground-noneofthose-mutexes'.format(REVISION),
     ])
+
+    exp.add_absolute_report_step(attributes=attributes,filter_algorithm=[
+        '{}-translate-stabinit'.format(REVISION),
+    ],format='tex')
 
     exp.run_steps()
 
