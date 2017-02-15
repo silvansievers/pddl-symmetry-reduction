@@ -647,8 +647,8 @@ def pddl_to_sas(task):
         ranges, strips_to_sas = strips_to_sas_dictionary(
             groups, assert_partial=options.use_partial_encoding)
 
-    if options.compute_symmetries:
-        with timers.timing("Symmetries0 computing symmetries", block=True):
+    with timers.timing("Symmetries0 computing symmetries", block=True):
+        if options.compute_symmetries:
             only_object_symmetries = options.only_object_symmetries
             stabilize_initial_state = options.stabilize_initial_state
             time_limit = options.bliss_time_limit
@@ -668,18 +668,18 @@ def pddl_to_sas(task):
             for order in range(2, 10):
                 print("Lifted generator order {}: {}".format(order, order_to_generator_count[order]))
 
-        with timers.timing("Symmetries1 transforming generators into predicate object mappings", block=True):
-            if options.ground_symmetries:
-                # Transform generators into suitable format, mapping predicates and objects.
-                assert isinstance(task.generators, list)
-                assert not task.generators
-                for generator in generators:
-                    gen = Generator(generator, task)
-                    if gen.is_valid():
-                        task.generators.append(gen)
-                    else:
-                        print("Initial transformation already filtered out a generator")
-                print("Number of lifted generators mapping predicates or objects: {}".format(len(task.generators)))
+    with timers.timing("Symmetries1 transforming generators into predicate object mappings", block=True):
+        if options.compute_symmetries and options.ground_symmetries:
+            # Transform generators into suitable format, mapping predicates and objects.
+            assert isinstance(task.generators, list)
+            assert not task.generators
+            for generator in generators:
+                gen = Generator(generator, task)
+                if gen.is_valid():
+                    task.generators.append(gen)
+                else:
+                    print("Initial transformation already filtered out a generator")
+            print("Number of lifted generators mapping predicates or objects: {}".format(len(task.generators)))
 
     sas_generators = []
     with timers.timing("Symmetries2 grounding generators into SAS", block=True):
@@ -820,9 +820,9 @@ def pddl_to_sas(task):
                         print_sas_generator(sas_generator)
                 print("{} out of {} generators left after reordering and filtering variables".format(len(sas_generators), len(task.generators)))
 
-    if task.generators:
-        print("Number of remaining grounded generators: {}".format(len(sas_generators)))
-        print("Number of removed generators: {}".format(len(task.generators) - len(sas_generators)))
+    print("Number of remaining grounded generators: {}".format(len(sas_generators)))
+    print("Number of removed generators: {}".format(len(task.generators) - len(sas_generators)))
+    if sas_generators:
         order_to_generator_count = defaultdict(int)
         for sas_generator in sas_generators:
             order = compute_order(sas_generator)
