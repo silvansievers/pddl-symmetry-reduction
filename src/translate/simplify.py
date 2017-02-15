@@ -35,6 +35,7 @@ import options
 import sas_tasks
 
 DEBUG = False
+DUMP = False
 
 # TODO:
 # This is all quite hackish and would be easier if the translator were
@@ -265,32 +266,46 @@ class VarValueRenaming(object):
         assert all((None not in value_names) for value_names in new_value_names)
         value_names[:] = new_value_names
 
-    def apply_to_generator(self, sas_generator):
+    def apply_to_generator(self, sas_generator, sas_task):
         """Build a new generator from the given one by renaming the mapping.
         Return None if the generator should be discarded because the
         simplification removed a variable/value pair that gets not mapped to
         itself."""
 
         result = dict()
-        for from_fact, to_fact in sas_generator.items():
+        for from_fact in sorted(sas_generator.keys()):
+            to_fact = sas_generator[from_fact]
             new_from_fact = self.translate_pair(from_fact)
             new_to_fact = self.translate_pair(to_fact)
+            if DUMP:
+                print("{} -> {}  ---> {} -> {}".format(from_fact, to_fact, new_from_fact, new_to_fact))
 
             # if from_fact or to_fact has been removed
             if (None in (new_from_fact[0], new_to_fact[0]) or
                 always_false in (new_from_fact[1], new_to_fact[1])):
                 # identity mapping can be ignored
                 if from_fact == to_fact:
+                    if DUMP:
+                        print("ignore mapping")
                     continue
+
                 if options.add_none_of_those_mappings:
-                    # A variable's value can only be always_false if it represents
-                    # the none-of-those value of that variable. In this case,
-                    # if the generator maps none-of-those to none-of-those of
+                    # If the generator maps none-of-those to none-of-those of
                     # another variable, this is only because we manually
-                    # added this mapping. We can hence ignore it.
+                    # added this mapping. We can hence ignore if that part of
+                    # the generator is removed.
                     if new_from_fact[1] == new_to_fact[1] and new_from_fact[1] == always_false:
-                        continue
+                        assert from_fact[1] == to_fact[1]
+                        if from_fact[1] == sas_task.variables.ranges[from_fact[0]] - 1:
+                            # The old value is the none-of-those value
+                            assert to_fact[1] == sas_task.variables.ranges[to_fact[0]] - 1
+                            print("Invalid mapping can be ignored because it "
+                            "affects none-of-those-values")
+                            continue
+
                 # otherwise the generator must be discarded
+                if DUMP:
+                    print("remove generator")
                 return None
 
             result[new_from_fact] = new_to_fact
@@ -554,7 +569,7 @@ def filter_unreachable_propositions(sas_task, sas_generators):
     renaming.apply_to_task(sas_task)
     new_generators = []
     for sas_generator in sas_generators:
-        new_generator = renaming.apply_to_generator(sas_generator)
+        new_generator = renaming.apply_to_generator(sas_generator, sas_task)
         if new_generator is not None:
             new_generators.append(new_generator)
     print("%d propositions removed" % renaming.num_removed_values)

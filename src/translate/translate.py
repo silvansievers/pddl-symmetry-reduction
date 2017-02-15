@@ -809,7 +809,7 @@ def pddl_to_sas(task):
                     for sas_generator in sas_generators:
                         print("generator: ")
                         print_sas_generator(sas_generator)
-                print("{} out of {} generators left after filtering unreachable propositions".format(len(sas_generators), len(task.generators)))
+            print("{} out of {} generators left after filtering unreachable propositions".format(len(sas_generators), len(task.generators)))
 
     if options.reorder_variables or options.filter_unimportant_vars:
         with timers.timing("Reordering and filtering variables", block=True):
@@ -824,7 +824,7 @@ def pddl_to_sas(task):
                     for sas_generator in sas_generators:
                         print("generator: ")
                         print_sas_generator(sas_generator)
-                print("{} out of {} generators left after reordering and filtering variables".format(len(sas_generators), len(task.generators)))
+            print("{} out of {} generators left after reordering and filtering variables".format(len(sas_generators), len(task.generators)))
 
     print("Number of remaining grounded generators: {}".format(len(sas_generators)))
     print("Number of removed generators: {}".format(len(task.generators) - len(sas_generators)))
