@@ -15,6 +15,7 @@ parser.add_pattern('generator_order_lifted_6', 'Lifted generator order 6: (\d+)'
 parser.add_pattern('generator_order_lifted_7', 'Lifted generator order 7: (\d+)', required=False, type=int)
 parser.add_pattern('generator_order_lifted_8', 'Lifted generator order 8: (\d+)', required=False, type=int)
 parser.add_pattern('generator_order_lifted_9', 'Lifted generator order 9: (\d+)', required=False, type=int)
+parser.add_pattern('generator_order_lifted_max', 'Maximum generator order: (\d+)', required=False, type=int)
 parser.add_pattern('generator_count_grounded', 'Number of remaining grounded generators: (\d+)', required=False, type=int)
 parser.add_pattern('generator_count_removed', 'Number of removed generators: (\d+)', required=False, type=int)
 parser.add_pattern('time_bliss', 'Done searching for automorphisms: (.+)s', required=False, type=float)
