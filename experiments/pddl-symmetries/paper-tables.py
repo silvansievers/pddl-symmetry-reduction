@@ -58,7 +58,7 @@ class DomainAttributesReport(PlanningReport):
                     values = domain_algorithm_attribute_to_values[(domain, algorithm, attribute)]
                     assert isinstance(values, list)
                     if values and isinstance(values[0], list): # flatten values
-                        values = list(itertools.chain(*values))
+                        values = list(itertools.chain.from_iterable(values))
                     if values:
                         aggregated_value = self.aggregation_functions[index](values)
                         if isinstance(aggregated_value, numpy.float64):
