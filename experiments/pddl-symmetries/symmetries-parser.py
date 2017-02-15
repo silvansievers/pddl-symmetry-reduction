@@ -40,7 +40,7 @@ def parse_generator_orders(content, props):
     lifted_generator_orders = re.findall(r'Lifted generator orders: \[(.*)\]', content)
     props['generator_orders_lifted'] = lifted_generator_orders
     lifted_generator_orders_list = re.findall(r'Lifted generator orders list: \[(.*)\]', content)
-    props['generator_orders_lifted_list'] = lifted_generator_orders
+    props['generator_orders_lifted_list'] = lifted_generator_orders_list
     grounded_generator_orders = re.findall(r'Grounded generator orders: \[(.*)\]', content)
     props['generator_orders_grounded'] = grounded_generator_orders
     grounded_generator_orders_list = re.findall(r'Grounded generator orders list: \[(.*)\]', content)
