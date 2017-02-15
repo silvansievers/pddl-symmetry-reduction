@@ -660,12 +660,15 @@ def pddl_to_sas(task):
                 graph.write_or_print_automorphisms(generators, dump=True)
             print("Number of lifted generators: {}".format(len(generators)))
             order_to_generator_count = defaultdict(int)
+            max_order = 0
             for generator in generators:
                 order = compute_order(generator)
+                max_order = max(max_order, order)
                 order_to_generator_count[order] += 1
+            print("Maximum generator order: {}".format(max_order))
             printable_order_to_count = [(order, count) for order, count in order_to_generator_count.items()]
             print("Lifted generator orders: ", printable_order_to_count)
-            for order in range(2, 10):
+            for order in range(2, 30):
                 print("Lifted generator order {}: {}".format(order, order_to_generator_count[order]))
 
     with timers.timing("Symmetries1 transforming generators into predicate object mappings", block=True):
