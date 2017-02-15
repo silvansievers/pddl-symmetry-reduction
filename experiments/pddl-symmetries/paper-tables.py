@@ -1,12 +1,13 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import itertools
 import numpy
 
 from downward.experiment import FastDownwardExperiment
 from downward.reports import PlanningReport
 
-from lab.reports import Attribute, arithmetic_mean
+from lab.reports import Attribute, geometric_mean
 
 class DomainAttributesReport(PlanningReport):
     def __init__(self, aggregation_functions,
@@ -51,7 +52,11 @@ class DomainAttributesReport(PlanningReport):
             domain_line = ['{}'.format(domain)]
             for algorithm in self.algorithms:
                 for index, attribute in enumerate(self.sorted_attributes):
-                    aggregated_value = self.aggregation_functions[index](domain_algorithm_attribute_to_values[(domain, algorithm, attribute)])
+                    values = domain_algorithm_attribute_to_values[(domain, algorithm, attribute)]
+                    assert isinstance(values, list)
+                    if values and isinstance(values[0], list): # flatten values
+                        values = list(itertools.chain(*values))
+                    aggregated_value = self.aggregation_functions[index](values)
                     if isinstance(aggregated_value, numpy.float64):
                         aggregated_value = float(aggregated_value)
                     if isinstance(aggregated_value, float):
@@ -98,11 +103,21 @@ def symmetries_or_not(props):
     props['has_symmetries'] = has_symmetries
     return props
 
+def parse_list_of_generator_orders(props):
+    generator_orders_lifted_list = props.get('generator_orders_lifted_list', [])
+    orders = []
+    if generator_orders_lifted_list:
+        assert len(generator_orders_lifted_list) == 1
+        string_order_list = generator_orders_lifted_list[0].split(',')
+        orders = [int(string_order) for string_order in string_order_list]
+    props['orders'] = orders
+    return props
+
 exp = FastDownwardExperiment()
 
-REVISION = '872b5d1c3764'
+REVISION = '57a726092208'
 
-exp.add_fetcher('data/2017-02-15-lifted-stabinit-eval',filter=[symmetries_or_not],filter_algorithm=[
+exp.add_fetcher('data/2017-02-15-lifted-stabinit-eval',filter=[symmetries_or_not,parse_list_of_generator_orders],filter_algorithm=[
     #'{}-translate'.format(REVISION),
     '{}-translate-stabinit'.format(REVISION),
     #'{}-translate-stabinit-noblisslimit'.format(REVISION),
@@ -124,7 +139,7 @@ def print_max_order(run):
 exp.add_report(DomainAttributesReport(filter_algorithm=[
     '{}-translate-stabinit'.format(REVISION),
 ],format='tex',
-attributes=['num_tasks', 'has_symmetries', generator_count_lifted, generator_count_lifted, time_symmetries],
-aggregation_functions=[sum, sum, sum, numpy.median, arithmetic_mean]))
+attributes=['num_tasks', 'has_symmetries', time_symmetries, generator_count_lifted, generator_count_lifted, 'orders', 'orders'],
+aggregation_functions=[sum, sum, geometric_mean, sum, numpy.median, geometric_mean, numpy.median]))
 
 exp.run_steps()
