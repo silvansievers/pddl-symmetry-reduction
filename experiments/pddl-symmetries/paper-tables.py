@@ -4,6 +4,8 @@
 import itertools
 import numpy
 
+from collections import defaultdict
+
 from downward.experiment import FastDownwardExperiment
 from downward.reports import PlanningReport
 
@@ -48,6 +50,7 @@ class DomainAttributesReport(PlanningReport):
         #print(len(self.domains.keys()))
 
         # body lines
+        algorithm_attribute_to_values = defaultdict(list)
         for domain in sorted(self.domains.keys()):
             domain_line = ['{}'.format(domain)]
             for algorithm in self.algorithms:
@@ -56,16 +59,22 @@ class DomainAttributesReport(PlanningReport):
                     assert isinstance(values, list)
                     if values and isinstance(values[0], list): # flatten values
                         values = list(itertools.chain(*values))
-                    aggregated_value = self.aggregation_functions[index](values)
-                    if isinstance(aggregated_value, numpy.float64):
-                        aggregated_value = float(aggregated_value)
-                    if isinstance(aggregated_value, float):
-                        if aggregated_value != int(aggregated_value):
-                            aggregated_value = '{:.1f}'.format(aggregated_value)
-                        else:
-                            aggregated_value = int(aggregated_value)
-                    domain_line.append(aggregated_value)
+                    if values:
+                        aggregated_value = self.aggregation_functions[index](values)
+                        if isinstance(aggregated_value, numpy.float64):
+                            aggregated_value = float(aggregated_value)
+                        domain_line.append(aggregated_value)
+                        algorithm_attribute_to_values[(algorithm, attribute)].append(aggregated_value)
             lines.append(self.format_line(domain_line))
+
+        # summary line
+        summary_line = ['summary']
+        for algorithm in self.algorithms:
+            for index, attribute in enumerate(self.sorted_attributes):
+                values = algorithm_attribute_to_values[(algorithm, attribute)]
+                summary_value = self.aggregation_functions[index](values)
+                summary_line.append(summary_value)
+        lines.append(self.format_line(summary_line))
 
         return '\n'.join(lines)
 
@@ -87,6 +96,11 @@ class DomainAttributesReport(PlanningReport):
 
         line = ''
         for index, value in enumerate(values):
+            if isinstance(value, float):
+                if value != int(value):
+                    value = '{:.1f}'.format(value)
+                else:
+                    value = int(value)
             line += '{}'.format(value)
             if index == len(values) - 1:
                 line += ' \\\\'
@@ -217,8 +231,11 @@ def parse_list_of_generator_orders(props):
     orders = []
     if generator_orders_lifted_list:
         assert len(generator_orders_lifted_list) == 1
-        string_order_list = generator_orders_lifted_list[0].split(',')
-        orders = [int(string_order) for string_order in string_order_list]
+        string_order_list = generator_orders_lifted_list[0]
+        if string_order_list != '':
+            string_order_list = string_order_list.split(',')
+            if string_order_list:
+                orders = [int(string_order) for string_order in string_order_list]
     props['orders'] = orders
     return props
 
@@ -232,8 +249,7 @@ exp.add_fetcher('data/2017-02-15-lifted-stabinit-eval',filter=[symmetries_or_not
     #'{}-translate-stabinit-noblisslimit'.format(REVISION),
     #'{}-translate-stabinit-ground'.format(REVISION),
     #'{}-translate-stabinit-ground-noneofthose'.format(REVISION),
-],filter_domain=[
-])
+],filter_domain=suite)
 
 generator_count_lifted = Attribute('generator_count_lifted', absolute=True, min_wins=False)
 time_symmetries = Attribute('time_symmetries', absolute=False, min_wins=True)
@@ -249,7 +265,7 @@ def print_max_order(run):
 exp.add_report(DomainAttributesReport(filter_algorithm=[
     '{}-translate-stabinit'.format(REVISION),
 ],format='tex',
-attributes=['num_tasks', 'has_symmetries', time_symmetries, generator_count_lifted, generator_count_lifted, 'orders', 'orders'],
-aggregation_functions=[sum, sum, geometric_mean, sum, numpy.median, geometric_mean, numpy.median]))
+attributes=['num_tasks', 'has_symmetries', generator_count_lifted, generator_count_lifted, time_symmetries, 'orders', 'orders'],
+aggregation_functions=[sum, sum, sum, numpy.median, geometric_mean, geometric_mean, numpy.median]))
 
 exp.run_steps()

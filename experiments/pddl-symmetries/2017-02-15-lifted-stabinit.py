@@ -165,10 +165,6 @@ def main(revisions=None):
         '{}-translate-stabinit-ground-noneofthose'.format(REVISION),
     ])
 
-    exp.add_absolute_report_step(attributes=attributes,filter_algorithm=[
-        '{}-translate-stabinit'.format(REVISION),
-    ],format='tex')
-
     exp.run_steps()
 
 main(revisions=[REVISION])
