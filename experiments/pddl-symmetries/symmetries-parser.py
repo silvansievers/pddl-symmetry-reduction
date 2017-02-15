@@ -78,6 +78,7 @@ def parse_action_axiom_symmetry(content, props):
     generator_lifted_affecting_actions_axioms = False
     generator_lifted_mapping_actions_axioms = False
     generator_not_well_defined_for_search = False
+    ignore_none_of_those_mapping = False
     for line in lines:
         if 'Generator affects operator or axiom' in line:
             generator_lifted_affecting_actions_axioms = True
@@ -85,9 +86,12 @@ def parse_action_axiom_symmetry(content, props):
             generator_lifted_mapping_actions_axioms = True
         if 'Transformed generator contains -1' in line:
             generator_not_well_defined_for_search = True
+        if 'Invalid mapping can be ignored because it affects none-of-those-values' in line:
+            ignore_none_of_those_mapping = True
     props['generator_lifted_affecting_actions_axioms'] = generator_lifted_affecting_actions_axioms
     props['generator_lifted_mapping_actions_axioms'] = generator_lifted_mapping_actions_axioms
     props['generator_not_well_defined_for_search'] = generator_not_well_defined_for_search
+    props['ignore_none_of_those_mapping'] = ignore_none_of_those_mapping
 
 parser.add_function(parse_action_axiom_symmetry)
 
