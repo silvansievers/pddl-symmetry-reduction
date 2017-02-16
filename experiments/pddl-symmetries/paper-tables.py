@@ -63,8 +63,15 @@ class DomainAttributesReport(PlanningReport):
                         aggregated_value = self.aggregation_functions[index](values)
                         if isinstance(aggregated_value, numpy.float64):
                             aggregated_value = float(aggregated_value)
-                        domain_line.append(aggregated_value)
                         algorithm_attribute_to_values[(algorithm, attribute)].append(aggregated_value)
+                    else:
+                        # No values for the attribute, hene no aggregated value
+                        # we write an empty table cell, i.e. '', into the domain
+                        # line. Note that we don't want to store this value in
+                        # algorithm_attribute_to_values, to avoid failing
+                        # aggregation functions.
+                        aggregated_value = ''
+                    domain_line.append(aggregated_value)
             lines.append(self.format_line(domain_line))
 
         # summary line
@@ -72,7 +79,10 @@ class DomainAttributesReport(PlanningReport):
         for algorithm in self.algorithms:
             for index, attribute in enumerate(self.sorted_attributes):
                 values = algorithm_attribute_to_values[(algorithm, attribute)]
-                summary_value = self.aggregation_functions[index](values)
+                if values:
+                    summary_value = self.aggregation_functions[index](values)
+                else:
+                    summary_value = None
                 summary_line.append(summary_value)
         lines.append(self.format_line(summary_line))
 
@@ -109,12 +119,12 @@ class DomainAttributesReport(PlanningReport):
         return line
 
 # optimal union satisficing
-suite = [
+suite_all_opt_sat = [
 'airport',
 'assembly',
-#'barman-opt11-strips',
+'barman-opt11-strips',
 'barman-opt14-strips',
-#'barman-sat11-strips',
+'barman-sat11-strips',
 'barman-sat14-strips',
 'blocks',
 'cavediving-14-adl',
@@ -124,13 +134,13 @@ suite = [
 'citycar-sat14-adl',
 'depot',
 'driverlog',
-#'elevators-opt08-strips',
+'elevators-opt08-strips',
 'elevators-opt11-strips',
-#'elevators-sat08-strips',
+'elevators-sat08-strips',
 'elevators-sat11-strips',
-#'floortile-opt11-strips',
+'floortile-opt11-strips',
 'floortile-opt14-strips',
-#'floortile-sat11-strips',
+'floortile-sat11-strips',
 'floortile-sat14-strips',
 'freecell',
 'ged-opt14-strips',
@@ -151,27 +161,27 @@ suite = [
 'mystery',
 'nomystery-opt11-strips',
 'nomystery-sat11-strips',
-#'openstacks',
+'openstacks',
 'openstacks-opt08-adl',
-#'openstacks-opt08-strips',
-#'openstacks-opt11-strips',
+'openstacks-opt08-strips',
+'openstacks-opt11-strips',
 'openstacks-opt14-strips',
 'openstacks-sat08-adl',
-#'openstacks-sat08-strips',
-#'openstacks-sat11-strips',
+'openstacks-sat08-strips',
+'openstacks-sat11-strips',
 'openstacks-sat14-strips',
-#'openstacks-strips',
+'openstacks-strips',
 'optical-telegraphs',
-#'parcprinter-08-strips',
+'parcprinter-08-strips',
 'parcprinter-opt11-strips',
 'parcprinter-sat11-strips',
-#'parking-opt11-strips',
+'parking-opt11-strips',
 'parking-opt14-strips',
-#'parking-sat11-strips',
+'parking-sat11-strips',
 'parking-sat14-strips',
 'pathways',
 'pathways-noneg',
-#'pegsol-08-strips',
+'pegsol-08-strips',
 'pegsol-opt11-strips',
 'pegsol-sat11-strips',
 'philosophers',
@@ -182,40 +192,71 @@ suite = [
 'psr-small',
 'rovers',
 'satellite',
-#'scanalyzer-08-strips',
+'scanalyzer-08-strips',
 'scanalyzer-opt11-strips',
 'scanalyzer-sat11-strips',
 'schedule',
-#'sokoban-opt08-strips',
+'sokoban-opt08-strips',
 'sokoban-opt11-strips',
-#'sokoban-sat08-strips',
+'sokoban-sat08-strips',
 'sokoban-sat11-strips',
 'storage',
 'tetris-opt14-strips',
 'tetris-sat14-strips',
 'thoughtful-sat14-strips',
-#'tidybot-opt11-strips',
+'tidybot-opt11-strips',
 'tidybot-opt14-strips',
 'tidybot-sat11-strips',
 'tpp',
-#'transport-opt08-strips',
-#'transport-opt11-strips',
+'transport-opt08-strips',
+'transport-opt11-strips',
 'transport-opt14-strips',
-#'transport-sat08-strips',
-#'transport-sat11-strips',
+'transport-sat08-strips',
+'transport-sat11-strips',
 'transport-sat14-strips',
 'trucks',
 'trucks-strips',
-#'visitall-opt11-strips',
+'visitall-opt11-strips',
 'visitall-opt14-strips',
-#'visitall-sat11-strips',
+'visitall-sat11-strips',
 'visitall-sat14-strips',
-#'woodworking-opt08-strips',
+'woodworking-opt08-strips',
 'woodworking-opt11-strips',
-#'woodworking-sat08-strips',
+'woodworking-sat08-strips',
 'woodworking-sat11-strips',
 'zenotravel',
 ]
+duplicates = [
+'barman-opt11-strips',
+'barman-sat11-strips',
+'elevators-opt08-strips',
+'elevators-sat08-strips',
+'floortile-opt11-strips',
+'floortile-sat11-strips',
+'openstacks',
+'openstacks-opt08-strips',
+'openstacks-opt11-strips',
+'openstacks-sat08-strips',
+'openstacks-sat11-strips',
+'openstacks-strips',
+'parcprinter-08-strips',
+'parking-opt11-strips',
+'parking-sat11-strips',
+'pegsol-08-strips',
+'scanalyzer-08-strips',
+'sokoban-opt08-strips',
+'sokoban-sat08-strips',
+'tidybot-opt11-strips',
+'transport-opt08-strips',
+'transport-opt11-strips',
+'transport-sat08-strips',
+'transport-sat11-strips',
+'visitall-opt11-strips',
+'visitall-sat11-strips',
+'woodworking-opt08-strips',
+'woodworking-sat08-strips',
+]
+suite = [domain for domain in suite_all_opt_sat if domain not in duplicates]
 
 def symmetries_or_not(props):
     generator_count_lifted = props.get('generator_count_lifted', 0)
@@ -251,15 +292,16 @@ exp.add_fetcher('data/2017-02-16-lifted-stabinit-eval',filter=[symmetries_or_not
     #'{}-translate-stabinit-ground-noneofthose'.format(REVISION),
 ],filter_domain=suite)
 
-generator_count_lifted = Attribute('generator_count_lifted', absolute=True, min_wins=False)
-time_symmetries = Attribute('time_symmetries', absolute=False, min_wins=True)
-has_symmetries = Attribute('has_symmetries', absolute=True, min_wins=False)
 num_tasks = Attribute('num_tasks', absolute=True)
+has_symmetries = Attribute('has_symmetries', absolute=True, min_wins=False)
+generator_count_lifted_sum = Attribute('generator_count_lifted', absolute=True, min_wins=False, functions=[sum])
+generator_count_lifted_gm = Attribute('generator_count_lifted', absolute=True, min_wins=False, functions=[geometric_mean])
+translator_time_symmetries0_computing_symmetries = Attribute('translator_time_symmetries0_computing_symmetries', absolute=False, min_wins=True, functions=[geometric_mean])
 
 def print_stuff(run):
-    time_symmetries = run.get('time_symmetries', None)
-    if time_symmetries is not None and time_symmetries > 1:
-        print("time_symmetries", time_symmetries, run.get('domain'), run.get('problem'))
+    translator_time_symmetries0_computing_symmetries = run.get('translator_time_symmetries0_computing_symmetries', None)
+    if translator_time_symmetries0_computing_symmetries is not None and translator_time_symmetries0_computing_symmetries > 1:
+        print("time_symmetries", translator_time_symmetries0_computing_symmetries, run.get('domain'), run.get('problem'))
     return run
 
 exp.add_report(
@@ -268,7 +310,7 @@ exp.add_report(
             '{}-translate-stabinit'.format(REVISION),
         ],
         format='tex',
-        attributes=['num_tasks', 'has_symmetries', generator_count_lifted, generator_count_lifted, time_symmetries, 'orders', 'orders'],
+        attributes=['num_tasks', 'has_symmetries', generator_count_lifted_sum, generator_count_lifted_gm, translator_time_symmetries0_computing_symmetries, 'orders', 'orders'],
         aggregation_functions=[sum, sum, sum, numpy.median, geometric_mean, geometric_mean, numpy.median],
         #filter=[print_stuff],
         ))
