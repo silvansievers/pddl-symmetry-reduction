@@ -5,7 +5,7 @@ import os
 import suites
 
 from lab.environments import LocalEnvironment, MaiaEnvironment
-from lab.reports import Attribute
+from lab.reports import Attribute, geometric_mean
 
 from common_setup import IssueConfig, IssueExperiment, DEFAULT_OPTIMAL_SUITE, is_test_run
 try:
@@ -15,7 +15,7 @@ except ImportError:
     print 'matplotlib not availabe, scatter plots not available'
     matplotlib = False
 
-REVISION = 'd9f57b6e1c3a'
+REVISION = 'bf0a6f867c5d'
 
 def main(revisions=None):
     benchmarks_dir=os.path.expanduser('~/repos/downward/benchmarks')
@@ -107,9 +107,9 @@ def main(revisions=None):
     generator_order_grounded_7 = Attribute('generator_order_grounded_7', absolute=True, min_wins=False)
     generator_order_grounded_8 = Attribute('generator_order_grounded_8', absolute=True, min_wins=False)
     generator_order_grounded_9 = Attribute('generator_order_grounded_9', absolute=True, min_wins=False)
-    time_bliss = Attribute('time_bliss', absolute=False, min_wins=True)
-    time_translate_automorphisms = Attribute('time_translate_automorphisms', absolute=False, min_wins=True)
-    time_symmetries = Attribute('time_symmetries', absolute=False, min_wins=True)
+    time_symmetries1_symmetry_graph = Attribute('time_symmetries1_symmetry_graph', absolute=False, min_wins=True, functions=[geometric_mean])
+    time_symmetries2_bliss = Attribute('time_symmetries2_bliss', absolute=False, min_wins=True, functions=[geometric_mean])
+    time_symmetries3_translate_automorphisms = Attribute('time_symmetries3_translate_automorphisms', absolute=False, min_wins=True, functions=[geometric_mean])
     bliss_out_of_memory = Attribute('bliss_out_of_memory', absolute=True, min_wins=True)
     bliss_out_of_time = Attribute('bliss_out_of_time', absolute=True, min_wins=True)
     translator_completed = Attribute('translator_completed', absolute=True, min_wins=False)
@@ -146,9 +146,9 @@ def main(revisions=None):
         generator_order_grounded_7,
         generator_order_grounded_8,
         generator_order_grounded_9,
-        time_bliss,
-        time_translate_automorphisms,
-        time_symmetries,
+        time_symmetries1_symmetry_graph,
+        time_symmetries2_bliss,
+        time_symmetries3_translate_automorphisms,
         bliss_out_of_memory,
         bliss_out_of_time,
         translator_completed,

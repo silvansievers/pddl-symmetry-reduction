@@ -18,8 +18,9 @@ parser.add_pattern('generator_order_lifted_9', 'Lifted generator order 9: (\d+)'
 parser.add_pattern('generator_order_lifted_max', 'Maximum generator order: (\d+)', required=False, type=int)
 parser.add_pattern('generator_count_grounded', 'Number of remaining grounded generators: (\d+)', required=False, type=int)
 parser.add_pattern('generator_count_removed', 'Number of removed generators: (\d+)', required=False, type=int)
-parser.add_pattern('time_bliss', 'Done searching for automorphisms: (.+)s', required=False, type=float)
-parser.add_pattern('time_translate_automorphisms', 'Done translating automorphisms: (.+)s', required=False, type=float)
+parser.add_pattern('time_symmetries1_symmetry_graph', 'Done creating symmetry graph: (.+)s', required=False, type=float)
+parser.add_pattern('time_symmetries2_bliss', 'Done searching for automorphisms: (.+)s', required=False, type=float)
+parser.add_pattern('time_symmetries3_translate_automorphisms', 'Done translating automorphisms: (.+)s', required=False, type=float)
 parser.add_pattern('generator_order_grounded_2', 'Grounded generator order 2: (\d+)', required=False, type=int)
 parser.add_pattern('generator_order_grounded_3', 'Grounded generator order 3: (\d+)', required=False, type=int)
 parser.add_pattern('generator_order_grounded_4', 'Grounded generator order 4: (\d+)', required=False, type=int)
@@ -29,12 +30,18 @@ parser.add_pattern('generator_order_grounded_7', 'Grounded generator order 7: (\
 parser.add_pattern('generator_order_grounded_8', 'Grounded generator order 8: (\d+)', required=False, type=int)
 parser.add_pattern('generator_order_grounded_9', 'Grounded generator order 9: (\d+)', required=False, type=int)
 
-def add_lifted_grounded(content, props):
+def add_composed_attributes(content, props):
     generator_count_lifted = props.get('generator_count_lifted', 0)
     generator_count_grounded = props.get('generator_count_grounded', 0)
     props['generator_count_lifted_grounded'] = "{}/{}".format(generator_count_lifted, generator_count_grounded)
 
-parser.add_function(add_lifted_grounded)
+    translator_time_done = props.get('translator_time_done', None)
+    translator_completed = False
+    if translator_time_done is not None:
+        translator_completed = True
+    props['translator_completed'] = translator_completed
+
+parser.add_function(add_composed_attributes)
 
 def parse_generator_orders(content, props):
     lifted_generator_orders = re.findall(r'Lifted generator orders: \[(.*)\]', content)
@@ -48,55 +55,41 @@ def parse_generator_orders(content, props):
 
 parser.add_function(parse_generator_orders)
 
-def parse_bliss_limits(content, props):
+def parse_boolean_flags(content, props):
     lines = content.split('\n')
     bliss_memory_out = False
     bliss_timeout = False
-    for line in lines:
-        if 'Bliss memory out' in line:
-            bliss_memory_out = True
-            break
-
-        if 'Bliss timeout' in line:
-            bliss_timeout = True
-            break
-
-    props['bliss_out_of_memory'] = bliss_memory_out
-    props['bliss_out_of_time'] = bliss_timeout
-
-parser.add_function(parse_bliss_limits)
-
-def parse_symmetries_time(content, props):
-    time_bliss = props.get('time_bliss', None)
-    time_translate_automorphisms = props.get('time_translate_automorphisms', None)
-    time_symmetries = None
-    if time_bliss is not None and time_translate_automorphisms is not None:
-        time_symmetries = time_bliss + time_translate_automorphisms
-    props['time_symmetries'] = time_symmetries
-
-parser.add_function(parse_symmetries_time)
-
-def parse_action_axiom_symmetry(content, props):
-    lines = content.split('\n')
     generator_lifted_affecting_actions_axioms = False
     generator_lifted_mapping_actions_axioms = False
     generator_not_well_defined_for_search = False
     ignore_none_of_those_mapping = False
     for line in lines:
+        if 'Bliss memory out' in line:
+            bliss_memory_out = True
+
+        if 'Bliss timeout' in line:
+            bliss_timeout = True
+
         if 'Generator affects operator or axiom' in line:
             generator_lifted_affecting_actions_axioms = True
+
         if 'Generator entirely maps operator or axioms' in line:
             generator_lifted_mapping_actions_axioms = True
+
         if 'Transformed generator contains -1' in line:
             generator_not_well_defined_for_search = True
+
         if 'Invalid mapping can be ignored because it affects none-of-those-values' in line:
             ignore_none_of_those_mapping = True
+
+    props['bliss_out_of_memory'] = bliss_memory_out
+    props['bliss_out_of_time'] = bliss_timeout
     props['generator_lifted_affecting_actions_axioms'] = generator_lifted_affecting_actions_axioms
     props['generator_lifted_mapping_actions_axioms'] = generator_lifted_mapping_actions_axioms
     props['generator_not_well_defined_for_search'] = generator_not_well_defined_for_search
     props['ignore_none_of_those_mapping'] = ignore_none_of_those_mapping
 
-parser.add_function(parse_action_axiom_symmetry)
+parser.add_function(parse_boolean_flags)
 
 def parse_errors(content, props):
     if 'error' in props:
@@ -120,14 +113,5 @@ def parse_errors(content, props):
         props['error'] = 'unexplained-exitcode-%d' % exitcode
 
 parser.add_function(parse_errors)
-
-def check_completion(content, props):
-    translator_time_done = props.get('translator_time_done', None)
-    translator_completed = False
-    if translator_time_done is not None:
-        translator_completed = True
-    props['translator_completed'] = translator_completed
-
-parser.add_function(check_completion)
 
 parser.parse()
