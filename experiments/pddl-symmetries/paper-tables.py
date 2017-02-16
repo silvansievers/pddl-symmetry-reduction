@@ -256,16 +256,21 @@ time_symmetries = Attribute('time_symmetries', absolute=False, min_wins=True)
 has_symmetries = Attribute('has_symmetries', absolute=True, min_wins=False)
 num_tasks = Attribute('num_tasks', absolute=True)
 
-def print_max_order(run):
-    generator_order_lifted_max = run.get('generator_order_lifted_max', 0)
-    if generator_order_lifted_max >= 17:
-        print(generator_order_lifted_max, run.get('domain'), run.get('problem'))
+def print_stuff(run):
+    time_symmetries = run.get('time_symmetries', None)
+    if time_symmetries is not None and time_symmetries > 1:
+        print("time_symmetries", time_symmetries, run.get('domain'), run.get('problem'))
     return run
 
-exp.add_report(DomainAttributesReport(filter_algorithm=[
-    '{}-translate-stabinit'.format(REVISION),
-],format='tex',
-attributes=['num_tasks', 'has_symmetries', generator_count_lifted, generator_count_lifted, time_symmetries, 'orders', 'orders'],
-aggregation_functions=[sum, sum, sum, numpy.median, geometric_mean, geometric_mean, numpy.median]))
+exp.add_report(
+    DomainAttributesReport(
+        filter_algorithm=[
+            '{}-translate-stabinit'.format(REVISION),
+        ],
+        format='tex',
+        attributes=['num_tasks', 'has_symmetries', generator_count_lifted, generator_count_lifted, time_symmetries, 'orders', 'orders'],
+        aggregation_functions=[sum, sum, sum, numpy.median, geometric_mean, geometric_mean, numpy.median],
+        #filter=[print_stuff],
+        ))
 
 exp.run_steps()

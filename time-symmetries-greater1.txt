@@ -1,0 +1,23 @@
+('time_symmetries', 1.51, u'sokoban-opt11-strips', u'p12.pddl')
+('time_symmetries', 1.54, u'sokoban-sat11-strips', u'p09.pddl')
+('time_symmetries', 1.54, u'sokoban-opt08-strips', u'p20.pddl')
+('time_symmetries', 1.57, u'sokoban-sat08-strips', u'p10.pddl')
+
+('time_symmetries', 5.38, u'openstacks-strips', u'p28.pddl')
+('time_symmetries', 3.06, u'openstacks-strips', u'p29.pddl')
+
+('time_symmetries', 5.94, u'psr-small', u'p15-s24-n2-l4-f10.pddl')
+('time_symmetries', 6.53, u'psr-small', u'p31-s49-n4-l2-f30.pddl')
+('time_symmetries', 7.46, u'psr-small', u'p40-s80-n3-l4-f10.pddl')
+
+('time_symmetries', 4.1, u'trucks-strips', u'p29.pddl')
+('time_symmetries', 2.84, u'trucks-strips', u'p26.pddl')
+('time_symmetries', 1.23, u'trucks-strips', u'p22.pddl')
+('time_symmetries', 2.59, u'trucks-strips', u'p27.pddl')
+('time_symmetries', 2.45, u'trucks-strips', u'p25.pddl')
+('time_symmetries', 5.21, u'trucks-strips', u'p30.pddl')
+('time_symmetries', 1.04, u'trucks-strips', u'p17.pddl')
+('time_symmetries', 3.3200000000000003, u'trucks-strips', u'p24.pddl')
+('time_symmetries', 2.05, u'trucks-strips', u'p28.pddl')
+('time_symmetries', 1.07, u'trucks-strips', u'p21.pddl')
+('time_symmetries', 1.6600000000000001, u'trucks-strips', u'p23.pddl')
