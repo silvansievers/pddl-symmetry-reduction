@@ -155,8 +155,6 @@ void SearchSpace::trace_path(const GlobalState &goal_state,
 void SearchSpace::trace_path_with_symmetries(const GlobalState &goal_state,
                                              vector<const GlobalOperator *> &path,
                                              Group *group) const {
-    cout << "trace path with symmetries" << endl;
-    cout << "group contains generators: " << group->get_num_generators() << endl;
     vector<Permutation *> permutations;
     vector<GlobalState> state_trace;
     GlobalState current_state = goal_state;

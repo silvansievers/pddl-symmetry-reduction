@@ -37,6 +37,7 @@ Group::Group(const options::Options &opts)
         graph_creator = nullptr;
         initialized = true;
         generators = move(g_permutations);
+        statistics();
     }
 }
 
