@@ -241,9 +241,9 @@ def parse_list_of_generator_orders(props):
 
 exp = FastDownwardExperiment()
 
-REVISION = '57a726092208'
+REVISION = 'bf0a6f867c5d'
 
-exp.add_fetcher('data/2017-02-15-lifted-stabinit-eval',filter=[symmetries_or_not,parse_list_of_generator_orders],filter_algorithm=[
+exp.add_fetcher('data/2017-02-16-lifted-stabinit-eval',filter=[symmetries_or_not,parse_list_of_generator_orders],filter_algorithm=[
     #'{}-translate'.format(REVISION),
     '{}-translate-stabinit'.format(REVISION),
     #'{}-translate-stabinit-noblisslimit'.format(REVISION),
