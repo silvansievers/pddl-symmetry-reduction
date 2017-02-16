@@ -300,7 +300,7 @@ translator_time_symmetries0_computing_symmetries = Attribute('translator_time_sy
 
 def print_stuff(run):
     translator_time_symmetries0_computing_symmetries = run.get('translator_time_symmetries0_computing_symmetries', None)
-    if translator_time_symmetries0_computing_symmetries is not None and translator_time_symmetries0_computing_symmetries > 1:
+    if translator_time_symmetries0_computing_symmetries is not None and translator_time_symmetries0_computing_symmetries >= 2:
         print("time_symmetries", translator_time_symmetries0_computing_symmetries, run.get('domain'), run.get('problem'))
     return run
 
