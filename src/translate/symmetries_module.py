@@ -30,6 +30,8 @@ class PyblissModuleWrapper:
 
     def find_automorphisms(self, time_limit):
         # Create and fill the graph
+        timer = timers.Timer()
+        print "Creating symmetry graph..."
         graph = bliss.DigraphWrapper()
         vertices = self.get_vertices()
         self.id_to_vertex = []
@@ -44,6 +46,8 @@ class PyblissModuleWrapper:
             v1 = self.vertex_to_id[edge[0]]
             v2 = self.vertex_to_id[edge[1]]
             graph.add_edge(v1, v2)
+        time = timer.elapsed_time();
+        print "Done creating symmetry graph: %ss" % time
 
         # Find automorphisms, use a time limit:
         timer = timers.Timer()
@@ -51,11 +55,13 @@ class PyblissModuleWrapper:
         automorphisms = graph.find_automorphisms(time_limit)
         time = timer.elapsed_time()
         print "Done searching for automorphisms: %ss" % time
-        print "Found %d generators" % len(automorphisms)
+
+        timer = timers.Timer()
+        print "Translating automorphisms..."
         translated_auts = []
         for aut in automorphisms:
             translated_auts.append(self._translate_generator(aut))
-        time = timer.elapsed_time();
+        time = timer.elapsed_time()
         print "Done translating automorphisms: %ss" % time
         return translated_auts
 
