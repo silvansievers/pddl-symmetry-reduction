@@ -289,19 +289,24 @@ class VarValueRenaming(object):
                         print("ignore mapping")
                     continue
 
-                if options.add_none_of_those_mappings:
-                    # If the generator maps none-of-those to none-of-those of
-                    # another variable, this is only because we manually
-                    # added this mapping. We can hence ignore if that part of
-                    # the generator is removed.
-                    if new_from_fact[1] == new_to_fact[1] and new_from_fact[1] == always_false:
-                        assert from_fact[1] == to_fact[1]
-                        if from_fact[1] == sas_task.variables.ranges[from_fact[0]] - 1:
-                            # The old value is the none-of-those value
-                            assert to_fact[1] == sas_task.variables.ranges[to_fact[0]] - 1
-                            print("Invalid mapping can be ignored because it "
-                            "affects none-of-those-values")
-                            continue
+                if new_from_fact[1] == new_to_fact[1] and new_from_fact[1] == always_false:
+                    if DUMP:
+                        print("mapping from always_false to always_false can be ignored")
+                    continue
+
+                #if options.add_none_of_those_mappings:
+                    ## If the generator maps none-of-those to none-of-those of
+                    ## another variable, this is only because we manually
+                    ## added this mapping. We can hence ignore if that part of
+                    ## the generator is removed.
+                    #if new_from_fact[1] == new_to_fact[1] and new_from_fact[1] == always_false:
+                        #assert from_fact[1] == to_fact[1]
+                        #if from_fact[1] == sas_task.variables.ranges[from_fact[0]] - 1:
+                            ## The old value is the none-of-those value
+                            #assert to_fact[1] == sas_task.variables.ranges[to_fact[0]] - 1
+                            #print("Invalid mapping can be ignored because it "
+                            #"affects none-of-those-values")
+                            #continue
 
                 # otherwise the generator must be discarded
                 if DUMP:
