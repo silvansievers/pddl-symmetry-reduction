@@ -67,6 +67,9 @@ def parse_boolean_flags(content, props):
     generator_lifted_mapping_actions_axioms = False
     generator_not_well_defined_for_search = False
     ignore_none_of_those_mapping = False
+    simplify_var_removed = False
+    simplify_val_removed = False
+    reorder_var_removed = False
     for line in lines:
         if 'Bliss memory out' in line:
             bliss_memory_out = True
@@ -86,12 +89,24 @@ def parse_boolean_flags(content, props):
         if 'Invalid mapping can be ignored because it affects none-of-those-values' in line:
             ignore_none_of_those_mapping = True
 
+        if 'simplify: only one of from_var and to_var are removed, invalid generator' in line:
+            simplify_var_removed = True
+
+        if 'simplify: only one of from_val and to_val are mapped always_false, invalid generator' in line:
+            simplify_val_removed = True
+
+        if 'reorder: only one of from_var and to_var are removed, invalid generator' in line:
+            reorder_var_removed = True
+
     props['bliss_out_of_memory'] = bliss_memory_out
     props['bliss_out_of_time'] = bliss_timeout
     props['generator_lifted_affecting_actions_axioms'] = generator_lifted_affecting_actions_axioms
     props['generator_lifted_mapping_actions_axioms'] = generator_lifted_mapping_actions_axioms
     props['generator_not_well_defined_for_search'] = generator_not_well_defined_for_search
     props['ignore_none_of_those_mapping'] = ignore_none_of_those_mapping
+    props['simplify_var_removed'] = simplify_var_removed
+    props['simplify_val_removed'] = simplify_val_removed
+    props['reorder_var_removed'] = reorder_var_removed
 
 parser.add_function(parse_boolean_flags)
 
