@@ -161,17 +161,33 @@ def main(revisions=None):
         translator_completed,
         timeout,
         ignore_none_of_those_mapping,
+        'removed1_after_grounding',
+        'removed2_after_sas_task',
+        'removed3_after_filtering_props',
+        'removed4_after_reordering_filtering_vars',
     ]
     attributes = ['error', 'run_dir'] # exp.DEFAULT_TABLE_ATTRIBUTES
     attributes.extend(extra_attributes)
     attributes.append('translator_time_symmetries*')
+
+    def compute_removed_count_in_each_step(props):
+        count_lifted = props.get('generator_count_lifted', 0)
+        count_grounded_1 = props.get('generator_count_grounded_1_after_grounding', 0)
+        count_grounded_2 = props.get('generator_count_grounded_2_after_sas_task', 0)
+        count_grounded_3 = props.get('generator_count_grounded_3_after_filtering_props', 0)
+        count_grounded_4 = props.get('generator_count_grounded_4_after_reordering_filtering_vars', 0)
+        props['removed1_after_grounding'] = count_lifted - count_grounded_1
+        props['removed2_after_sas_task'] = count_grounded_1 - count_grounded_2
+        props['removed3_after_filtering_props'] = count_grounded_2 - count_grounded_3
+        props['removed4_after_reordering_filtering_vars'] = count_grounded_3 - count_grounded_4
+        return props
 
     exp.add_absolute_report_step(attributes=attributes,filter_algorithm=[
         '{}-translate'.format(REVISION),
         '{}-translate-stabinit'.format(REVISION),
         '{}-translate-stabinit-ground'.format(REVISION),
         '{}-translate-stabinit-ground-noneofthose'.format(REVISION),
-    ])
+    ],filter=[compute_removed_count_in_each_step])
 
     exp.run_steps()
 
