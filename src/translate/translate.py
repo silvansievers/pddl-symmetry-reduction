@@ -579,10 +579,15 @@ def filter_out_identities_or_nonpermutations(sas_generators):
     # i.e. generators that are a permutation and not the identity.
     remaining_generators = []
     for sas_generator in sas_generators:
-        if is_identity(sas_generator) or not is_permutation(sas_generator):
+        if is_identity(sas_generator):
             if DUMP:
                 print(sas_generator)
-                print("is not a permutation or is the identiy!")
+                print("is the identiy!")
+        elif not is_permutation(sas_generator):
+            assert False
+            #if DUMP:
+                #print(sas_generator)
+                #print("is not a permutation!")
         else:
             remaining_generators.append(sas_generator)
     return remaining_generators

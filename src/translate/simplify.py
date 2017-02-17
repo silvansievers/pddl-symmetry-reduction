@@ -281,24 +281,24 @@ class VarValueRenaming(object):
             # First, test whether one or both variables of the mapping are removed.
             if new_from_fact[0] is None and new_to_fact[0] is None:
                 if DUMP:
-                    print("both from_var and to_var are removed, ignore mapping")
+                    print("simplify: both from_var and to_var are removed, ignore mapping")
                 continue
             elif None in (new_from_fact[0], new_to_fact[0]):
-                if DUMP:
-                    print("only one of from_var and to_var are removed, invalid generator")
+                #if DUMP:
+                print("simplify: only one of from_var and to_var are removed, invalid generator")
                 return None
 
-            # Second, test whether one or both vales of the mapping are removed.
+            # Second, test whether one or both values of the mapping are removed.
             # We only test for always_false here because if one value is set to
             # always_true, then the entire variable will be removed (all other
             # values must be set to always_false then).
             if new_from_fact[1] == always_false and new_to_fact[1] == always_false:
                 if DUMP:
-                    print("both from_val and to_val are mapped to always_false, ignore mapping")
+                    print("simplify: both from_val and to_val are mapped to always_false, ignore mapping")
                 continue
             elif always_false in (new_from_fact[1], new_to_fact[1]):
-                if DUMP:
-                    print("only one of from_val and to_val are mapped always_false, invalid generator")
+                #if DUMP:
+                print("simplify: only one of from_val and to_val are mapped always_false, invalid generator")
                 return None
 
             result[new_from_fact] = new_to_fact
