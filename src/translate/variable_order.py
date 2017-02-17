@@ -339,16 +339,27 @@ class VariableOrder(object):
 
     def apply_order_to_sas_generator(self, sas_generator):
         # Build a new generator from the given one by updating all mappings
-        # var -> var'. If both var and var' are updated to None and the entry is
-        # the identity, the entry can be ignored. If only one of var and var' are
-        # updated to None, the generator becomes invalid and we return None.
+        # var -> var'.
         result = {}
         for from_fact, to_fact in sas_generator.items():
-            if from_fact[0] not in self.new_var or to_fact[0] not in self.new_var:
-                if from_fact == to_fact:
-                    # Ignore entry
-                    continue
-                # Invalidated generator
+            if from_fact[0] not in self.new_var and to_fact[0] not in self.new_var:
+                # If both var and var' are mapped to None (i.e. var = var' or
+                # var != var', but both are removed), simply ignore this part
+                # of the generator.
+                continue
+
+                #### Alternative fact ###
+                #if from_fact[0] != to_fact[0] or from_fact == to_fact:
+                    ## If var and var' are not equal, or the mapping is the
+                    ## identity, this is fine.
+                    #continue
+                ## If var = var' and the mapping is not the identity, i.e. the
+                ## generator permutes the removed variable's values, it must be
+                ## invalidated.
+                #return None
+            elif from_fact[0] not in self.new_var or to_fact[0] not in self.new_var:
+                # If only one of var and var' is removed, we know that var !=
+                # var', and the generator must be invalidated.
                 return None
 
             new_from_var = self.new_var[from_fact[0]]
