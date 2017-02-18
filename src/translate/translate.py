@@ -584,10 +584,11 @@ def filter_out_identities_or_nonpermutations(sas_generators):
                 print(sas_generator)
                 print("is the identiy!")
         elif not is_permutation(sas_generator):
-            assert False
-            #if DUMP:
-                #print(sas_generator)
-                #print("is not a permutation!")
+            if options.stabilize_initial_state:
+                assert False
+            elif DUMP:
+                print(sas_generator)
+                print("is not a permutation!")
         else:
             remaining_generators.append(sas_generator)
     return remaining_generators
@@ -688,7 +689,7 @@ def pddl_to_sas(task):
                 gen = Generator(generator, task)
                 if gen.is_valid():
                     task.generators.append(gen)
-                else:
+                elif DUMP:
                     print("Initial transformation already filtered out a generator")
             print("Number of lifted generators mapping predicates or objects: {}".format(len(task.generators)))
 
@@ -713,7 +714,9 @@ def pddl_to_sas(task):
                 if mapped_var_val_list is None:
                     if DUMP:
                         print("need to skip generator because it maps an atom to some "
-                              "atom which does not exist in the sas representation")
+                            "atom which does not exist in the sas representation")
+                    if options.stabilize_initial_state:
+                        assert False
                     valid_generator = False
                     break
                 if not len(mapped_var_val_list) == 1:
@@ -729,9 +732,8 @@ def pddl_to_sas(task):
                 assert is_permutation(sas_generator)
                 if not is_identity(sas_generator):
                     sas_generators.append(sas_generator)
-                else:
-                    if DUMP:
-                        print("need to skip generator because it is the identiy")
+                elif DUMP:
+                    print("need to skip generator because it is the identiy")
         if task.generators:
             print("{} out of {} generators left after grounding them".format(len(sas_generators), len(task.generators)))
 

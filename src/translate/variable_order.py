@@ -3,6 +3,7 @@
 from collections import defaultdict, deque
 from itertools import chain
 import heapq
+import options
 
 DEBUG = False
 
@@ -347,19 +348,12 @@ class VariableOrder(object):
                 # var != var', but both are removed), simply ignore this part
                 # of the generator.
                 continue
-
-                #### Alternative fact ###
-                #if from_fact[0] != to_fact[0] or from_fact == to_fact:
-                    ## If var and var' are not equal, or the mapping is the
-                    ## identity, this is fine.
-                    #continue
-                ## If var = var' and the mapping is not the identity, i.e. the
-                ## generator permutes the removed variable's values, it must be
-                ## invalidated.
-                #return None
             elif from_fact[0] not in self.new_var or to_fact[0] not in self.new_var:
                 # If only one of var and var' is removed, we know that var !=
                 # var', and the generator must be invalidated.
+                if options.stabilize_initial_state:
+                    assert False
+                #print("reorder: only one of from_var and to_var are removed, invalid generator")
                 return None
 
             new_from_var = self.new_var[from_fact[0]]
