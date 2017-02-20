@@ -52,7 +52,7 @@ class DomainAttributesReport(PlanningReport):
         # body lines
         algorithm_attribute_to_values = defaultdict(list)
         for domain in sorted(self.domains.keys()):
-            domain_line = ['{}'.format(domain)]
+            domain_line = ['\\textsc{{{}}}'.format(domain)]
             for algorithm in self.algorithms:
                 for index, attribute in enumerate(self.sorted_attributes):
                     values = domain_algorithm_attribute_to_values[(domain, algorithm, attribute)]
@@ -110,7 +110,12 @@ class DomainAttributesReport(PlanningReport):
                 if value != int(value):
                     value = '{:.1f}'.format(value)
                 else:
-                    value = int(value)
+                    value = str(int(value))
+            value = str(value)
+            if value.endswith('.0'):
+                value = value.replace('.0', '')
+            if value == '':
+                value = '-'
             line += '{}'.format(value)
             if index == len(values) - 1:
                 line += ' \\\\'
@@ -257,6 +262,7 @@ duplicates = [
 'woodworking-sat08-strips',
 ]
 suite = [domain for domain in suite_all_opt_sat if domain not in duplicates]
+#suite = suite_all_opt_sat
 
 def symmetries_or_not(props):
     generator_count_lifted = props.get('generator_count_lifted', 0)
@@ -282,9 +288,9 @@ def parse_list_of_generator_orders(props):
 
 exp = FastDownwardExperiment()
 
-REVISION = 'bf0a6f867c5d'
+REVISION = 'daef8124988b'
 
-exp.add_fetcher('data/2017-02-16-lifted-stabinit-eval',filter=[symmetries_or_not,parse_list_of_generator_orders],filter_algorithm=[
+exp.add_fetcher('data/2017-02-17-lifted-stabinit-eval',filter=[symmetries_or_not,parse_list_of_generator_orders],filter_algorithm=[
     #'{}-translate'.format(REVISION),
     '{}-translate-stabinit'.format(REVISION),
     #'{}-translate-stabinit-noblisslimit'.format(REVISION),
