@@ -4,7 +4,7 @@
 import os
 import suites
 
-from lab.environments import LocalEnvironment, MaiaEnvironment
+from lab.environments import LocalEnvironment, BaselSlurmEnvironment
 from lab.reports import Attribute, geometric_mean
 
 from common_setup import IssueConfig, IssueExperiment, DEFAULT_OPTIMAL_SUITE, is_test_run
@@ -53,7 +53,7 @@ def main(revisions=None):
     'trucks-strips', 'hiking-sat14-strips', 'transport-sat14-strips',
     'openstacks-sat11-strips', 'scanalyzer-08-strips', 'visitall-opt11-strips',
     'psr-middle', 'airport', 'parking-opt11-strips', 'tpp', 'parking-sat14-strips']
-    environment = MaiaEnvironment(priority=0, email="silvan.sievers@unibas.ch")
+    environment = BaselSlurmEnvironment(priority=0, email="silvan.sievers@unibas.ch", export=["PATH", "DOWNWARD_BENCHMARKS"])
 
     if is_test_run():
         suite = ['depot:p01.pddl', 'gripper:prob01.pddl']
