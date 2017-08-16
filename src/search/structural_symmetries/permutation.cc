@@ -3,8 +3,6 @@
 #include "../global_state.h"
 #include "../globals.h"
 
-//#include "../utils/
-
 #include <algorithm>
 #include <cassert>
 #include <iomanip>
@@ -21,48 +19,25 @@ vector<int> Permutation::dom_sum_by_var;
 int Permutation::num_vars;
 
 void Permutation::_allocate() {
-    borrowed_buffer = false;
     value = new int[length];
-//    inverse_value = new int[length];
     affected.assign(num_vars, false);
 	vars_affected.clear();
     from_vars.assign(num_vars, -1);
-//    buff_for_state_copy = new int[num_vars];
 	affected_vars_cycles.clear();
 }
 
 void Permutation::_deallocate() {
-    if (!borrowed_buffer) {
-        delete[] value;
-//        delete[] inverse_value;
-//        delete[] buff_for_state_copy;
-    }
+    delete[] value;
 }
 
-void Permutation::_copy_value_from_permutation(const Permutation *perm) {
+void Permutation::_copy_value_from_permutation(const Permutation &perm) {
     for (int i = 0; i < length; i++)
-        set_value(i, perm->get_value(i));
+        set_value(i, perm.get_value(i));
 }
 
-void Permutation::_inverse_value_from_permutation(const Permutation *perm) {
+void Permutation::_inverse_value_from_permutation(const Permutation &perm) {
     for (int i = 0; i < length; i++)
-        set_value(perm->get_value(i), i);
-}
-
-Permutation &Permutation::operator=(const Permutation &other) {
-    if (this != &other) {
-        if (borrowed_buffer) {
-            _allocate();
-        } else {
-            affected.assign(num_vars, false);
-            vars_affected.clear();
-            from_vars.assign(num_vars, -1);
-            affected_vars_cycles.clear();
-        }
-        _copy_value_from_permutation(&other);
-    }
-    this->finalize();
-    return *this;
+        set_value(perm.get_value(i), i);
 }
 
 Permutation::Permutation(){
@@ -81,7 +56,7 @@ Permutation::Permutation(const unsigned int* full_permutation){
 	finalize();
 }
 
-Permutation::Permutation(const Permutation *perm, bool invert){
+Permutation::Permutation(const Permutation &perm, bool invert){
     _allocate();
     if (invert) {
         _inverse_value_from_permutation(perm);
@@ -92,11 +67,11 @@ Permutation::Permutation(const Permutation *perm, bool invert){
 }
 
 //// New constructor to use instead of * operator
-Permutation::Permutation(const Permutation *perm1, const Permutation *perm2){
+Permutation::Permutation(const Permutation &perm1, const Permutation &perm2){
     _allocate();
 
     for (int i = 0; i < length; i++) {
-        set_value(i, perm2->get_value(perm1->get_value(i)));
+        set_value(i, perm2.get_value(perm1.get_value(i)));
     }
     finalize();
 }
@@ -191,16 +166,6 @@ bool Permutation::identity() const{
 	return vars_affected.size() == 0;
 }
 
-//bool Permutation::operator ==(const Permutation &other) const{
-
-//	for(int i = 0; i < length; i++) {
-//        if (get_value(i) != other.get_value(i)) return false;
-//    }
-
-//	return true;
-//}
-
-
 void Permutation::print_cycle_notation() const {
 	vector<int> done;
     for (int i = num_vars; i < length; i++){
@@ -243,13 +208,13 @@ void Permutation::print_cycle_notation() const {
 void Permutation::dump_var_vals() const {
     for (int i = 0; i < num_vars; ++i) {
         for (int j = 0; j < g_variable_domain[i]; ++j) {
-            cout << i << "=" << j << "->";
             pair<int, int> var_val = get_new_var_val_by_old_var_val(i, j);
-            cout << var_val.first << "=" << var_val.second << ",";
+            cout << i << "=" << j << "->"
+                 << var_val.first << "=" << var_val.second << ",";
         }
         cout << endl;
     }
-    cout << endl;
+//    cout << endl;
 }
 
 void Permutation::dump() const {
@@ -298,10 +263,9 @@ int Permutation::get_var_by_index(int ind) {
 pair<int, int> Permutation::get_var_val_by_index(int ind) {
     assert(ind>=num_vars);
     int var =  var_by_val[ind-num_vars];
-	int val = ind - dom_sum_by_var[var];
-    assert(val >=0 && val<num_vars);
+    int val = ind - dom_sum_by_var[var];
 
-	return make_pair(var, val);
+    return make_pair(var, val);
 }
 
 int Permutation::get_index_by_var_val_pair(int var, int val) {
@@ -310,7 +274,6 @@ int Permutation::get_index_by_var_val_pair(int var, int val) {
 
 void Permutation::set_value(int ind, int val) {
 	value[ind] = val;
-//	inverse_value[val] = ind;
 	set_affected(ind, val);
 }
 
@@ -341,12 +304,6 @@ pair<int, int> Permutation::get_new_var_val_by_old_var_val(const int var, const 
 	int new_ind = get_value(old_ind);
 	return get_var_val_by_index(new_ind);
 }
-
-//pair<int, int> Permutation::get_old_var_val_by_new_var_val(const int var, const int val) const {
-//	int new_ind = get_index_by_var_val_pair(var, val);
-//	int old_ind = get_inverse_value(new_ind);
-//	return get_var_val_by_index(old_ind);
-//}
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // This method compares the state to the state resulting from permuting it.
@@ -405,29 +362,3 @@ bool Permutation::replace_if_less(int* state) const {
 
     return true;
 }
-
-//void Permutation::permute_state(const int* from_state, int* to_state) const {
-//	// Does not assume anything about to_state
-
-//    for(int from_var = 0; from_var < num_vars; from_var++) {
-//        int from_val = from_state[from_var];
-//        pair<int, int> to_pair = get_new_var_val_by_old_var_val(from_var, from_val);
-
-//		// Copying the values to the new state
-//		to_state[to_pair.first] = to_pair.second;
-//	}
-//}
-
-//void Permutation::permute_state(const GlobalState &from_state,
-//                                vector<int> &to_state) const {
-//    assert(to_state.empty());
-//    to_state.resize(num_vars);
-
-//    for(int from_var = 0; from_var < num_vars; from_var++) {
-//        int from_val = from_state[from_var];
-//        pair<int, int> to_pair = get_new_var_val_by_old_var_val(from_var, from_val);
-
-//        // Copying the values to the new state
-//        to_state[to_pair.first] = to_pair.second;
-//    }
-//}

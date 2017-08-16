@@ -3,10 +3,10 @@
 #include "global_operator.h"
 #include "global_state.h"
 #include "globals.h"
-#include "successor_generator.h"
 
 #include "structural_symmetries/group.h"
 #include "structural_symmetries/permutation.h"
+#include "task_utils/successor_generator.h"
 
 #include <cassert>
 #include "search_node_info.h"
@@ -131,7 +131,7 @@ SearchNode SearchSpace::get_node(const GlobalState &state) {
 
 void SearchSpace::trace_path(const GlobalState &goal_state,
                              vector<const GlobalOperator *> &path,
-                             Group *group) const {
+                             const shared_ptr<Group> &group) const {
     if (group && group->has_symmetries()) {
         trace_path_with_symmetries(goal_state, path, group);
     } else {
@@ -154,7 +154,7 @@ void SearchSpace::trace_path(const GlobalState &goal_state,
 
 void SearchSpace::trace_path_with_symmetries(const GlobalState &goal_state,
                                              vector<const GlobalOperator *> &path,
-                                             Group *group) const {
+                                             const shared_ptr<Group> &group) const {
     vector<Permutation *> permutations;
     vector<GlobalState> state_trace;
     GlobalState current_state = goal_state;
@@ -207,7 +207,7 @@ void SearchSpace::trace_path_with_symmetries(const GlobalState &goal_state,
     Permutation *to_delete = temp_p;
     while (permutations.begin() != permutations.end()) {
         Permutation *p = permutations.back();
-        temp_p = new Permutation(p, temp_p);
+        temp_p = new Permutation(*p, *temp_p);
         if (to_delete) {
             delete to_delete;
             to_delete = 0;
@@ -219,19 +219,19 @@ void SearchSpace::trace_path_with_symmetries(const GlobalState &goal_state,
     for (size_t i = 0; i < state_trace.size(); ++i){
         Permutation *permutation = reverse_permutations[state_trace.size() - i-1];
         state_trace[i] = successor_registry->permute_state(state_trace[i],
-                                                         permutation);
+                                                           *permutation);
         delete permutation;
         permutation = 0;
     }
     for (int i = state_trace.size() - 1; i > 0; i--) {
-        vector<const GlobalOperator *> applicable_ops;
+        vector<OperatorID> applicable_ops;
         g_successor_generator->generate_applicable_ops(state_trace[i], applicable_ops);
         bool found = false;
         int min_cost_op=0;
         int min_cost=numeric_limits<int>::max();
 
         for (size_t o = 0; o < applicable_ops.size(); o++) {
-            const GlobalOperator *op = applicable_ops[o];
+            const GlobalOperator *op = &g_operators[applicable_ops[o].get_index()];
             GlobalState succ_state = successor_registry->get_successor_state(state_trace[i], *op);
             if (succ_state.get_id() == state_trace[i-1].get_id()) {
                 found = true;
@@ -249,15 +249,12 @@ void SearchSpace::trace_path_with_symmetries(const GlobalState &goal_state,
             state_trace[i].dump_pddl();
             utils::exit_with(utils::ExitCode::CRITICAL_ERROR);
         }
-        path.push_back(applicable_ops[min_cost_op]);
+        path.push_back(&g_operators[applicable_ops[min_cost_op].get_index()]);
     }
 }
 
 void SearchSpace::dump() const {
-    for (PerStateInformation<SearchNodeInfo>::const_iterator it =
-             search_node_infos.begin(&state_registry);
-         it != search_node_infos.end(&state_registry); ++it) {
-        StateID id = *it;
+    for (StateID id : state_registry) {
         GlobalState state = state_registry.lookup_state(id);
         const SearchNodeInfo &node_info = search_node_infos[state];
         cout << id << ": ";

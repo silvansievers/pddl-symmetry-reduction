@@ -9,7 +9,7 @@
 using namespace std;
 
 StateRegistry::StateRegistry(
-    const AbstractTask &task, const IntPacker &state_packer,
+    const AbstractTask &task, const int_packer::IntPacker &state_packer,
     AxiomEvaluator &axiom_evaluator, const vector<int> &initial_state_data)
     : task(task),
       state_packer(state_packer),
@@ -40,7 +40,8 @@ StateRegistry::~StateRegistry() {
 }
 
 StateID StateRegistry::insert_id_or_pop_state() {
-    if (group && group->has_symmetries() && group->get_search_symmetries() == DKS)
+    if (group && group->has_symmetries() &&
+        group->get_search_symmetries() == SearchSymmetries::DKS)
         return insert_id_or_pop_state_dks();
     /*
       Attempt to insert a StateID for the last state of state_data_pool
@@ -140,11 +141,11 @@ GlobalState StateRegistry::register_state_buffer(const int *state) {
     return lookup_state(id);
 }
 
-GlobalState StateRegistry::permute_state(const GlobalState &state, const Permutation *permutation) {
+GlobalState StateRegistry::permute_state(const GlobalState &state, const Permutation &permutation) {
     PackedStateBin *buffer = new PackedStateBin[g_state_packer->get_num_bins()];
     fill_n(buffer, g_state_packer->get_num_bins(), 0);
     for (size_t i = 0; i < g_variable_domain.size(); ++i) {
-        pair<int, int> var_val = permutation->get_new_var_val_by_old_var_val(i, state[i]);
+        pair<int, int> var_val = permutation.get_new_var_val_by_old_var_val(i, state[i]);
         assert(var_val.second < g_variable_domain[var_val.first]);
         g_state_packer->set(buffer, var_val.first, var_val.second);
     }

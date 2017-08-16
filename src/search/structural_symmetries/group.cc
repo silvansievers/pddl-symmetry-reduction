@@ -53,8 +53,8 @@ void Group::delete_generators() {
     generators.clear();
 }
 
-const Permutation *Group::get_permutation(int index) const {
-    return generators[index];
+const Permutation &Group::get_permutation(int index) const {
+    return *generators[index];
 }
 
 void Group::compute_symmetries() {
@@ -98,8 +98,8 @@ void Group::dump_generators() const {
         return;
     for (int i = 0; i < get_num_generators(); i++) {
         cout << "Generator " << i << endl;
-        get_permutation(i)->print_cycle_notation();
-        get_permutation(i)->dump_var_vals();
+        get_permutation(i).print_cycle_notation();
+        get_permutation(i).dump_var_vals();
     }
 
     cout << "Extra group info:" << endl;
@@ -115,13 +115,12 @@ void Group::statistics() const {
     cout << "Number of generators: " << num_gen << endl;
     cout << "Order of generators: [";
     for (int gen_no = 0; gen_no < num_gen; ++gen_no) {
-        cout << get_permutation(gen_no)->get_order();
+        cout << get_permutation(gen_no).get_order();
         if (gen_no != num_gen - 1)
             cout << ", ";
     }
     cout << "]" << endl;
 }
-
 
 // ===============================================================================
 // Methods related to OSS
@@ -151,7 +150,7 @@ int *Group::get_canonical_representative(const GlobalState &state) const {
 Permutation *Group::compose_permutation(const Trace& perm_index) const {
     Permutation *new_perm = new Permutation();
     for (size_t i = 0; i < perm_index.size(); ++i) {
-        Permutation *tmp = new Permutation(new_perm, get_permutation(perm_index[i]));
+        Permutation *tmp = new Permutation(*new_perm, get_permutation(perm_index[i]));
         delete new_perm;
         new_perm = tmp;
     }
@@ -186,16 +185,16 @@ Permutation *Group::create_permutation_from_state_to_state(
     get_trace(to_state, new_trace);
 
     Permutation *tmp = compose_permutation(new_trace);
-    Permutation *p1 = new Permutation(tmp, true);  //inverse
+    Permutation *p1 = new Permutation(*tmp, true);  //inverse
     delete tmp;
     Permutation *p2 = compose_permutation(curr_trace);
-    Permutation *result = new Permutation(p2, p1);
+    Permutation *result = new Permutation(*p2, *p1);
     delete p1;
     delete p2;
     return result;
 }
 
-static Group *_parse(OptionParser &parser) {
+static shared_ptr<Group> _parse(OptionParser &parser) {
     // General Bliss options
     parser.add_option<int>("time_bound",
                            "Stopping after the Bliss software reached the time bound",
@@ -209,7 +208,7 @@ static Group *_parse(OptionParser &parser) {
 
     // Type of search symmetries to be used
     vector<string> search_symmetries;
-    search_symmetries.push_back("NOSEARCHSYMMETRIES");
+    search_symmetries.push_back("NONE");
     search_symmetries.push_back("OSS");
     search_symmetries.push_back("DKS");
     parser.add_enum_option("search_symmetries",
@@ -218,7 +217,7 @@ static Group *_parse(OptionParser &parser) {
                            "should be used for pruning: OSS for orbit space "
                            "search or DKS for storing the canonical "
                            "representative of every state during search",
-                           "NOSEARCHSYMMETRIES");
+                           "NONE");
 
     // Source of symmetries
     vector<string> source_of_symmetries;
@@ -233,17 +232,16 @@ static Group *_parse(OptionParser &parser) {
 
     Options opts = parser.parse();
 
-    if (!parser.dry_run()) {
-        bool use_search_symmetries = opts.get_enum("search_symmetries");
-        if (!use_search_symmetries) {
-            cerr << "You have specified a symmetries option which does use "
-                    "no search symmetries" << endl;
-            exit_with(ExitCode::INPUT_ERROR);
-        }
-        return new Group(opts);
+    if (parser.dry_run()) {
+        return nullptr;
     } else {
-        return 0;
+        return make_shared<Group>(opts);
     }
 }
 
-static Plugin<Group> _plugin("structural_symmetries", _parse);
+static PluginTypePlugin<Group> _type_plugin(
+    "Group",
+    // TODO: Replace empty string by synopsis for the wiki page.
+    "");
+
+static PluginShared<Group> _plugin("structural_symmetries", _parse);

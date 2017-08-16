@@ -1,18 +1,17 @@
 #ifndef SEARCH_ENGINES_EAGER_SEARCH_H
 #define SEARCH_ENGINES_EAGER_SEARCH_H
 
+#include "../open_list.h"
 #include "../search_engine.h"
-
-#include "../open_lists/open_list.h"
 
 #include <memory>
 #include <vector>
 
+class Evaluator;
 class GlobalOperator;
 class Group;
 class Heuristic;
 class PruningMethod;
-class ScalarEvaluator;
 
 namespace options {
 class Options;
@@ -22,10 +21,10 @@ namespace eager_search {
 class EagerSearch : public SearchEngine {
     const bool reopen_closed_nodes;
     const bool use_multi_path_dependence;
-    Group *group;
+    std::shared_ptr<Group> group;
 
     std::unique_ptr<StateOpenList> open_list;
-    ScalarEvaluator *f_evaluator;
+    Evaluator *f_evaluator;
     /*
       Note: orbit space search and duplicate pruning with dks does not work
       with preferred operators and multi plath search.
@@ -50,7 +49,7 @@ protected:
 
 public:
     explicit EagerSearch(const options::Options &opts);
-    virtual ~EagerSearch();
+    virtual ~EagerSearch() = default;
 
     virtual void print_statistics() const override;
 

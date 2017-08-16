@@ -13,8 +13,8 @@ namespace options {
 class Options;
 }
 
-enum SearchSymmetries {
-    NO_SEARCH_SYMMETRIES,
+enum class SearchSymmetries {
+    NONE,
     OSS,
     DKS
 };
@@ -34,7 +34,7 @@ class Group {
     Permutation *compose_permutation(const Trace &) const;
 
     void delete_generators();
-    const Permutation *get_permutation(int index) const;
+    const Permutation &get_permutation(int index) const;
 public:
     explicit Group(const options::Options &opts);
     ~Group();
