@@ -60,11 +60,11 @@ def main(revisions=None):
         environment = LocalEnvironment(processes=4)
 
     configs = {
-        IssueConfig('translate', [], driver_options=['--translate', '--translate-time-limit', '30m']),
-        IssueConfig('translate-stabinit', ['--translate-options', '--compute-symmetries', '--stabilize-initial-state', '--bliss-time-limit', '300', ], driver_options=['--translate', '--translate-time-limit', '30m']),
+        IssueConfig('translate', [], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '2G']),
+        IssueConfig('translate-stabinit', ['--translate-options', '--compute-symmetries', '--stabilize-initial-state', '--bliss-time-limit', '300', ], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '2G']),
 
-        IssueConfig('translate-stabinit-ground', ['--translate-options', '--compute-symmetries', '--stabilize-initial-state', '--ground-symmetries', '--bliss-time-limit', '300',], driver_options=['--translate', '--translate-time-limit', '30m']),
-        IssueConfig('translate-stabinit-ground-noneofthose', ['--translate-options', '--compute-symmetries', '--stabilize-initial-state', '--ground-symmetries', '--add-none-of-those-mappings', '--bliss-time-limit', '300',], driver_options=['--translate', '--translate-time-limit', '30m']),
+        IssueConfig('translate-stabinit-ground', ['--translate-options', '--compute-symmetries', '--stabilize-initial-state', '--ground-symmetries', '--bliss-time-limit', '300',], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '2G']),
+        IssueConfig('translate-stabinit-ground-noneofthose', ['--translate-options', '--compute-symmetries', '--stabilize-initial-state', '--ground-symmetries', '--add-none-of-those-mappings', '--bliss-time-limit', '300',], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '2G']),
     }
 
     exp = IssueExperiment(

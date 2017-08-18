@@ -70,6 +70,7 @@ def parse_boolean_flags(content, props):
     simplify_var_removed = False
     simplify_val_removed = False
     reorder_var_removed = False
+    translate_out_of_memory = False
     for line in lines:
         if 'Bliss memory out' in line:
             bliss_memory_out = True
@@ -98,6 +99,9 @@ def parse_boolean_flags(content, props):
         if 'reorder: only one of from_var and to_var are removed, invalid generator' in line:
             reorder_var_removed = True
 
+        if line == 'MemoryError':
+            translate_out_of_memory = true:
+
     props['bliss_out_of_memory'] = bliss_memory_out
     props['bliss_out_of_time'] = bliss_timeout
     props['generator_lifted_affecting_actions_axioms'] = generator_lifted_affecting_actions_axioms
@@ -107,6 +111,7 @@ def parse_boolean_flags(content, props):
     props['simplify_var_removed'] = simplify_var_removed
     props['simplify_val_removed'] = simplify_val_removed
     props['reorder_var_removed'] = reorder_var_removed
+    props['translate_out_of_memory'] = translate_out_of_memory
 
 parser.add_function(parse_boolean_flags)
 
@@ -114,20 +119,14 @@ def parse_errors(content, props):
     if 'error' in props:
         return
 
-    # Error names that start with "unexplained" will show up in the errors table.
-    exitcode_to_error = {
-        0: 'none',
-        1: 'unexplained-critical-error',
-        232: 'timeout',
-        247: 'unexplained-bliss-timeout', # TODO: remove "unexplained" once explained
-    }
-
     exitcode = props['fast-downward_returncode']
-    props['timeout'] = False
-    if exitcode == 232:
-        props['timeout'] = True
-    if exitcode in exitcode_to_error:
-        props['error'] = exitcode_to_error[exitcode]
+    props['translate_out_of_time'] = False
+    if exitcode == 232: # -24 means timeout
+        props['translate_out_of_time'] = True
+        props['error'] = 'timeout'
+    elif exitcode == 1 and props['translate_out_of_memory'] == True:
+        # we observed exit code 1 if python threw a MemoryError
+        props['error'] = 'out-of-memory'
     else:
         props['error'] = 'unexplained-exitcode-%d' % exitcode
 
