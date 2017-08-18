@@ -100,7 +100,7 @@ def parse_boolean_flags(content, props):
             reorder_var_removed = True
 
         if line == 'MemoryError':
-            translate_out_of_memory = true:
+            translate_out_of_memory = true
 
     props['bliss_out_of_memory'] = bliss_memory_out
     props['bliss_out_of_time'] = bliss_timeout
@@ -121,7 +121,9 @@ def parse_errors(content, props):
 
     exitcode = props['fast-downward_returncode']
     props['translate_out_of_time'] = False
-    if exitcode == 232: # -24 means timeout
+    if exitcode == 0:
+        props['error'] = 'none'
+    elif exitcode == 232: # -24 means timeout
         props['translate_out_of_time'] = True
         props['error'] = 'timeout'
     elif exitcode == 1 and props['translate_out_of_memory'] == True:
