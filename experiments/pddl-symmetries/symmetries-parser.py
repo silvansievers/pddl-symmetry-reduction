@@ -60,7 +60,6 @@ def parse_generator_orders(content, props):
 parser.add_function(parse_generator_orders)
 
 def parse_boolean_flags(content, props):
-    lines = content.split('\n')
     bliss_memory_out = False
     bliss_timeout = False
     generator_lifted_affecting_actions_axioms = False
@@ -70,7 +69,7 @@ def parse_boolean_flags(content, props):
     simplify_var_removed = False
     simplify_val_removed = False
     reorder_var_removed = False
-    translate_out_of_memory = False
+    lines = content.split('\n')
     for line in lines:
         if 'Bliss memory out' in line:
             bliss_memory_out = True
@@ -99,9 +98,6 @@ def parse_boolean_flags(content, props):
         if 'reorder: only one of from_var and to_var are removed, invalid generator' in line:
             reorder_var_removed = True
 
-        if line == 'MemoryError':
-            translate_out_of_memory = true
-
     props['bliss_out_of_memory'] = bliss_memory_out
     props['bliss_out_of_time'] = bliss_timeout
     props['generator_lifted_affecting_actions_axioms'] = generator_lifted_affecting_actions_axioms
@@ -111,7 +107,7 @@ def parse_boolean_flags(content, props):
     props['simplify_var_removed'] = simplify_var_removed
     props['simplify_val_removed'] = simplify_val_removed
     props['reorder_var_removed'] = reorder_var_removed
-    props['translate_out_of_memory'] = translate_out_of_memory
+
 
 parser.add_function(parse_boolean_flags)
 
@@ -133,5 +129,15 @@ def parse_errors(content, props):
         props['error'] = 'unexplained-exitcode-%d' % exitcode
 
 parser.add_function(parse_errors)
+
+def parse_memory_error(content, props):
+    translate_out_of_memory = False
+    lines = content.split('\n')
+    for line in lines:
+        if line == 'MemoryError':
+            translate_out_of_memory = true
+    props['translate_out_of_memory'] = translate_out_of_memory
+
+parser.add_function(parse_memory_error, file='run.err')
 
 parser.parse()
