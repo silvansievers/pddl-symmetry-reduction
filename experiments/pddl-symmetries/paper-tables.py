@@ -3,6 +3,7 @@
 
 import itertools
 import numpy
+import os
 
 from collections import defaultdict
 
@@ -288,15 +289,18 @@ def parse_list_of_generator_orders(props):
 
 exp = FastDownwardExperiment()
 
-REVISION = 'daef8124988b'
+REV_REG = 'df0a8bea28c7'
+REV_BAG = '10e2e6a48a8b'
 
-exp.add_fetcher('data/2017-02-17-lifted-stabinit-eval',filter=[symmetries_or_not,parse_list_of_generator_orders],filter_algorithm=[
-    #'{}-translate'.format(REVISION),
-    '{}-translate-stabinit'.format(REVISION),
-    #'{}-translate-stabinit-noblisslimit'.format(REVISION),
-    #'{}-translate-stabinit-ground'.format(REVISION),
-    #'{}-translate-stabinit-ground-noneofthose'.format(REVISION),
-],filter_domain=suite)
+def rename_revision(run):
+    algo = run['algorithm']
+    algo = algo.replace('{}-'.format(REV_REG), 'regular-')
+    algo = algo.replace('{}-'.format(REV_BAG), 'baggy-')
+    run['algorithm'] = algo
+    return run
+
+exp.add_fetcher(os.path.expanduser('~/repos/downward/pddl-symmetries/experiments/pddl-symmetries/data/2017-08-16-lifted-stabinit-eval'),filter=[symmetries_or_not,parse_list_of_generator_orders,rename_revision],filter_domain=suite)
+exp.add_fetcher(os.path.expanduser('~/repos/downward/pddl-symmetries/experiments/pddl-symmetries/data/2017-09-11-lifted-stabinit-rerun-scicore-eval'),filter=[symmetries_or_not,parse_list_of_generator_orders,rename_revision],filter_domain=suite)
 
 num_tasks = Attribute('num_tasks', absolute=True)
 has_symmetries = Attribute('has_symmetries', absolute=True, min_wins=False)
@@ -313,7 +317,18 @@ def print_stuff(run):
 exp.add_report(
     DomainAttributesReport(
         filter_algorithm=[
-            '{}-translate-stabinit'.format(REVISION),
+            'regular-translate-stabinit',
+        ],
+        format='tex',
+        attributes=['num_tasks', 'has_symmetries', generator_count_lifted_sum, generator_count_lifted_gm, translator_time_symmetries0_computing_symmetries, 'orders', 'orders'],
+        aggregation_functions=[sum, sum, sum, numpy.median, geometric_mean, geometric_mean, numpy.median],
+        #filter=[print_stuff],
+        ))
+
+exp.add_report(
+    DomainAttributesReport(
+        filter_algorithm=[
+            'baggy-translate-stabinit',
         ],
         format='tex',
         attributes=['num_tasks', 'has_symmetries', generator_count_lifted_sum, generator_count_lifted_gm, translator_time_symmetries0_computing_symmetries, 'orders', 'orders'],

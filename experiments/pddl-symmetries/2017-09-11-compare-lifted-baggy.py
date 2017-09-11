@@ -151,7 +151,7 @@ def main(revisions=None):
         return run
 
     exp.add_fetcher(os.path.expanduser('~/repos/downward/pddl-symmetries/experiments/pddl-symmetries/data/2017-08-16-lifted-stabinit-eval'),filter=[rename_revision])
-    exp.add_fetcher(os.path.expanduser('~/repos/downward/pddl-symmetries/experiments/pddl-symmetries/data/2017-09-11-lifted-stabinit-eval'),filter=[rename_revision])
+    exp.add_fetcher(os.path.expanduser('~/repos/downward/pddl-symmetries/experiments/pddl-symmetries/data/2017-09-11-lifted-stabinit-rerun-scicore-eval'),filter=[rename_revision])
 
     def compute_removed_count_in_each_step(props):
         count_lifted = props.get('generator_count_lifted', 0)
