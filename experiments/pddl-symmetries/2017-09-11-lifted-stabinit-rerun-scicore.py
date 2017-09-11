@@ -126,7 +126,7 @@ def main(revisions=None):
     'parking-opt11-strips',
     'tpp',
     'parking-sat14-strips']
-    environment = BaselSlurmEnvironment(qos='30min', partition='scicore', email="silvan.sievers@unibas.ch", export=["PATH", "DOWNWARD_BENCHMARKS"])
+    environment = BaselSlurmEnvironment(qos='30min', partition='scicore', email="silvan.sievers@unibas.ch", export=["PATH", "DOWNWARD_BAGGY_BENCHMARKS"])
 
     if is_test_run():
         suite = ['gripper']
