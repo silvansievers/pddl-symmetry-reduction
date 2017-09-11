@@ -7,6 +7,8 @@ import suites
 from lab.environments import LocalEnvironment, BaselSlurmEnvironment
 from lab.reports import Attribute, geometric_mean
 
+from downward.reports.compare import ComparativeReport
+
 from common_setup import IssueConfig, IssueExperiment, DEFAULT_OPTIMAL_SUITE, is_test_run
 try:
     from relativescatter import RelativeScatterPlotReport
@@ -15,56 +17,129 @@ except ImportError:
     print 'matplotlib not availabe, scatter plots not available'
     matplotlib = False
 
-REVISION = 'df0a8bea28c7'
+REVISION = ''
 
 def main(revisions=None):
     benchmarks_dir=os.path.expanduser('~/repos/downward/benchmarks')
     # optimal union satisficing
     suite = [
-    'openstacks-sat08-adl', 'miconic-simpleadl', 'barman-sat14-strips',
-    'transport-opt11-strips', 'openstacks-sat08-strips', 'logistics98',
-    'parking-sat11-strips', 'psr-large', 'rovers', 'floortile-opt14-strips',
-    'barman-opt14-strips', 'zenotravel', 'elevators-sat11-strips',
-    'nomystery-opt11-strips', 'parcprinter-08-strips', 'tidybot-opt11-strips',
-    'cavediving-14-adl', 'pegsol-opt11-strips', 'maintenance-opt14-adl',
-    'citycar-opt14-adl', 'pipesworld-notankage', 'woodworking-sat08-strips',
-    'woodworking-opt11-strips', 'driverlog', 'gripper', 'visitall-sat11-strips',
-    'openstacks', 'hiking-opt14-strips', 'sokoban-opt11-strips',
-    'tetris-sat14-strips', 'parcprinter-opt11-strips', 'openstacks-strips',
-    'parcprinter-sat11-strips', 'grid', 'sokoban-opt08-strips',
-    'elevators-opt08-strips', 'openstacks-sat14-strips', 'barman-sat11-strips',
-    'tidybot-sat11-strips', 'mystery', 'visitall-opt14-strips',
-    'childsnack-sat14-strips', 'sokoban-sat11-strips', 'trucks',
-    'sokoban-sat08-strips', 'barman-opt11-strips', 'childsnack-opt14-strips',
-    'parking-opt14-strips', 'openstacks-opt11-strips', 'elevators-sat08-strips',
-    'movie', 'tidybot-opt14-strips', 'freecell', 'openstacks-opt14-strips',
-    'scanalyzer-sat11-strips', 'ged-opt14-strips', 'pegsol-sat11-strips',
-    'transport-opt08-strips', 'mprime', 'floortile-opt11-strips',
-    'transport-sat08-strips', 'pegsol-08-strips', 'blocks',
-    'floortile-sat11-strips', 'thoughtful-sat14-strips', 'openstacks-opt08-strips',
-    'visitall-sat14-strips', 'pipesworld-tankage', 'scanalyzer-opt11-strips',
-    'storage', 'maintenance-sat14-adl', 'optical-telegraphs',
-    'elevators-opt11-strips', 'miconic', 'logistics00', 'depot',
-    'transport-sat11-strips', 'openstacks-opt08-adl', 'psr-small', 'satellite',
-    'assembly', 'citycar-sat14-adl', 'schedule', 'miconic-fulladl',
-    'pathways-noneg', 'tetris-opt14-strips', 'ged-sat14-strips', 'pathways',
-    'woodworking-opt08-strips', 'floortile-sat14-strips', 'nomystery-sat11-strips',
-    'transport-opt14-strips', 'woodworking-sat11-strips', 'philosophers',
-    'trucks-strips', 'hiking-sat14-strips', 'transport-sat14-strips',
-    'openstacks-sat11-strips', 'scanalyzer-08-strips', 'visitall-opt11-strips',
-    'psr-middle', 'airport', 'parking-opt11-strips', 'tpp', 'parking-sat14-strips']
+    #'reformulated-openstacks-sat08-adl',
+    'reformulated-miconic-simpleadl',
+    'reformulated-barman-sat14-strips',
+    'reformulated-transport-opt11-strips',
+    'reformulated-openstacks-sat08-strips',
+    'reformulated-logistics98',
+    'reformulated-parking-sat11-strips',
+    #'reformulated-psr-large',
+    'reformulated-rovers',
+    'reformulated-floortile-opt14-strips',
+    'reformulated-barman-opt14-strips',
+    'reformulated-zenotravel',
+    'reformulated-elevators-sat11-strips',
+    'reformulated-nomystery-opt11-strips',
+    'reformulated-parcprinter-08-strips',
+    #'reformulated-tidybot-opt11-strips',
+    'reformulated-cavediving-14-adl',
+    'reformulated-pegsol-opt11-strips',
+    'reformulated-maintenance-opt14-adl',
+    'reformulated-citycar-opt14-adl',
+    'reformulated-pipesworld-notankage',
+    'reformulated-woodworking-sat08-strips',
+    'reformulated-woodworking-opt11-strips',
+    'reformulated-driverlog',
+    'reformulated-gripper',
+    'reformulated-visitall-sat11-strips',
+    #'reformulated-openstacks',
+    'reformulated-hiking-opt14-strips',
+    'reformulated-sokoban-opt11-strips',
+    'reformulated-tetris-sat14-strips',
+    'reformulated-parcprinter-opt11-strips',
+    'reformulated-openstacks-strips',
+    'reformulated-parcprinter-sat11-strips',
+    'reformulated-grid',
+    'reformulated-sokoban-opt08-strips',
+    'reformulated-elevators-opt08-strips',
+    'reformulated-openstacks-sat14-strips',
+    'reformulated-barman-sat11-strips',
+    #'reformulated-tidybot-sat11-strips',
+    'reformulated-mystery',
+    'reformulated-visitall-opt14-strips',
+    'reformulated-childsnack-sat14-strips',
+    'reformulated-sokoban-sat11-strips',
+    #'reformulated-trucks',
+    'reformulated-sokoban-sat08-strips',
+    'reformulated-barman-opt11-strips',
+    'reformulated-childsnack-opt14-strips',
+    'reformulated-parking-opt14-strips',
+    'reformulated-openstacks-opt11-strips',
+    'reformulated-elevators-sat08-strips',
+    #'reformulated-movie',
+    #'reformulated-tidybot-opt14-strips',
+    #'reformulated-freecell',
+    'reformulated-openstacks-opt14-strips',
+    'reformulated-scanalyzer-sat11-strips',
+    #'reformulated-ged-opt14-strips',
+    'reformulated-pegsol-sat11-strips',
+    'reformulated-transport-opt08-strips',
+    #'reformulated-mprime',
+    'reformulated-floortile-opt11-strips',
+    'reformulated-transport-sat08-strips',
+    'reformulated-pegsol-08-strips',
+    #'reformulated-blocks',
+    'reformulated-floortile-sat11-strips',
+    'reformulated-thoughtful-sat14-strips',
+    'reformulated-openstacks-opt08-strips',
+    'reformulated-visitall-sat14-strips',
+    'reformulated-pipesworld-tankage',
+    'reformulated-scanalyzer-opt11-strips',
+    'reformulated-storage',
+    'reformulated-maintenance-sat14-adl',
+    #'reformulated-optical-telegraphs',
+    'reformulated-elevators-opt11-strips',
+    'reformulated-miconic',
+    'reformulated-logistics00',
+    'reformulated-depot',
+    'reformulated-transport-sat11-strips',
+    #'reformulated-openstacks-opt08-adl',
+    'reformulated-psr-small',
+    'reformulated-satellite',
+    #'reformulated-assembly',
+    'reformulated-citycar-sat14-adl',
+    'reformulated-schedule',
+    #'reformulated-miconic-fulladl',
+    'reformulated-pathways-noneg',
+    'reformulated-tetris-opt14-strips',
+    #'reformulated-ged-sat14-strips',
+    'reformulated-pathways',
+    'reformulated-woodworking-opt08-strips',
+    'reformulated-floortile-sat14-strips',
+    'reformulated-nomystery-sat11-strips',
+    'reformulated-transport-opt14-strips',
+    'reformulated-woodworking-sat11-strips',
+    #'reformulated-philosophers',
+    'reformulated-trucks-strips',
+    'reformulated-hiking-sat14-strips',
+    'reformulated-transport-sat14-strips',
+    'reformulated-openstacks-sat11-strips',
+    'reformulated-scanalyzer-08-strips',
+    'reformulated-visitall-opt11-strips',
+    #'reformulated-psr-middle',
+    'reformulated-airport',
+    'reformulated-parking-opt11-strips',
+    'reformulated-tpp',
+    'reformulated-parking-sat14-strips']
     environment = BaselSlurmEnvironment(email="silvan.sievers@unibas.ch", export=["PATH", "DOWNWARD_BENCHMARKS"])
 
     if is_test_run():
-        suite = ['gripper']
+        suite = ['reformulated-gripper']
         environment = LocalEnvironment(processes=4)
 
     configs = {
         IssueConfig('translate', [], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '2G']),
         IssueConfig('translate-stabinit', ['--translate-options', '--compute-symmetries', '--stabilize-initial-state', '--bliss-time-limit', '300', ], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '2G']),
 
-        IssueConfig('translate-stabinit-ground', ['--translate-options', '--compute-symmetries', '--stabilize-initial-state', '--ground-symmetries', '--bliss-time-limit', '300',], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '2G']),
-        IssueConfig('translate-stabinit-ground-noneofthose', ['--translate-options', '--compute-symmetries', '--stabilize-initial-state', '--ground-symmetries', '--add-none-of-those-mappings', '--bliss-time-limit', '300',], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '2G']),
+        #IssueConfig('translate-stabinit-ground', ['--translate-options', '--compute-symmetries', '--stabilize-initial-state', '--ground-symmetries', '--bliss-time-limit', '300',], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '2G']),
+        #IssueConfig('translate-stabinit-ground-noneofthose', ['--translate-options', '--compute-symmetries', '--stabilize-initial-state', '--ground-symmetries', '--add-none-of-those-mappings', '--bliss-time-limit', '300',], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '2G']),
     }
 
     exp = IssueExperiment(
@@ -172,6 +247,19 @@ def main(revisions=None):
     attributes.extend(extra_attributes)
     attributes.append('translator_time_symmetries*')
 
+    REV_REG = 'df0a8bea28c7'
+    REV_BAG = '10e2e6a48a8b'
+
+    def rename_revision(run):
+        algo = run['algorithm']
+        algo = algo.replace('{}-'.format(REV_REG), 'regular-')
+        algo = algo.replace('{}-'.format(REV_BAG), 'baggy-')
+        run['algorithm'] = algo
+        return run
+
+    exp.add_fetcher(os.path.expanduser('~/repos/downward/pddl-symmetries/experiments/pddl-symmetries/data/2017-08-16-lifted-stabinit-eval'),filter=[rename_revision])
+    exp.add_fetcher(os.path.expanduser('~/repos/downward/pddl-symmetries/experiments/pddl-symmetries/data/2017-09-11-lifted-stabinit-eval'),filter=[rename_revision])
+
     def compute_removed_count_in_each_step(props):
         count_lifted = props.get('generator_count_lifted', 0)
         count_grounded_1 = props.get('generator_count_grounded_1_after_grounding', 0)
@@ -185,11 +273,16 @@ def main(revisions=None):
         return props
 
     exp.add_absolute_report_step(attributes=attributes,filter_algorithm=[
-        '{}-translate'.format(REVISION),
-        '{}-translate-stabinit'.format(REVISION),
-        '{}-translate-stabinit-ground'.format(REVISION),
-        '{}-translate-stabinit-ground-noneofthose'.format(REVISION),
+        'regular-translate',
+        'regular-translate-stabinit',
+        'baggy-translate',
+        'baggy-translate-stabinit',
     ],filter=[compute_removed_count_in_each_step])
+
+    exp.add_report(ComparativeReport(attributes=attributes,algorithm_pairs=[
+        ('regular-translate', 'baggy-translate'),
+        ('regular-translate-stabinit', 'baggy-translate-stabinit'),
+    ],filter=[compute_removed_count_in_each_step]),outfile=os.path.join(exp.eval_dir, 'compare-regular-baggy.html'))
 
     exp.run_steps()
 
