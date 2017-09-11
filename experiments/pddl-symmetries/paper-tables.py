@@ -9,42 +9,47 @@ from collections import defaultdict
 
 from downward.experiment import FastDownwardExperiment
 from downward.reports import PlanningReport
+from downward.reports.absolute import AbsoluteReport
+from downward.reports.compare import ComparativeReport
 
 from lab.reports import Attribute, geometric_mean
 
 class DomainAttributesReport(PlanningReport):
-    def __init__(self, aggregation_functions,
+    def __init__(self, attribute_aggregation_pairs,
                  **kwargs):
-        self.sorted_attributes = kwargs['attributes']
-        self.aggregation_functions = aggregation_functions
+        self.attribute_aggregation_pairs = attribute_aggregation_pairs
         kwargs.setdefault('format', 'txt')
         PlanningReport.__init__(self, **kwargs)
-        assert(len(self.attributes) == len(self.aggregation_functions))
-        #assert(len(self.algorithms) == 1)
 
     def get_text(self):
         """
         We do not need any markup processing or loop over attributes here,
         so the get_text() method is implemented right here.
         """
+        attributes = set()
+        for attribute, aggregation in self.attribute_aggregation_pairs:
+            attributes.add(attribute)
         domain_algorithm_attribute_to_values = {}
         for (domain, algo), runs in self.domain_algorithm_runs.items():
-            for attribute in self.sorted_attributes:
+            for attribute in attributes:
                 domain_algorithm_attribute_to_values[(domain, algo, attribute)] = [
                     run.get(attribute, None) for run in runs if run.get(attribute, None) is not None]
 
         lines = []
 
         # header lines
-        algorithms_line = ['algorithm']
-        for algorithm in self.algorithms:
-            algorithms_line.append("\\multicolumn{{{}}}{{c}}{{{}}}".format(len(self.sorted_attributes), algorithm))
-        lines.append(self.format_line(algorithms_line))
+        #algorithms_line = ['algorithm']
+        #for algorithm in self.algorithms:
+            #algorithms_line.append("\\multicolumn{{{}}}{{c}}{{{}}}".format(len(self.sorted_attributes), algorithm))
+        #lines.append(self.format_line(algorithms_line))
 
         attributes_line = ['attributes']
-        for algorithm in self.algorithms:
-            for attribute in self.sorted_attributes:
-                attributes_line.append(attribute)
+        #for algorithm in self.algorithms:
+            #for attribute in self.sorted_attributes:
+                #attributes_line.append(attribute)
+        #lines.append(self.format_line(attributes_line))
+        for attribute, aggregation in self.attribute_aggregation_pairs:
+            attributes_line.append(attribute)
         lines.append(self.format_line(attributes_line))
 
         #print(len(self.problem_runs))
@@ -55,13 +60,13 @@ class DomainAttributesReport(PlanningReport):
         for domain in sorted(self.domains.keys()):
             domain_line = ['\\textsc{{{}}}'.format(domain)]
             for algorithm in self.algorithms:
-                for index, attribute in enumerate(self.sorted_attributes):
+                for attribute, aggregation in self.attribute_aggregation_pairs:
                     values = domain_algorithm_attribute_to_values[(domain, algorithm, attribute)]
                     assert isinstance(values, list)
                     if values and isinstance(values[0], list): # flatten values
                         values = list(itertools.chain.from_iterable(values))
                     if values:
-                        aggregated_value = self.aggregation_functions[index](values)
+                        aggregated_value = aggregation(values)
                         if isinstance(aggregated_value, numpy.float64):
                             aggregated_value = float(aggregated_value)
                         algorithm_attribute_to_values[(algorithm, attribute)].append(aggregated_value)
@@ -78,10 +83,10 @@ class DomainAttributesReport(PlanningReport):
         # summary line
         summary_line = ['summary']
         for algorithm in self.algorithms:
-            for index, attribute in enumerate(self.sorted_attributes):
+            for attribute, aggregation in self.attribute_aggregation_pairs:
                 values = algorithm_attribute_to_values[(algorithm, attribute)]
                 if values:
-                    summary_value = self.aggregation_functions[index](values)
+                    summary_value = aggregation(values)
                 else:
                     summary_value = None
                 summary_line.append(summary_value)
@@ -305,8 +310,10 @@ exp.add_fetcher(os.path.expanduser('~/repos/downward/pddl-symmetries/experiments
 num_tasks = Attribute('num_tasks', absolute=True)
 has_symmetries = Attribute('has_symmetries', absolute=True, min_wins=False)
 generator_count_lifted_sum = Attribute('generator_count_lifted', absolute=True, min_wins=False, functions=[sum])
-generator_count_lifted_gm = Attribute('generator_count_lifted', absolute=True, min_wins=False, functions=[geometric_mean])
+generator_count_lifted_gm = Attribute('generator_count_lifted', absolute=True, min_wins=False, functions=[numpy.median])
 translator_time_symmetries0_computing_symmetries = Attribute('translator_time_symmetries0_computing_symmetries', absolute=False, min_wins=True, functions=[geometric_mean])
+#orders_gm = Attribute('orders', absolute=True, min_wins=False, functions=[geometric_mean])
+#orders_mean = Attribute('orders', absolute=True, min_wins=False, functions=[numpy.median])
 
 def print_stuff(run):
     translator_time_symmetries0_computing_symmetries = run.get('translator_time_symmetries0_computing_symmetries', None)
@@ -314,16 +321,27 @@ def print_stuff(run):
         print("time_symmetries", translator_time_symmetries0_computing_symmetries, run.get('domain'), run.get('problem'))
     return run
 
+exp.add_report(AbsoluteReport(attributes=[generator_count_lifted_sum]))
+
 exp.add_report(
     DomainAttributesReport(
         filter_algorithm=[
             'regular-translate-stabinit',
         ],
         format='tex',
-        attributes=['num_tasks', 'has_symmetries', generator_count_lifted_sum, generator_count_lifted_gm, translator_time_symmetries0_computing_symmetries, 'orders', 'orders'],
-        aggregation_functions=[sum, sum, sum, numpy.median, geometric_mean, geometric_mean, numpy.median],
+        attribute_aggregation_pairs=[
+            ('num_tasks', sum),
+            ('has_symmetries', sum),
+            ('generator_count_lifted', sum),
+            ('generator_count_lifted', numpy.median),
+            #('translator_time_symmetries0_computing_symmetries', geometric_mean),
+            #('orders', geometric_mean),
+            #('orders', numpy.median),
+        ],
         #filter=[print_stuff],
-        ))
+        ),
+        outfile=os.path.join(exp.eval_dir, 'regular'),
+    )
 
 exp.add_report(
     DomainAttributesReport(
@@ -331,9 +349,30 @@ exp.add_report(
             'baggy-translate-stabinit',
         ],
         format='tex',
-        attributes=['num_tasks', 'has_symmetries', generator_count_lifted_sum, generator_count_lifted_gm, translator_time_symmetries0_computing_symmetries, 'orders', 'orders'],
-        aggregation_functions=[sum, sum, sum, numpy.median, geometric_mean, geometric_mean, numpy.median],
+        attribute_aggregation_pairs=[
+            ('num_tasks', sum),
+            ('has_symmetries', sum),
+            ('generator_count_lifted', sum),
+            ('generator_count_lifted', numpy.median),
+            ('translator_time_symmetries0_computing_symmetries', geometric_mean),
+            ('orders', geometric_mean),
+            ('orders', numpy.median),
+        ],
         #filter=[print_stuff],
-        ))
+        ),
+        outfile=os.path.join(exp.eval_dir, 'baggy'),
+    )
+
+exp.add_report(
+    ComparativeReport(
+        attributes=[num_tasks, has_symmetries],
+        algorithm_pairs=[
+            #('regular-translate', 'baggy-translate'),
+            ('regular-translate-stabinit', 'baggy-translate-stabinit'),
+        ],
+        format='tex',
+        ),
+    outfile=os.path.join(exp.eval_dir, 'compare-regular-baggy.tex')
+)
 
 exp.run_steps()
