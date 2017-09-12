@@ -38,25 +38,19 @@ class DomainAttributesReport(PlanningReport):
         lines = []
 
         # header lines
-        #algorithms_line = ['algorithm']
-        #for algorithm in self.algorithms:
-            #algorithms_line.append("\\multicolumn{{{}}}{{c}}{{{}}}".format(len(self.sorted_attributes), algorithm))
-        #lines.append(self.format_line(algorithms_line))
+        algorithms_line = ['algorithm']
+        for algorithm in self.algorithms:
+            algorithms_line.append("\\multicolumn{{{}}}{{c}}{{{}}}".format(len(self.attribute_aggregation_pairs), algorithm))
+        lines.append(self.format_line(algorithms_line))
 
         attributes_line = ['attributes']
-        #for algorithm in self.algorithms:
-            #for attribute in self.sorted_attributes:
-                #attributes_line.append(attribute)
-        #lines.append(self.format_line(attributes_line))
-        for attribute, aggregation in self.attribute_aggregation_pairs:
-            attributes_line.append(attribute)
+        for algorithm in self.algorithms:
+            for attribute, aggregation in self.attribute_aggregation_pairs:
+                attributes_line.append(attribute)
         lines.append(self.format_line(attributes_line))
 
-        #print(len(self.problem_runs))
-        #print(len(self.domains.keys()))
-
         # body lines
-        algorithm_attribute_to_values = defaultdict(list)
+        algorithm_attribute_aggregation_to_values = defaultdict(list)
         for domain in sorted(self.domains.keys()):
             domain_line = ['\\textsc{{{}}}'.format(domain)]
             for algorithm in self.algorithms:
@@ -69,12 +63,12 @@ class DomainAttributesReport(PlanningReport):
                         aggregated_value = aggregation(values)
                         if isinstance(aggregated_value, numpy.float64):
                             aggregated_value = float(aggregated_value)
-                        algorithm_attribute_to_values[(algorithm, attribute)].append(aggregated_value)
+                        algorithm_attribute_aggregation_to_values[(algorithm, attribute, aggregation)].append(aggregated_value)
                     else:
                         # No values for the attribute, hene no aggregated value
                         # we write an empty table cell, i.e. '', into the domain
                         # line. Note that we don't want to store this value in
-                        # algorithm_attribute_to_values, to avoid failing
+                        # algorithm_attribute_aggregation_to_values, to avoid failing
                         # aggregation functions.
                         aggregated_value = ''
                     domain_line.append(aggregated_value)
@@ -84,7 +78,7 @@ class DomainAttributesReport(PlanningReport):
         summary_line = ['summary']
         for algorithm in self.algorithms:
             for attribute, aggregation in self.attribute_aggregation_pairs:
-                values = algorithm_attribute_to_values[(algorithm, attribute)]
+                values = algorithm_attribute_aggregation_to_values[(algorithm, attribute, aggregation)]
                 if values:
                     summary_value = aggregation(values)
                 else:
@@ -334,9 +328,9 @@ exp.add_report(
             ('has_symmetries', sum),
             ('generator_count_lifted', sum),
             ('generator_count_lifted', numpy.median),
-            #('translator_time_symmetries0_computing_symmetries', geometric_mean),
-            #('orders', geometric_mean),
-            #('orders', numpy.median),
+            ('translator_time_symmetries0_computing_symmetries', geometric_mean),
+            ('orders', geometric_mean),
+            ('orders', numpy.median),
         ],
         #filter=[print_stuff],
         ),
