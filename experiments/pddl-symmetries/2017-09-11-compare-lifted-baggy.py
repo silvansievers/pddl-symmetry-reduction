@@ -20,6 +20,7 @@ except ImportError:
 REVISION = ''
 
 def main(revisions=None):
+    suite=['gripper']
     benchmarks_dir=os.path.expanduser('~/repos/downward/benchmarks')
     environment = BaselSlurmEnvironment(email="silvan.sievers@unibas.ch", export=["PATH", "DOWNWARD_BENCHMARKS"])
 
