@@ -55,8 +55,8 @@ class DomainAttributesReport(PlanningReport):
             domain_line = ['\\textsc{{{}}}'.format(domain)]
             for algorithm in self.algorithms:
                 for attribute, aggregation in self.attribute_aggregation_pairs:
-                    values = domain_algorithm_attribute_to_values[(domain, algorithm, attribute)]
-                    assert isinstance(values, list)
+                    values = domain_algorithm_attribute_to_values.get((domain, algorithm, attribute), None)
+                    assert isinstance(values, list) or values is None
                     if values and isinstance(values[0], list): # flatten values
                         values = list(itertools.chain.from_iterable(values))
                     if values:
@@ -321,6 +321,7 @@ exp.add_report(
     DomainAttributesReport(
         filter_algorithm=[
             'regular-translate-stabinit',
+            'baggy-translate-stabinit',
         ],
         format='tex',
         attribute_aggregation_pairs=[
