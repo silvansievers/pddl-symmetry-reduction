@@ -135,7 +135,7 @@ def parse_memory_error(content, props):
     lines = content.split('\n')
     for line in lines:
         if line == 'MemoryError':
-            translate_out_of_memory = true
+            translate_out_of_memory = True
     props['translate_out_of_memory'] = translate_out_of_memory
 
 parser.add_function(parse_memory_error, file='run.err')

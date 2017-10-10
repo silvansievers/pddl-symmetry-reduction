@@ -17,36 +17,19 @@ except ImportError:
     print 'matplotlib not availabe, scatter plots not available'
     matplotlib = False
 
-REVISION = ''
-
-def main(revisions=None):
-    suite=['gripper']
-    benchmarks_dir=os.path.expanduser('~/repos/downward/benchmarks')
-    environment = BaselSlurmEnvironment(email="silvan.sievers@unibas.ch", export=["PATH", "DOWNWARD_BENCHMARKS"])
+def main(revisions=[]):
+    environment = BaselSlurmEnvironment(email="silvan.sievers@unibas.ch", export=["PATH"])
 
     if is_test_run():
-        suite = ['gripper']
         environment = LocalEnvironment(processes=4)
 
-    configs = {
-        IssueConfig('translate', [], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '2G']),
-        IssueConfig('translate-stabinit', ['--translate-options', '--compute-symmetries', '--stabilize-initial-state', '--bliss-time-limit', '300', ], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '2G']),
-
-        #IssueConfig('translate-stabinit-ground', ['--translate-options', '--compute-symmetries', '--stabilize-initial-state', '--ground-symmetries', '--bliss-time-limit', '300',], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '2G']),
-        #IssueConfig('translate-stabinit-ground-noneofthose', ['--translate-options', '--compute-symmetries', '--stabilize-initial-state', '--ground-symmetries', '--add-none-of-those-mappings', '--bliss-time-limit', '300',], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '2G']),
-    }
+    configs = {}
 
     exp = IssueExperiment(
         revisions=revisions,
         configs=configs,
         environment=environment,
     )
-    exp.add_suite(benchmarks_dir, suite)
-    exp.add_resource('symmetries_parser', 'symmetries-parser.py', dest='symmetries-parser.py')
-    exp.add_command('symmetries-parser', ['{symmetries_parser}'])
-    del exp.commands['parse-search']
-    for run in exp.runs:
-        del run.commands['compress-output-sas']
 
     generator_count_lifted = Attribute('generator_count_lifted', absolute=True, min_wins=False)
     generator_count_lifted_mapping_objects_predicates = Attribute('generator_count_lifted_mapping_objects_predicates', absolute=True, min_wins=False)
@@ -141,18 +124,15 @@ def main(revisions=None):
     attributes.extend(extra_attributes)
     attributes.append('translator_time_symmetries*')
 
-    REV_REG = 'df0a8bea28c7'
-    REV_BAG = '10e2e6a48a8b'
-
-    def rename_revision(run):
+    REV = '6a3ab5b31169'
+    def remove_revision(run):
         algo = run['algorithm']
-        algo = algo.replace('{}-'.format(REV_REG), 'regular-')
-        algo = algo.replace('{}-'.format(REV_BAG), 'baggy-')
+        algo = algo.replace('{}-'.format(REV), '')
         run['algorithm'] = algo
         return run
 
-    exp.add_fetcher(os.path.expanduser('~/repos/downward/pddl-symmetries/experiments/pddl-symmetries/data/2017-08-16-lifted-stabinit-eval'),filter=[rename_revision])
-    exp.add_fetcher(os.path.expanduser('~/repos/downward/pddl-symmetries/experiments/pddl-symmetries/data/2017-09-11-lifted-stabinit-rerun-scicore-eval'),filter=[rename_revision])
+    exp.add_fetcher(os.path.expanduser('~/repos/downward/pddl-symmetries/experiments/pddl-symmetries/data/2017-10-10-lifted-stabinit-eval'),filter=[remove_revision])
+    exp.add_fetcher(os.path.expanduser('~/repos/downward/pddl-symmetries/experiments/pddl-symmetries/data/2017-10-10-lifted-stabinit-baggy-eval'),filter=[remove_revision])
 
     def compute_removed_count_in_each_step(props):
         count_lifted = props.get('generator_count_lifted', 0)
@@ -167,17 +147,17 @@ def main(revisions=None):
         return props
 
     exp.add_absolute_report_step(attributes=attributes,filter_algorithm=[
-        'regular-translate',
-        'regular-translate-stabinit',
+        'translate',
+        'translate-stabinit',
         'baggy-translate',
         'baggy-translate-stabinit',
     ],filter=[compute_removed_count_in_each_step])
 
     exp.add_report(ComparativeReport(attributes=attributes,algorithm_pairs=[
-        ('regular-translate', 'baggy-translate'),
-        ('regular-translate-stabinit', 'baggy-translate-stabinit'),
+        ('translate', 'baggy-translate'),
+        ('translate-stabinit', 'baggy-translate-stabinit'),
     ],filter=[compute_removed_count_in_each_step]),outfile=os.path.join(exp.eval_dir, 'compare-regular-baggy.html'))
 
     exp.run_steps()
 
-main(revisions=[REVISION])
+main()
