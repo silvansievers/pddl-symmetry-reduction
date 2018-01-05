@@ -6,6 +6,7 @@ import suites
 
 from lab.environments import LocalEnvironment, BaselSlurmEnvironment
 from lab.reports import Attribute, geometric_mean
+from downward.reports.compare import ComparativeReport
 
 from common_setup import IssueConfig, IssueExperiment, DEFAULT_OPTIMAL_SUITE, is_test_run
 try:
@@ -15,7 +16,7 @@ except ImportError:
     print 'matplotlib not availabe, scatter plots not available'
     matplotlib = False
 
-REVISION = '6a3ab5b31169'
+REVISION = 'cabc8b0c737e'
 
 def main(revisions=None):
     benchmarks_dir=os.path.expanduser('~/repos/downward/benchmarks')
@@ -62,9 +63,6 @@ def main(revisions=None):
     configs = {
         IssueConfig('translate', [], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '2G']),
         IssueConfig('translate-stabinit', ['--translate-options', '--compute-symmetries', '--stabilize-initial-state', '--bliss-time-limit', '300', ], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '2G']),
-
-        #IssueConfig('translate-stabinit-ground', ['--translate-options', '--compute-symmetries', '--stabilize-initial-state', '--ground-symmetries', '--bliss-time-limit', '300',], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '2G']),
-        #IssueConfig('translate-stabinit-ground-noneofthose', ['--translate-options', '--compute-symmetries', '--stabilize-initial-state', '--ground-symmetries', '--add-none-of-those-mappings', '--bliss-time-limit', '300',], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '2G']),
     }
 
     exp = IssueExperiment(
@@ -76,7 +74,6 @@ def main(revisions=None):
     exp.add_resource('symmetries_parser', 'symmetries-parser.py', dest='symmetries-parser.py')
     exp.add_command('symmetries-parser', ['{symmetries_parser}'])
     del exp.commands['parse-search']
-    # del exp.commands['compress-output-sas']
 
     generator_count_lifted = Attribute('generator_count_lifted', absolute=True, min_wins=False)
     generator_count_lifted_mapping_objects_predicates = Attribute('generator_count_lifted_mapping_objects_predicates', absolute=True, min_wins=False)
@@ -186,9 +183,21 @@ def main(revisions=None):
     exp.add_absolute_report_step(attributes=attributes,filter_algorithm=[
         '{}-translate'.format(REVISION),
         '{}-translate-stabinit'.format(REVISION),
-        #'{}-translate-stabinit-ground'.format(REVISION),
-        #'{}-translate-stabinit-ground-noneofthose'.format(REVISION),
     ],filter=[compute_removed_count_in_each_step])
+
+    OLD_REV = '6a3ab5b31169'
+    exp.add_fetcher('data/2017-10-10-lifted-stabinit-eval')
+
+    exp.add_report(
+        ComparativeReport(
+            algorithm_pairs=[
+                ('{}-translate'.format(OLD_REV), '{}-translate'.format(REVISION)),
+                ('{}-translate-stabinit'.format(OLD_REV), '{}-translate-stabinit'.format(REVISION)),
+            ],
+            attributes=attributes,
+        ),
+        outfile=os.path.join(exp.eval_dir, 'compare.html'),
+    )
 
     exp.run_steps()
 

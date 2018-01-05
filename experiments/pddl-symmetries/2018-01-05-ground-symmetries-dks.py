@@ -6,6 +6,7 @@ import suites
 
 from lab.environments import LocalEnvironment, BaselSlurmEnvironment
 from lab.reports import Attribute, geometric_mean
+from downward.reports.compare import ComparativeReport
 
 from common_setup import IssueConfig, IssueExperiment, DEFAULT_OPTIMAL_SUITE, is_test_run
 try:
@@ -15,7 +16,7 @@ except ImportError:
     print 'matplotlib not availabe, scatter plots not available'
     matplotlib = False
 
-REVISION = '6a3ab5b31169'
+REVISION = 'cabc8b0c737e'
 
 def main(revisions=None):
     benchmarks_dir=os.path.expanduser('~/repos/downward/benchmarks')
@@ -56,15 +57,13 @@ def main(revisions=None):
     environment = BaselSlurmEnvironment(email="silvan.sievers@unibas.ch", export=["PATH"])
 
     if is_test_run():
-        suite = ['gripper']
+        suite = ['gripper:prob01.pddl', 'depot:p01.pddl', 'mystery:prob07.pddl']
         environment = LocalEnvironment(processes=4)
 
     configs = {
-        IssueConfig('translate', [], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '2G']),
-        IssueConfig('translate-stabinit', ['--translate-options', '--compute-symmetries', '--stabilize-initial-state', '--bliss-time-limit', '300', ], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '2G']),
-
-        #IssueConfig('translate-stabinit-ground', ['--translate-options', '--compute-symmetries', '--stabilize-initial-state', '--ground-symmetries', '--bliss-time-limit', '300',], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '2G']),
-        #IssueConfig('translate-stabinit-ground-noneofthose', ['--translate-options', '--compute-symmetries', '--stabilize-initial-state', '--ground-symmetries', '--add-none-of-those-mappings', '--bliss-time-limit', '300',], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '2G']),
+        IssueConfig('lmcut', ['--search', 'astar(lmcut())']),
+        IssueConfig('lmcut-dks', ['--symmetries', 'sym=structural_symmetries(time_bound=0,search_symmetries=dks,stabilize_initial_state=true)', '--search', 'astar(lmcut(),symmetries=sym)']),
+        IssueConfig('lmcut-dks-liftedsymmetries-stabinit-noneofthose', ['--translate-options', '--compute-symmetries', '--stabilize-initial-state', '--ground-symmetries', '--add-none-of-those-mappings', '--bliss-time-limit', '300', '--search-options', '--symmetries', 'sym=structural_symmetries(time_bound=0,search_symmetries=dks,source_of_symmetries=translator)', '--search', "astar(lmcut(), symmetries=sym)"], driver_options=['--translate-time-limit', '30m']),
     }
 
     exp = IssueExperiment(
@@ -76,7 +75,6 @@ def main(revisions=None):
     exp.add_resource('symmetries_parser', 'symmetries-parser.py', dest='symmetries-parser.py')
     exp.add_command('symmetries-parser', ['{symmetries_parser}'])
     del exp.commands['parse-search']
-    # del exp.commands['compress-output-sas']
 
     generator_count_lifted = Attribute('generator_count_lifted', absolute=True, min_wins=False)
     generator_count_lifted_mapping_objects_predicates = Attribute('generator_count_lifted_mapping_objects_predicates', absolute=True, min_wins=False)
@@ -184,10 +182,9 @@ def main(revisions=None):
         return props
 
     exp.add_absolute_report_step(attributes=attributes,filter_algorithm=[
-        '{}-translate'.format(REVISION),
-        '{}-translate-stabinit'.format(REVISION),
-        #'{}-translate-stabinit-ground'.format(REVISION),
-        #'{}-translate-stabinit-ground-noneofthose'.format(REVISION),
+        '{}-lmcut'.format(REVISION),
+        '{}-lmcut-dks'.format(REVISION),
+        '{}-lmcut-dks-liftedsymmetries-stabinit-noneofthose'.format(REVISION),
     ],filter=[compute_removed_count_in_each_step])
 
     exp.run_steps()
