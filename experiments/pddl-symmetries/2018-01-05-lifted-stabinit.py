@@ -186,7 +186,10 @@ def main(revisions=None):
     ],filter=[compute_removed_count_in_each_step])
 
     OLD_REV = '6a3ab5b31169'
-    exp.add_fetcher('data/2017-10-10-lifted-stabinit-eval')
+    exp.add_fetcher('data/2017-10-10-lifted-stabinit-eval',filter_algorithm=[
+        '{}-translate'.format(OLD_REV),
+        '{}-translate-stabinit'.format(OLD_REV),
+    ])
 
     exp.add_report(
         ComparativeReport(
