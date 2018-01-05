@@ -180,23 +180,19 @@ def main(revisions=None):
         props['removed4_after_reordering_filtering_vars'] = count_grounded_3 - count_grounded_4
         return props
 
-    exp.add_absolute_report_step(attributes=attributes,filter_algorithm=[
-        '{}-translate'.format(REVISION),
-        '{}-translate-stabinit'.format(REVISION),
-    ],filter=[compute_removed_count_in_each_step])
+    algorithm_nicks = [
+        'translate',
+        'translate-stabinit',
+    ]
+
+    exp.add_absolute_report_step(attributes=attributes,filter_algorithm=['{}-{}'.format(REVISION, x) for x in algorithm_nicks],filter=[compute_removed_count_in_each_step])
 
     OLD_REV = '6a3ab5b31169'
-    exp.add_fetcher('data/2017-10-10-lifted-stabinit-eval',filter_algorithm=[
-        '{}-translate'.format(OLD_REV),
-        '{}-translate-stabinit'.format(OLD_REV),
-    ])
+    exp.add_fetcher('data/2017-10-10-lifted-stabinit-eval',filter_algorithm=['{}-{}'.format(OLD_REV, x) for x in algorithm_nicks])
 
     exp.add_report(
         ComparativeReport(
-            algorithm_pairs=[
-                ('{}-translate'.format(OLD_REV), '{}-translate'.format(REVISION)),
-                ('{}-translate-stabinit'.format(OLD_REV), '{}-translate-stabinit'.format(REVISION)),
-            ],
+            algorithm_pairs=[('{}-{}'.format(OLD_REV, x), '{}-{}'.format(REVISION, x)) for x in algorithm_nicks],
             attributes=attributes,
         ),
         outfile=os.path.join(exp.eval_dir, 'compare.html'),
