@@ -1,7 +1,7 @@
 #include "state_registry.h"
 
-#include "global_operator.h"
 #include "per_state_information.h"
+#include "task_proxy.h"
 
 #include "structural_symmetries/group.h"
 #include "structural_symmetries/permutation.h"
@@ -27,6 +27,7 @@ StateRegistry::StateRegistry(
           StateIDSemanticHash(canonical_state_data_pool, get_bins_per_state()),
           StateIDSemanticEqual(canonical_state_data_pool, get_bins_per_state())),
       group(0),
+      has_symmetries_and_uses_dks(false),
       cached_initial_state(0) {
 }
 
@@ -39,10 +40,16 @@ StateRegistry::~StateRegistry() {
     delete cached_initial_state;
 }
 
+void StateRegistry::set_group(const shared_ptr<Group> &group_) {
+    // Group is only set from eager_search if it has symmetries and uses DKS.
+    group = group_;
+    has_symmetries_and_uses_dks = true;
+}
+
 StateID StateRegistry::insert_id_or_pop_state() {
-    if (group && group->has_symmetries() &&
-        group->get_search_symmetries() == SearchSymmetries::DKS)
+    if (has_symmetries_and_uses_dks) {
         return insert_id_or_pop_state_dks();
+    }
     /*
       Attempt to insert a StateID for the last state of state_data_pool
       if none is present yet. If this fails (another entry for this state
@@ -68,7 +75,7 @@ StateID StateRegistry::insert_id_or_pop_state_dks() {
     */
     StateID id(state_data_pool.size() - 1);
     // Adding an entry for the canonical state to the canonical_state_data_pool
-    int *canonical_state =
+    vector<int> canonical_state =
         group->get_canonical_representative(
             GlobalState(state_data_pool[state_data_pool.size() - 1], *this, id));
     PackedStateBin *canonical_buffer = new PackedStateBin[g_state_packer->get_num_bins()];
@@ -76,7 +83,6 @@ StateID StateRegistry::insert_id_or_pop_state_dks() {
     for (size_t i = 0; i < g_variable_domain.size(); ++i) {
         g_state_packer->set(canonical_buffer, i, canonical_state[i]);
     }
-    delete[] canonical_state;
     canonical_state_data_pool.push_back(canonical_buffer);
     delete[] canonical_buffer;
 
@@ -115,21 +121,22 @@ const GlobalState &StateRegistry::get_initial_state() {
 //TODO it would be nice to move the actual state creation (and operator application)
 //     out of the StateRegistry. This could for example be done by global functions
 //     operating on state buffers (PackedStateBin *).
-GlobalState StateRegistry::get_successor_state(const GlobalState &predecessor, const GlobalOperator &op) {
+GlobalState StateRegistry::get_successor_state(const GlobalState &predecessor, const OperatorProxy &op) {
     assert(!op.is_axiom());
     state_data_pool.push_back(predecessor.get_packed_buffer());
     PackedStateBin *buffer = state_data_pool[state_data_pool.size() - 1];
-    for (size_t i = 0; i < op.get_effects().size(); ++i) {
-        const GlobalEffect &effect = op.get_effects()[i];
-        if (effect.does_fire(predecessor))
-            state_packer.set(buffer, effect.var, effect.val);
+    for (EffectProxy effect : op.get_effects()) {
+        if (does_fire(effect, predecessor)) {
+            FactPair effect_pair = effect.get_fact().get_pair();
+            state_packer.set(buffer, effect_pair.var, effect_pair.value);
+        }
     }
     axiom_evaluator.evaluate(buffer, state_packer);
     StateID id = insert_id_or_pop_state();
     return lookup_state(id);
 }
 
-GlobalState StateRegistry::register_state_buffer(const int *state) {
+GlobalState StateRegistry::register_state_buffer(const vector<int> &state) {
     PackedStateBin *buffer = new PackedStateBin[g_state_packer->get_num_bins()];
     fill_n(buffer, g_state_packer->get_num_bins(), 0);
     for (size_t i = 0; i < g_variable_domain.size(); ++i) {

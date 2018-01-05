@@ -1,6 +1,8 @@
 #ifndef GLOBALS_H
 #define GLOBALS_H
 
+#include "operator_id.h"
+
 #include <iosfwd>
 #include <memory>
 #include <string>
@@ -14,6 +16,7 @@ class GlobalOperator;
 class GlobalState;
 class Permutation;
 class StateRegistry;
+class TaskProxy;
 
 namespace int_packer {
 class IntPacker;
@@ -33,9 +36,10 @@ bool test_goal(const GlobalState &state);
   Set generates_multiple_plan_files to true if the planner can find more than
   one plan and should number the plans as FILENAME.1, ..., FILENAME.n.
 */
-void save_plan(const std::vector<const GlobalOperator *> &plan,
+void save_plan(const std::vector<OperatorID> &plan,
+               const TaskProxy &task_proxy,
                bool generates_multiple_plan_files = false);
-int calculate_plan_cost(const std::vector<const GlobalOperator *> &plan);
+int calculate_plan_cost(const std::vector<OperatorID> &plan, const TaskProxy &task_proxy);
 
 void read_everything(std::istream &in);
 void dump_everything();
@@ -72,7 +76,10 @@ extern std::vector<std::pair<int, int>> g_goal;
 extern std::vector<GlobalOperator> g_operators;
 extern std::vector<GlobalOperator> g_axioms;
 extern AxiomEvaluator *g_axiom_evaluator;
-extern std::vector<const Permutation *> g_permutations;
+extern std::vector<std::vector<int>> g_permutations;
+extern std::vector<int> g_dom_sum_by_var;
+extern std::vector<int> g_var_by_val;
+extern int g_permutation_length;
 extern successor_generator::SuccessorGenerator *g_successor_generator;
 extern std::string g_plan_filename;
 extern int g_num_previously_generated_plans;

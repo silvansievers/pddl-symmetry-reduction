@@ -1,22 +1,23 @@
-#ifndef SYMMETRIES_PERMUTATION_H
-#define SYMMETRIES_PERMUTATION_H
+#ifndef STRUCTURAL_SYMMETRIES_PERMUTATION_H
+#define STRUCTURAL_SYMMETRIES_PERMUTATION_H
 
 #include <iosfwd>
 #include <vector>
 
-class GlobalState;
+#include "group.h"
 
 class Permutation{
 public:
-    Permutation();
-    explicit Permutation(const unsigned int *full_perm);
+    explicit Permutation(const Group &group);
+    Permutation(const Group &group, const unsigned int *full_perm);
+    Permutation(const Group &group, const std::vector<int> &full_perm);
     Permutation(const Permutation &perm, bool invert=false);
     Permutation(const Permutation &perm1, const Permutation &perm2);
-    explicit Permutation(std::istream &in);
-    ~Permutation();
+    ~Permutation() = default;
 
     bool identity() const;
     void print_cycle_notation() const;
+    void print_affected_variables_by_cycles() const;
     int get_value(int ind) const {
         return value[ind];
     }
@@ -28,36 +29,25 @@ public:
         return order;
     }
 
-    static int length;
-    static std::vector<int> var_by_val;
-    static std::vector<int> dom_sum_by_var;
-    static int num_vars;
-
-    static int get_var_by_index(int val);
-    static std::pair<int, int> get_var_val_by_index(const int ind);
-    static int get_index_by_var_val_pair(const int var, const int val);
-
     std::pair<int, int> get_new_var_val_by_old_var_val(const int var, const int val) const;
 
-    bool replace_if_less(int*) const;
-
+    bool replace_if_less(std::vector<int> &state) const;
+    const std::vector<int>& get_affected_vars() const { 
+        return vars_affected; 
+    }
 private:
-    int* value;
+    const Group &group;
+    std::vector<int> value;
     std::vector<int> vars_affected;
-    std::vector<bool> affected;
-    bool borrowed_buffer;
+
     // Need to keep the connection between affected vars, ie which var goes into which.
     std::vector<int> from_vars;
     // Affected vars by cycles
     std::vector<std::vector<int> > affected_vars_cycles;
     int order;
 
-    void set_value(int ind, int val);
-    void set_affected(int ind, int val);
-
     void finalize();
     void _allocate();
-    void _deallocate();
     void _copy_value_from_permutation(const Permutation &perm);
     void _inverse_value_from_permutation(const Permutation &perm);
 };

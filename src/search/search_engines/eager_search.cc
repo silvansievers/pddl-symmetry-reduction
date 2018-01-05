@@ -33,7 +33,7 @@ EagerSearch::EagerSearch(const Options &opts)
         group = opts.get<shared_ptr<Group>>("symmetries");
         if (group && !group->is_initialized()) {
             cout << "Initializing symmetries (eager search)" << endl;
-            group->compute_symmetries();
+            group->compute_symmetries(TaskProxy(*g_root_task()));
         }
 
         if (use_dks()) {
@@ -86,9 +86,8 @@ void EagerSearch::initialize() {
     // Changed to copy the state to be able to reassign it.
     GlobalState initial_state = state_registry.get_initial_state();
     if (use_oss()) {
-        int *canonical_state = group->get_canonical_representative(initial_state);
+        vector<int> canonical_state = group->get_canonical_representative(initial_state);
         initial_state = state_registry.register_state_buffer(canonical_state);
-        delete canonical_state;
     }
     for (Heuristic *heuristic : heuristics) {
         heuristic->notify_initial_state(initial_state);
@@ -114,7 +113,7 @@ void EagerSearch::initialize() {
 
     print_initial_h_values(eval_context);
 
-    pruning_method->initialize(g_root_task());
+    pruning_method->initialize(task);
 }
 
 void EagerSearch::print_checkpoint_line(int g) const {
@@ -155,9 +154,10 @@ SearchStatus EagerSearch::step() {
         collect_preferred_operators(eval_context, preferred_operator_heuristics);
 
     for (OperatorID op_id : applicable_ops) {
-        const GlobalOperator *op = &g_operators[op_id.get_index()];
-        if ((node.get_real_g() + op->get_cost()) >= bound)
+        OperatorProxy op = task_proxy.get_operators()[op_id];
+        if ((node.get_real_g() + op.get_cost()) >= bound)
             continue;
+
         /*
           NOTE: In orbit search tmp_registry has to survive as long as
                 succ_state is used. This could be forever, but for heuristics
@@ -166,14 +166,13 @@ SearchStatus EagerSearch::step() {
                 actually needed, but I don't see a way around having it there,
                 too.
         */
-        StateRegistry tmp_registry(*g_root_task(), *g_state_packer,
+        StateRegistry tmp_registry(*task, *g_state_packer,
                                    *g_axiom_evaluator, g_initial_state_data);
         StateRegistry *successor_registry = use_oss() ? &tmp_registry : &state_registry;
-        GlobalState succ_state = successor_registry->get_successor_state(s, *op);
+        GlobalState succ_state = successor_registry->get_successor_state(s, op);
         if (use_oss()) {
-            int *canonical_state = group->get_canonical_representative(succ_state);
+            vector<int> canonical_state = group->get_canonical_representative(succ_state);
             succ_state = state_registry.register_state_buffer(canonical_state);
-            delete canonical_state;
         }
         statistics.inc_generated();
         bool is_preferred = preferred_operators.contains(op_id);
@@ -186,12 +185,8 @@ SearchStatus EagerSearch::step() {
 
         // update new path
         if (use_multi_path_dependence || succ_node.is_new()) {
-            /*
-              Note: we must call notify_state_transition for each heuristic, so
-              don't break out of the for loop early.
-            */
             for (Heuristic *heuristic : heuristics) {
-                heuristic->notify_state_transition(s, *op, succ_state);
+                heuristic->notify_state_transition(s, op_id, succ_state);
             }
         }
 
@@ -202,7 +197,7 @@ SearchStatus EagerSearch::step() {
             // Careful: succ_node.get_g() is not available here yet,
             // hence the stupid computation of succ_g.
             // TODO: Make this less fragile.
-            int succ_g = node.get_g() + get_adjusted_cost(*op);
+            int succ_g = node.get_g() + get_adjusted_cost(op);
 
             /*
               NOTE: previous versions used the non-canocialized successor state
@@ -226,7 +221,7 @@ SearchStatus EagerSearch::step() {
                 print_checkpoint_line(succ_node.get_g());
                 reward_progress();
             }
-        } else if (succ_node.get_g() > node.get_g() + get_adjusted_cost(*op)) {
+        } else if (succ_node.get_g() > node.get_g() + get_adjusted_cost(op)) {
             // We found a new cheapest path to an open or closed state.
             if (reopen_closed_nodes) {
                 if (succ_node.is_closed()) {
@@ -342,7 +337,7 @@ void EagerSearch::reward_progress() {
 }
 
 void EagerSearch::dump_search_space() const {
-    search_space.dump();
+    search_space.dump(task_proxy);
 }
 
 void EagerSearch::start_f_value_statistics(EvaluationContext &eval_context) {

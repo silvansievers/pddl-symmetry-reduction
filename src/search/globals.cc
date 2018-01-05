@@ -3,7 +3,6 @@
 #include "axioms.h"
 #include "global_operator.h"
 #include "global_state.h"
-#include "heuristic.h"
 
 #include "algorithms/int_packer.h"
 #include "structural_symmetries/permutation.h"
@@ -47,18 +46,20 @@ bool test_goal(const GlobalState &state) {
     return true;
 }
 
-int calculate_plan_cost(const vector<const GlobalOperator *> &plan) {
+int calculate_plan_cost(const vector<OperatorID> &plan, const TaskProxy &task_proxy) {
     // TODO: Refactor: this is only used by save_plan (see below)
     //       and the SearchEngine classes and hence should maybe
     //       be moved into the SearchEngine (along with save_plan).
+    OperatorsProxy operators = task_proxy.get_operators();
     int plan_cost = 0;
-    for (size_t i = 0; i < plan.size(); ++i) {
-        plan_cost += plan[i]->get_cost();
+    for (OperatorID op_id : plan) {
+        plan_cost += operators[op_id].get_cost();
     }
     return plan_cost;
 }
 
-void save_plan(const vector<const GlobalOperator *> &plan,
+void save_plan(const vector<OperatorID> &plan,
+               const TaskProxy &task_proxy,
                bool generates_multiple_plan_files) {
     // TODO: Refactor: this is only used by the SearchEngine classes
     //       and hence should maybe be moved into the SearchEngine.
@@ -71,11 +72,12 @@ void save_plan(const vector<const GlobalOperator *> &plan,
         assert(plan_number == 1);
     }
     ofstream outfile(filename.str());
-    for (size_t i = 0; i < plan.size(); ++i) {
-        cout << plan[i]->get_name() << " (" << plan[i]->get_cost() << ")" << endl;
-        outfile << "(" << plan[i]->get_name() << ")" << endl;
+    OperatorsProxy operators = task_proxy.get_operators();
+    for (OperatorID op_id : plan) {
+        cout << operators[op_id].get_name() << " (" << operators[op_id].get_cost() << ")" << endl;
+        outfile << "(" << operators[op_id].get_name() << ")" << endl;
     }
-    int plan_cost = calculate_plan_cost(plan);
+    int plan_cost = calculate_plan_cost(plan, task_proxy);
     outfile << "; cost = " << plan_cost << " ("
             << (is_unit_cost() ? "unit cost" : "general cost") << ")" << endl;
     outfile.close();
@@ -234,30 +236,37 @@ void read_symmetry_generators(istream &in) {
         check_magic(in, "begin_dom_sum_by_var");
         int size;
         in >> size;
-        Permutation::dom_sum_by_var.reserve(size);
+        g_dom_sum_by_var.reserve(size);
         for (int i = 0; i < size; ++i) {
             int val;
             in >> val;
-            Permutation::dom_sum_by_var.push_back(val);
+            g_dom_sum_by_var.push_back(val);
         }
         check_magic(in, "end_dom_sum_by_var");
 
         check_magic(in, "begin_var_by_val");
         in >> size;
-        Permutation::var_by_val.reserve(size);
+        g_var_by_val.reserve(size);
         for (int i = 0; i < size; ++i) {
             int val;
             in >> val;
-            Permutation::var_by_val.push_back(val);
+            g_var_by_val.push_back(val);
         }
         check_magic(in, "end_var_by_val");
 
-        Permutation::num_vars = g_variable_domain.size();
-        Permutation::length = g_variable_domain.size() + size;
+        g_permutation_length = g_variable_domain.size() + size;
 
         g_permutations.reserve(count);
         for (int i = 0; i < count; ++i) {
-            g_permutations.push_back(new Permutation(in));
+            check_magic(in, "begin_generator");
+            RawPermutation permutation(g_permutation_length);
+            for (int i = 0; i < g_permutation_length; ++i) {
+                int val;
+                in >> val;
+                permutation[i] = val;
+            }
+            g_permutations.push_back(move(permutation));
+            check_magic(in, "end_generator");
         }
     }
 }
@@ -413,7 +422,10 @@ vector<pair<int, int>> g_goal;
 vector<GlobalOperator> g_operators;
 vector<GlobalOperator> g_axioms;
 AxiomEvaluator *g_axiom_evaluator;
-vector<const Permutation *> g_permutations;
+vector<RawPermutation> g_permutations;
+std::vector<int> g_dom_sum_by_var;
+std::vector<int> g_var_by_val;
+int g_permutation_length;
 successor_generator::SuccessorGenerator *g_successor_generator;
 
 string g_plan_filename = "sas_plan";

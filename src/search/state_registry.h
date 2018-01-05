@@ -8,7 +8,6 @@
 
 #include "algorithms/int_packer.h"
 #include "algorithms/segmented_vector.h"
-#include "structural_symmetries/group.h"
 #include "utils/hash.h"
 
 #include <set>
@@ -99,6 +98,7 @@
     to store for each state and each landmark whether it was reached in this state.
 */
 
+class Group;
 class Permutation;
 class PerStateInformationBase;
 
@@ -168,6 +168,8 @@ class StateRegistry {
     StateIDSet canonical_registered_states;
     // Used for DKS
     std::shared_ptr<Group> group;
+    // true iff group has been set; added here to avoid including group.h in this header
+    bool has_symmetries_and_uses_dks;
 
     GlobalState *cached_initial_state;
     mutable std::set<PerStateInformationBase *> subscribers;
@@ -183,9 +185,7 @@ public:
     ~StateRegistry();
 
     // Used for DKS
-    void set_group(const std::shared_ptr<Group> &group_) {
-        group = group_;
-    }
+    void set_group(const std::shared_ptr<Group> &group);
 
     /* TODO: Ideally, this should return a TaskProxy. (See comment above the
              declaration of task.) */
@@ -218,14 +218,14 @@ public:
       registers it if this was not done before. This is an expensive operation
       as it includes duplicate checking.
     */
-    GlobalState get_successor_state(const GlobalState &predecessor, const GlobalOperator &op);
+    GlobalState get_successor_state(const GlobalState &predecessor, const OperatorProxy &op);
 
     /*
       Registers and returns the state corresponding to the given state data.
       This is an expensive operation as it includes duplicate checking.
       Used for OSS.
     */
-    GlobalState register_state_buffer(const int *state);
+    GlobalState register_state_buffer(const std::vector<int> &state);
 
     /*
       Creates the permutation of the given state (which can be registered
@@ -240,8 +240,9 @@ public:
       Returns the number of states registered so far.
     */
     size_t size() const {
-        if (group && group->has_symmetries() && group->get_search_symmetries() == SearchSymmetries::DKS)
+        if (has_symmetries_and_uses_dks) {
             return canonical_registered_states.size();
+        }
         return registered_states.size();
     }
 

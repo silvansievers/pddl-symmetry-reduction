@@ -8,85 +8,83 @@
 #include "../per_state_information.h"
 #include "../plugin.h"
 #include "../state_registry.h"
+#include "../task_proxy.h"
+#include "../utils/memory.h"
 
 #include <algorithm>
 #include <iostream>
+#include <numeric>
 #include <queue>
 
 
 using namespace std;
 using namespace utils;
 
-enum class SourceOfSymmetries {
-    NoSource,
-    GraphCreator,
-    Translator
-};
-
 Group::Group(const options::Options &opts)
     : stabilize_initial_state(opts.get<bool>("stabilize_initial_state")),
-      search_symmetries(SearchSymmetries(opts.get_enum("search_symmetries"))) {
-    SourceOfSymmetries sos(static_cast<SourceOfSymmetries>(opts.get_enum("source_of_symmetries")));
+      time_bound(opts.get<int>("time_bound")),
+      dump_symmetry_graph(opts.get<bool>("dump_symmetry_graph")),
+      search_symmetries(SearchSymmetries(opts.get_enum("search_symmetries"))),
+      sos(static_cast<SourceOfSymmetries>(opts.get_enum("source_of_symmetries"))),
+      dump_permutations(opts.get<bool>("dump_permutations")),
+      num_vars(0),
+      permutation_length(0),
+      num_identity_generators(0),
+      initialized(false) {
+}
+
+const Permutation &Group::get_permutation(int index) const {
+    return generators[index];
+}
+
+void Group::add_to_dom_sum_by_var(int summed_dom) {
+    dom_sum_by_var.push_back(summed_dom);
+}
+
+void Group::add_to_var_by_val(int var) {
+    var_by_val.push_back(var);
+}
+
+void Group::compute_symmetries(const TaskProxy &task_proxy) {
+    if (initialized || !generators.empty()) {
+        cerr << "Already computed symmetries" << endl;
+        exit_with(ExitCode::CRITICAL_ERROR);
+    }
     if (sos == SourceOfSymmetries::NoSource) {
         cerr << "no source of symmetries given" << endl;
         exit_with(ExitCode::INPUT_ERROR);
     } else if (sos == SourceOfSymmetries::GraphCreator) {
-        graph_creator = new GraphCreator(opts);
-        initialized = false;
+        GraphCreator graph_creator;
+        bool success = graph_creator.compute_symmetries(
+            task_proxy, stabilize_initial_state, time_bound, dump_symmetry_graph, this);
+        if (!success) {
+            generators.clear();
+        }
     } else if (sos == SourceOfSymmetries::Translator) {
-        graph_creator = nullptr;
-        initialized = true;
-        generators = move(g_permutations);
+        dom_sum_by_var = move(g_dom_sum_by_var);
+        var_by_val = move(g_var_by_val);
+        num_vars = g_variable_domain.size();
+        permutation_length = g_permutation_length;
+        for (const RawPermutation &raw_permutation : g_permutations) {
+            generators.emplace_back(*this, raw_permutation);
+        }
+        vector<RawPermutation>().swap(g_permutations);
         statistics();
     }
-}
 
-Group::~Group() {
-    delete_generators();
-    delete graph_creator;
-}
-
-void Group::delete_generators() {
-    for (size_t i = 0; i < generators.size(); ++i) {
-        delete generators[i];
-    }
-    generators.clear();
-}
-
-const Permutation &Group::get_permutation(int index) const {
-    return *generators[index];
-}
-
-void Group::compute_symmetries() {
-    assert(!initialized);
+    // Set initialized to true regardless of whether symmetries have been
+    // found or not to avoid future attempts at computing symmetries if
+    // none can be found.
     initialized = true;
-    if (!generators.empty() || !graph_creator) {
-        cerr << "Already computed symmetries" << endl;
-        exit_with(ExitCode::CRITICAL_ERROR);
-    }
-    if (!graph_creator->compute_symmetries(this)) {
-        // Computing symmetries ran out of memory
-        delete_generators();
-    }
-    delete graph_creator;
-    graph_creator = 0;
 }
 
-/**
- * Add new permutation to the list of permutations
- * The function will be called from bliss
- */
-void Group::add_permutation(void* param, unsigned int, const unsigned int * full_perm){
-    Permutation *perm = new Permutation(full_perm);
-    if (!perm->identity()){
-        ((Group*) param)->add_generator(perm);
+void Group::add_raw_generator(const unsigned int *generator) {
+    Permutation permutation(*this, generator);
+    if (permutation.identity()) {
+        ++num_identity_generators;
     } else {
-        delete perm;
+        generators.push_back(move(permutation));
     }
-}
-
-void Group::add_generator(const Permutation *gen) {
-    generators.push_back(gen);
 }
 
 int Group::get_num_generators() const {
@@ -96,6 +94,11 @@ int Group::get_num_generators() const {
 void Group::dump_generators() const {
     if (get_num_generators() == 0)
         return;
+
+    for (int i = 0; i < get_num_generators(); i++) {
+        get_permutation(i).print_affected_variables_by_cycles();
+    }
+
     for (int i = 0; i < get_num_generators(); i++) {
         cout << "Generator " << i << endl;
         get_permutation(i).print_cycle_notation();
@@ -103,16 +106,62 @@ void Group::dump_generators() const {
     }
 
     cout << "Extra group info:" << endl;
-    cout << "Permutation length: " << Permutation::length << endl;
+    cout << "Number of identity on states generators: " << num_identity_generators << endl;
+    cout << "Permutation length: " << get_permutation_length() << endl;
     cout << "Permutation variables by values (" << g_variable_domain.size() << "): " << endl;
-    for (int i = g_variable_domain.size(); i < Permutation::length; i++)
-        cout << Permutation::get_var_by_index(i) << "  " ;
+    for (int i = g_variable_domain.size(); i < get_permutation_length(); i++)
+        cout << get_var_by_index(i) << "  " ;
     cout << endl;
 }
+
+void Group::dump_variables_equivalence_classes() const {
+    if (get_num_generators() == 0)
+        return;
+
+    vector<int> vars_mapping;
+    for (size_t i=0; i < g_variable_domain.size(); ++i)
+        vars_mapping.push_back(i);
+
+    bool change = true;
+    while (change) {
+        change = false;
+        for (int i = 0; i < get_num_generators(); i++) {
+            const std::vector<int>& affected = get_permutation(i).get_affected_vars();
+            int min_ind = g_variable_domain.size();
+            for (int var : affected) {
+                if (min_ind > vars_mapping[var])
+                    min_ind = vars_mapping[var];
+            }
+            for (int var : affected) {
+                if (vars_mapping[var] > min_ind)
+                    change = true;
+                vars_mapping[var] = min_ind;
+            }
+        }
+    }
+    cout << "Equivalence relation:" << endl;
+    int num_vars = g_variable_domain.size();
+    for (int i=0; i < num_vars; ++i) {
+        vector<int> eqiv_class;
+        for (size_t j=0; j < g_variable_domain.size(); ++j)
+            if (vars_mapping[j] == i)
+                eqiv_class.push_back(j);
+        if (eqiv_class.size() <= 1)
+            continue;
+        cout << "[";
+        for (int var : eqiv_class)
+            cout << " " << g_fact_names[var][0];
+        cout << " ]" << endl;
+    }
+}
+
+
 
 void Group::statistics() const {
     int num_gen = get_num_generators();
     cout << "Number of generators: " << num_gen << endl;
+    cout << "Number of identity generators (on states, not on operators): "
+         << get_num_dentity_generators() << endl;
     cout << "Order of generators: [";
     for (int gen_no = 0; gen_no < num_gen; ++gen_no) {
         cout << get_permutation(gen_no).get_order();
@@ -120,26 +169,26 @@ void Group::statistics() const {
             cout << ", ";
     }
     cout << "]" << endl;
+
+    if (dump_permutations) {
+        dump_generators();
+        dump_variables_equivalence_classes();
+    }
+
 }
 
-// ===============================================================================
-// Methods related to OSS
-
-int *Group::get_canonical_representative(const GlobalState &state) const {
-    int *canonical_state = new int[g_variable_domain.size()];
+vector<int> Group::get_canonical_representative(const GlobalState &state) const {
+    assert(has_symmetries());
+    vector<int> canonical_state(g_variable_domain.size());
     for (size_t i = 0; i < g_variable_domain.size(); ++i) {
         canonical_state[i] = state[i];
     }
 
-    int size = get_num_generators();
-    if (size == 0)
-        return canonical_state;
-
     bool changed = true;
     while (changed) {
         changed = false;
-        for (int i=0; i < size; i++) {
-            if (generators[i]->replace_if_less(canonical_state)) {
+        for (int i=0; i < get_num_generators(); i++) {
+            if (generators[i].replace_if_less(canonical_state)) {
                 changed =  true;
             }
         }
@@ -147,64 +196,109 @@ int *Group::get_canonical_representative(const GlobalState &state) const {
     return canonical_state;
 }
 
-Permutation *Group::compose_permutation(const Trace& perm_index) const {
-    Permutation *new_perm = new Permutation();
-    for (size_t i = 0; i < perm_index.size(); ++i) {
-        Permutation *tmp = new Permutation(*new_perm, get_permutation(perm_index[i]));
-        delete new_perm;
-        new_perm = tmp;
+vector<int> Group::compute_permutation_trace_to_canonical_representative(const GlobalState &state) const {
+    // TODO: duplicate code with get_canonical_representative
+    assert(has_symmetries());
+    vector<int> canonical_state(g_variable_domain.size());
+    for(size_t i = 0; i < g_variable_domain.size(); ++i) {
+        canonical_state[i] = state[i];
     }
-    return new_perm;
-}
 
-void Group::get_trace(const GlobalState &state, Trace& full_trace) const {
-    int size = get_num_generators();
-    if (size == 0)
-        return;
-
-    int *temp_state = new int[g_variable_domain.size()];
-    for(size_t i = 0; i < g_variable_domain.size(); ++i)
-        temp_state[i] = state[i];
+    vector<int> permutation_trace;
     bool changed = true;
     while (changed) {
         changed = false;
-        for (int i=0; i < size; i++) {
-            if (generators[i]->replace_if_less(temp_state)) {
-                full_trace.push_back(i);
+        for (int i=0; i < get_num_generators(); i++) {
+            if (generators[i].replace_if_less(canonical_state)) {
+                permutation_trace.push_back(i);
                 changed = true;
             }
         }
     }
+    return permutation_trace;
 }
 
-Permutation *Group::create_permutation_from_state_to_state(
-        const GlobalState& from_state, const GlobalState& to_state) const {
-    Trace new_trace;
-    Trace curr_trace;
-    get_trace(from_state, curr_trace);
-    get_trace(to_state, new_trace);
+RawPermutation Group::compute_permutation_from_trace(const vector<int> &permutation_trace) const {
+    assert(has_symmetries());
+    RawPermutation new_perm = new_identity_raw_permutation();
+    for (int permutation_index : permutation_trace) {
+        const Permutation &permutation = generators[permutation_index];
+        RawPermutation temp_perm(permutation_length);
+        for (int i = 0; i < permutation_length; i++) {
+           temp_perm[i] = permutation.get_value(new_perm[i]);
+        }
+        new_perm.swap(temp_perm);
+    }
+    return new_perm;
+}
 
-    Permutation *tmp = compose_permutation(new_trace);
-    Permutation *p1 = new Permutation(*tmp, true);  //inverse
-    delete tmp;
-    Permutation *p2 = compose_permutation(curr_trace);
-    Permutation *result = new Permutation(*p2, *p1);
-    delete p1;
-    delete p2;
+RawPermutation Group::compute_inverse_permutation(const RawPermutation &permutation) const {
+    RawPermutation result(permutation_length);
+    for (int i = 0; i < permutation_length; ++i) {
+        result[permutation[i]] = i;
+    }
     return result;
 }
 
+RawPermutation Group::new_identity_raw_permutation() const {
+    RawPermutation result(permutation_length);
+    iota(result.begin(), result.end(), 0);
+    return result;
+}
+
+RawPermutation Group::compose_permutations(
+    const RawPermutation &permutation1, const RawPermutation & permutation2) const {
+    RawPermutation result(permutation_length);
+    for (int i = 0; i < permutation_length; i++) {
+       result[i] = permutation2[permutation1[i]];
+    }
+    return result;
+}
+
+RawPermutation Group::create_permutation_from_state_to_state(
+        const GlobalState& from_state, const GlobalState& to_state) const {
+    assert(has_symmetries());
+    vector<int> from_state_permutation_trace = compute_permutation_trace_to_canonical_representative(from_state);
+    vector<int> to_state_permutation_trace = compute_permutation_trace_to_canonical_representative(to_state);
+
+    RawPermutation canonical_to_to_state_permutation = compute_inverse_permutation(compute_permutation_from_trace(to_state_permutation_trace));
+    RawPermutation from_state_to_canonical_permutation = compute_permutation_from_trace(from_state_permutation_trace);
+    return compose_permutations(from_state_to_canonical_permutation, canonical_to_to_state_permutation);
+}
+
+int Group::get_var_by_index(int ind) const {
+    // In case of ind < num_vars, returns the index itself, as this is the variable part of the permutation.
+    if (ind < num_vars) {
+        cout << "=====> WARNING!!!! Check that this is done on purpose!" << endl;
+        return ind;
+    }
+    return var_by_val[ind-num_vars];
+}
+
+std::pair<int, int> Group::get_var_val_by_index(const int ind) const {
+    assert(ind>=num_vars);
+    int var =  var_by_val[ind-num_vars];
+    int val = ind - dom_sum_by_var[var];
+
+    return make_pair(var, val);
+}
+
+int Group::get_index_by_var_val_pair(const int var, const int val) const {
+    return dom_sum_by_var[var] + val;
+}
+
+
 static shared_ptr<Group> _parse(OptionParser &parser) {
-    // General Bliss options
+    // General Bliss options and options for GraphCreator
     parser.add_option<int>("time_bound",
                            "Stopping after the Bliss software reached the time bound",
                            "0");
-//    parser.add_option<int>("generators_bound",
-//                           "Number of found generators after which Bliss is stopped",
-//                           "0");
     parser.add_option<bool>("stabilize_initial_state",
                             "Compute symmetries stabilizing the initial state",
                             "false");
+    parser.add_option<bool>("dump_symmetry_graph",
+                           "Dump symmetry graph in dot format",
+                           "false");
 
     // Type of search symmetries to be used
     vector<string> search_symmetries;
@@ -229,6 +323,10 @@ static shared_ptr<Group> _parse(OptionParser &parser) {
         source_of_symmetries,
         "the source of symmetries",
         "graphcreator");
+
+    parser.add_option<bool>("dump_permutations",
+                           "Dump the generators",
+                           "false");
 
     Options opts = parser.parse();
 
