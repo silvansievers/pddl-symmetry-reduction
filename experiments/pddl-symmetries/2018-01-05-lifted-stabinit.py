@@ -195,7 +195,7 @@ def main(revisions=None):
             algorithm_pairs=[('{}-{}'.format(OLD_REV, x), '{}-{}'.format(REVISION, x)) for x in algorithm_nicks],
             attributes=attributes,
         ),
-        outfile=os.path.join(exp.eval_dir, 'compare.html'),
+        outfile=os.path.join(exp.eval_dir, exp.name + 'compare.html'),
     )
 
     exp.run_steps()
