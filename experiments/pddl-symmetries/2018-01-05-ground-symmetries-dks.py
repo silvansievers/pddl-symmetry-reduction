@@ -20,40 +20,8 @@ REVISION = 'cabc8b0c737e'
 
 def main(revisions=None):
     benchmarks_dir=os.path.expanduser('~/repos/downward/benchmarks')
-    # optimal union satisficing
-    suite = [
-    'openstacks-sat08-adl', 'miconic-simpleadl', 'barman-sat14-strips',
-    'transport-opt11-strips', 'openstacks-sat08-strips', 'logistics98',
-    'parking-sat11-strips', 'psr-large', 'rovers', 'floortile-opt14-strips',
-    'barman-opt14-strips', 'zenotravel', 'elevators-sat11-strips',
-    'nomystery-opt11-strips', 'parcprinter-08-strips', 'tidybot-opt11-strips',
-    'cavediving-14-adl', 'pegsol-opt11-strips', 'maintenance-opt14-adl',
-    'citycar-opt14-adl', 'pipesworld-notankage', 'woodworking-sat08-strips',
-    'woodworking-opt11-strips', 'driverlog', 'gripper', 'visitall-sat11-strips',
-    'openstacks', 'hiking-opt14-strips', 'sokoban-opt11-strips',
-    'tetris-sat14-strips', 'parcprinter-opt11-strips', 'openstacks-strips',
-    'parcprinter-sat11-strips', 'grid', 'sokoban-opt08-strips',
-    'elevators-opt08-strips', 'openstacks-sat14-strips', 'barman-sat11-strips',
-    'tidybot-sat11-strips', 'mystery', 'visitall-opt14-strips',
-    'childsnack-sat14-strips', 'sokoban-sat11-strips', 'trucks',
-    'sokoban-sat08-strips', 'barman-opt11-strips', 'childsnack-opt14-strips',
-    'parking-opt14-strips', 'openstacks-opt11-strips', 'elevators-sat08-strips',
-    'movie', 'tidybot-opt14-strips', 'freecell', 'openstacks-opt14-strips',
-    'scanalyzer-sat11-strips', 'ged-opt14-strips', 'pegsol-sat11-strips',
-    'transport-opt08-strips', 'mprime', 'floortile-opt11-strips',
-    'transport-sat08-strips', 'pegsol-08-strips', 'blocks',
-    'floortile-sat11-strips', 'thoughtful-sat14-strips', 'openstacks-opt08-strips',
-    'visitall-sat14-strips', 'pipesworld-tankage', 'scanalyzer-opt11-strips',
-    'storage', 'maintenance-sat14-adl', 'optical-telegraphs',
-    'elevators-opt11-strips', 'miconic', 'logistics00', 'depot',
-    'transport-sat11-strips', 'openstacks-opt08-adl', 'psr-small', 'satellite',
-    'assembly', 'citycar-sat14-adl', 'schedule', 'miconic-fulladl',
-    'pathways-noneg', 'tetris-opt14-strips', 'ged-sat14-strips', 'pathways',
-    'woodworking-opt08-strips', 'floortile-sat14-strips', 'nomystery-sat11-strips',
-    'transport-opt14-strips', 'woodworking-sat11-strips', 'philosophers',
-    'trucks-strips', 'hiking-sat14-strips', 'transport-sat14-strips',
-    'openstacks-sat11-strips', 'scanalyzer-08-strips', 'visitall-opt11-strips',
-    'psr-middle', 'airport', 'parking-opt11-strips', 'tpp', 'parking-sat14-strips']
+    # optimal union satisficing, strips only
+    suite = ['airport', 'barman-opt11-strips', 'barman-opt14-strips', 'blocks', 'childsnack-opt14-strips', 'depot', 'driverlog', 'elevators-opt08-strips', 'elevators-opt11-strips', 'floortile-opt11-strips', 'floortile-opt14-strips', 'freecell', 'ged-opt14-strips', 'grid', 'gripper', 'hiking-opt14-strips', 'logistics00', 'logistics98', 'miconic', 'movie', 'mprime', 'mystery', 'nomystery-opt11-strips', 'openstacks-opt08-strips', 'openstacks-opt11-strips', 'openstacks-opt14-strips', 'openstacks-strips', 'parcprinter-08-strips', 'parcprinter-opt11-strips', 'parking-opt11-strips', 'parking-opt14-strips', 'pathways-noneg', 'pegsol-08-strips', 'pegsol-opt11-strips', 'pipesworld-notankage', 'pipesworld-tankage', 'psr-small', 'rovers', 'satellite', 'scanalyzer-08-strips', 'scanalyzer-opt11-strips', 'sokoban-opt08-strips', 'sokoban-opt11-strips', 'storage', 'tetris-opt14-strips', 'tidybot-opt11-strips', 'tidybot-opt14-strips', 'tpp', 'transport-opt08-strips', 'transport-opt11-strips', 'transport-opt14-strips', 'trucks-strips', 'visitall-opt11-strips', 'visitall-opt14-strips', 'woodworking-opt08-strips', 'woodworking-opt11-strips', 'zenotravel', 'barman-sat11-strips', 'barman-sat14-strips', 'childsnack-sat14-strips', 'elevators-sat08-strips', 'elevators-sat11-strips', 'floortile-sat11-strips', 'floortile-sat14-strips', 'ged-sat14-strips', 'hiking-sat14-strips', 'nomystery-sat11-strips', 'openstacks-sat08-strips', 'openstacks-sat11-strips', 'openstacks-sat14-strips', 'parcprinter-sat11-strips', 'parking-sat11-strips', 'parking-sat14-strips', 'pegsol-sat11-strips', 'scanalyzer-sat11-strips', 'sokoban-sat08-strips', 'sokoban-sat11-strips', 'tetris-sat14-strips', 'thoughtful-sat14-strips', 'tidybot-sat11-strips', 'transport-sat08-strips', 'transport-sat11-strips', 'transport-sat14-strips', 'visitall-sat11-strips', 'visitall-sat14-strips', 'woodworking-sat08-strips', 'woodworking-sat11-strips']
     environment = BaselSlurmEnvironment(email="silvan.sievers@unibas.ch", export=["PATH"])
 
     if is_test_run():
@@ -74,7 +42,6 @@ def main(revisions=None):
     exp.add_suite(benchmarks_dir, suite)
     exp.add_resource('symmetries_parser', 'symmetries-parser.py', dest='symmetries-parser.py')
     exp.add_command('symmetries-parser', ['{symmetries_parser}'])
-    del exp.commands['parse-search']
 
     generator_count_lifted = Attribute('generator_count_lifted', absolute=True, min_wins=False)
     generator_count_lifted_mapping_objects_predicates = Attribute('generator_count_lifted_mapping_objects_predicates', absolute=True, min_wins=False)
@@ -165,7 +132,7 @@ def main(revisions=None):
         'removed3_after_filtering_props',
         'removed4_after_reordering_filtering_vars',
     ]
-    attributes = ['error', 'run_dir'] # exp.DEFAULT_TABLE_ATTRIBUTES
+    attributes = exp.DEFAULT_TABLE_ATTRIBUTES
     attributes.extend(extra_attributes)
     attributes.append('translator_time_symmetries*')
 
