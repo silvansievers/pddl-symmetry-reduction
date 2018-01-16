@@ -11,14 +11,14 @@ BLISS_HEADERS = $(BLISS_DIR)/defs.h \
 
 BLISS_SOURCES = $(BLISS_HEADERS:%.h=%.cc)
 
-default: pybind11-blissmodule
+default: pybind11_blissmodule.so
 
-all: pybind11-blissmodule pyext-blissmodule
+all: pybind11_blissmodule.so pyext_blissmodule.so
 
-pybind11-blissmodule:
+pybind11_blissmodule.so: $(BLISS_HEADERS) $(BLISS_SOURCES) pybind11_blissmodule.cc
 	c++ -O3 -shared -std=c++11 -fPIC -Ipybind11-include `python-config --cflags --ldflags` $(BLISS_SOURCES) pybind11_blissmodule.cc -o pybind11_blissmodule.so
 
-pyext-blissmodule:
+pyext_blissmodule.so: $(BLISS_HEADERS) $(BLISS_SOURCES) pyext_blissmodule.cc
 	c++ -O3 -shared -std=c++11 -fPIC -Ipybind11-include `python-config --cflags --ldflags` $(BLISS_SOURCES) pyext_blissmodule.cc -o pyext_blissmodule.so
 
 clean:
