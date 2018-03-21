@@ -186,7 +186,7 @@ def main(revisions=None):
         return props
 
     def duplicate_attribute(props):
-        props['time_symmetries'] = props['translator_time_symmetries0_computing_symmetries']
+        props['time_symmetries'] = props.get('translator_time_symmetries0_computing_symmetries', None)
         return props
 
     algorithm_nicks = [
