@@ -34,6 +34,7 @@ class PyblissModuleWrapper:
         print "Creating symmetry graph..."
         graph = bliss.DigraphWrapper()
         vertices = self.get_vertices()
+        print "Size of the lifted symmetry graph: {}".format(len(vertices))
         self.id_to_vertex = []
         self.vertex_to_id = {}
         for id, vertex in enumerate(vertices):
