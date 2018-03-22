@@ -24,6 +24,20 @@ def main(revisions=None):
     # optimal union satisficing, strips only
     suite = ['airport', 'barman-opt11-strips', 'barman-opt14-strips', 'blocks', 'childsnack-opt14-strips', 'depot', 'driverlog', 'elevators-opt08-strips', 'elevators-opt11-strips', 'floortile-opt11-strips', 'floortile-opt14-strips', 'freecell', 'ged-opt14-strips', 'grid', 'gripper', 'hiking-opt14-strips', 'logistics00', 'logistics98', 'miconic', 'movie', 'mprime', 'mystery', 'nomystery-opt11-strips', 'openstacks-opt08-strips', 'openstacks-opt11-strips', 'openstacks-opt14-strips', 'openstacks-strips', 'parcprinter-08-strips', 'parcprinter-opt11-strips', 'parking-opt11-strips', 'parking-opt14-strips', 'pathways-noneg', 'pegsol-08-strips', 'pegsol-opt11-strips', 'pipesworld-notankage', 'pipesworld-tankage', 'psr-small', 'rovers', 'satellite', 'scanalyzer-08-strips', 'scanalyzer-opt11-strips', 'sokoban-opt08-strips', 'sokoban-opt11-strips', 'storage', 'tetris-opt14-strips', 'tidybot-opt11-strips', 'tidybot-opt14-strips', 'tpp', 'transport-opt08-strips', 'transport-opt11-strips', 'transport-opt14-strips', 'trucks-strips', 'visitall-opt11-strips', 'visitall-opt14-strips', 'woodworking-opt08-strips', 'woodworking-opt11-strips', 'zenotravel', 'barman-sat11-strips', 'barman-sat14-strips', 'childsnack-sat14-strips', 'elevators-sat08-strips', 'elevators-sat11-strips', 'floortile-sat11-strips', 'floortile-sat14-strips', 'ged-sat14-strips', 'hiking-sat14-strips', 'nomystery-sat11-strips', 'openstacks-sat08-strips', 'openstacks-sat11-strips', 'openstacks-sat14-strips', 'parcprinter-sat11-strips', 'parking-sat11-strips', 'parking-sat14-strips', 'pegsol-sat11-strips', 'scanalyzer-sat11-strips', 'sokoban-sat08-strips', 'sokoban-sat11-strips', 'tetris-sat14-strips', 'thoughtful-sat14-strips', 'tidybot-sat11-strips', 'transport-sat08-strips', 'transport-sat11-strips', 'transport-sat14-strips', 'visitall-sat11-strips', 'visitall-sat14-strips', 'woodworking-sat08-strips', 'woodworking-sat11-strips']
 
+    duplicates = [ 'barman-opt11-strips', 'barman-sat11-strips',
+    'elevators-opt08-strips', 'elevators-sat08-strips',
+    'floortile-opt11-strips', 'floortile-sat11-strips', 'openstacks',
+    'openstacks-opt08-strips', 'openstacks-opt11-strips',
+    'openstacks-sat08-strips', 'openstacks-sat11-strips', 'openstacks-strips',
+    'parcprinter-08-strips', 'parking-opt11-strips', 'parking-sat11-strips',
+    'pegsol-08-strips', 'scanalyzer-08-strips', 'sokoban-opt08-strips',
+    'sokoban-sat08-strips', 'tidybot-opt11-strips', 'transport-opt08-strips',
+    'transport-opt11-strips', 'transport-sat08-strips',
+    'transport-sat11-strips', 'visitall-opt11-strips', 'visitall-sat11-strips',
+    'woodworking-opt08-strips', 'woodworking-sat08-strips', ]
+
+    suite_without_duplicates = [domain for domain in suite if domain not in duplicates]
+
     configs = {
     }
 
@@ -56,7 +70,7 @@ def main(revisions=None):
 
     exp.add_absolute_report_step(attributes=attributes,filter_domain=suite,filter=[duplicate_attribute])
 
-    # exp.add_report(AbsoluteReport(attributes=attributes,filter_algorithm=['{}-{}'.format(REVISION, x) for x in algorithm_nicks],filter=[compute_removed_count_in_each_step,duplicate_attribute],filter_domain=strips_suite),outfile='{}-subset-abs.html'.format(exp.name))
+    exp.add_report(AbsoluteReport(attributes=attributes,filter_domain=suite_without_duplicates,filter=[duplicate_attribute]),outfile='{}-noduplicates.html'.format(exp.name))
 
     exp.run_steps()
 
