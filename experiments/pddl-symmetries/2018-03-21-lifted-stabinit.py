@@ -6,6 +6,7 @@ import suites
 
 from lab.environments import LocalEnvironment, BaselSlurmEnvironment
 from lab.reports import Attribute, geometric_mean
+from downward.reports.absolute import AbsoluteReport
 from downward.reports.compare import ComparativeReport
 
 from common_setup import IssueConfig, IssueExperiment, DEFAULT_OPTIMAL_SUITE, is_test_run
@@ -54,10 +55,31 @@ def main(revisions=None):
     'trucks-strips', 'hiking-sat14-strips', 'transport-sat14-strips',
     'openstacks-sat11-strips', 'scanalyzer-08-strips', 'visitall-opt11-strips',
     'psr-middle', 'airport', 'parking-opt11-strips', 'tpp', 'parking-sat14-strips']
+
+    strips_suite = ['airport', 'barman-opt11-strips', 'barman-opt14-strips',
+    'blocks', 'childsnack-opt14-strips', 'depot', 'driverlog',
+    'elevators-opt08-strips', 'elevators-opt11-strips',
+    'floortile-opt11-strips', 'floortile-opt14-strips', 'freecell',
+    'ged-opt14-strips', 'grid', 'gripper', 'hiking-opt14-strips',
+    'logistics00', 'logistics98', 'miconic', 'movie', 'mprime', 'mystery',
+    'nomystery-opt11-strips', 'openstacks-opt08-strips',
+    'openstacks-opt11-strips', 'openstacks-opt14-strips', 'openstacks-strips',
+    'parcprinter-08-strips', 'parcprinter-opt11-strips',
+    'parking-opt11-strips', 'parking-opt14-strips', 'pathways-noneg',
+    'pegsol-08-strips', 'pegsol-opt11-strips', 'pipesworld-notankage',
+    'pipesworld-tankage', 'psr-small', 'rovers', 'satellite',
+    'scanalyzer-08-strips', 'scanalyzer-opt11-strips', 'sokoban-opt08-strips',
+    'sokoban-opt11-strips', 'storage', 'tetris-opt14-strips',
+    'tidybot-opt11-strips', 'tidybot-opt14-strips', 'tpp',
+    'transport-opt08-strips', 'transport-opt11-strips',
+    'transport-opt14-strips', 'trucks-strips', 'visitall-opt11-strips',
+    'visitall-opt14-strips', 'woodworking-opt08-strips',
+    'woodworking-opt11-strips', 'zenotravel']
+
     environment = BaselSlurmEnvironment(email="silvan.sievers@unibas.ch", export=["PATH"])
 
     if is_test_run():
-        suite = ['gripper']
+        suite = ['gripper:prob01.pddl', 'depot:p01.pddl', 'mystery:prob07.pddl']
         environment = LocalEnvironment(processes=4)
 
     configs = {
@@ -196,6 +218,8 @@ def main(revisions=None):
     ]
 
     exp.add_absolute_report_step(attributes=attributes,filter_algorithm=['{}-{}'.format(REVISION, x) for x in algorithm_nicks],filter=[compute_removed_count_in_each_step,duplicate_attribute])
+
+    exp.add_report(AbsoluteReport(attributes=attributes,filter_algorithm=['{}-{}'.format(REVISION, x) for x in algorithm_nicks],filter=[compute_removed_count_in_each_step,duplicate_attribute],filter_domain=strips_suite),outfile='{}-subset-abs.html'.format(exp.name))
 
     exp.run_steps()
 
