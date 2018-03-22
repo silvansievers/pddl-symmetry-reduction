@@ -58,7 +58,7 @@ def main(revisions=None):
     exp.add_fetcher('data/2018-03-21-lifted-stabinit', parsers=[os.path.expanduser('~/repos/lab/downward/scripts/preprocess_parser.py'), os.path.expanduser('~/repos/lab/downward/scripts/search_parser.py'), 'search-symmetries-parser.py'], filter_algorithm=['{}-lmcut-dks-liftedsymmetries-stabinit-noneofthose'.format(REVISION)])
     exp.add_fetcher('data/2018-03-21-grounded-search-symmetries-dks-eval', filter_algorithm=['{}-lmcut-dks'.format(REVISION)])
 
-    exp.add_absolute_report_step(attributes=attributes)
+    exp.add_absolute_report_step(attributes=attributes,filter_domain=suite)
 
     # exp.add_report(AbsoluteReport(attributes=attributes,filter_algorithm=['{}-{}'.format(REVISION, x) for x in algorithm_nicks],filter=[compute_removed_count_in_each_step,duplicate_attribute],filter_domain=strips_suite),outfile='{}-subset-abs.html'.format(exp.name))
 
