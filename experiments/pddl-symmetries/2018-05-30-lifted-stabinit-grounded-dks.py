@@ -6,7 +6,6 @@ import suites
 
 from lab.environments import LocalEnvironment, BaselSlurmEnvironment
 from lab.reports import Attribute, geometric_mean
-from downward.reports.absolute import AbsoluteReport
 from downward.reports.compare import ComparativeReport
 
 from common_setup import IssueConfig, IssueExperiment, DEFAULT_OPTIMAL_SUITE, is_test_run
@@ -21,60 +20,36 @@ REVISION = 'e028b93170de'
 
 def main(revisions=None):
     benchmarks_dir=os.path.expanduser('~/repos/downward/benchmarks')
-    # optimal union satisficing
-    suite = [
-    'openstacks-sat08-adl', 'miconic-simpleadl', 'barman-sat14-strips',
-    'transport-opt11-strips', 'openstacks-sat08-strips', 'logistics98',
-    'parking-sat11-strips', 'psr-large', 'rovers', 'floortile-opt14-strips',
-    'barman-opt14-strips', 'zenotravel', 'elevators-sat11-strips',
-    'nomystery-opt11-strips', 'parcprinter-08-strips', 'tidybot-opt11-strips',
-    'cavediving-14-adl', 'pegsol-opt11-strips', 'maintenance-opt14-adl',
-    'citycar-opt14-adl', 'pipesworld-notankage', 'woodworking-sat08-strips',
-    'woodworking-opt11-strips', 'driverlog', 'gripper', 'visitall-sat11-strips',
-    'openstacks', 'hiking-opt14-strips', 'sokoban-opt11-strips',
-    'tetris-sat14-strips', 'parcprinter-opt11-strips', 'openstacks-strips',
-    'parcprinter-sat11-strips', 'grid', 'sokoban-opt08-strips',
-    'elevators-opt08-strips', 'openstacks-sat14-strips', 'barman-sat11-strips',
-    'tidybot-sat11-strips', 'mystery', 'visitall-opt14-strips',
-    'childsnack-sat14-strips', 'sokoban-sat11-strips', 'trucks',
-    'sokoban-sat08-strips', 'barman-opt11-strips', 'childsnack-opt14-strips',
-    'parking-opt14-strips', 'openstacks-opt11-strips', 'elevators-sat08-strips',
-    'movie', 'tidybot-opt14-strips', 'freecell', 'openstacks-opt14-strips',
-    'scanalyzer-sat11-strips', 'ged-opt14-strips', 'pegsol-sat11-strips',
-    'transport-opt08-strips', 'mprime', 'floortile-opt11-strips',
-    'transport-sat08-strips', 'pegsol-08-strips', 'blocks',
-    'floortile-sat11-strips', 'thoughtful-sat14-strips', 'openstacks-opt08-strips',
-    'visitall-sat14-strips', 'pipesworld-tankage', 'scanalyzer-opt11-strips',
-    'storage', 'maintenance-sat14-adl', 'optical-telegraphs',
-    'elevators-opt11-strips', 'miconic', 'logistics00', 'depot',
-    'transport-sat11-strips', 'openstacks-opt08-adl', 'psr-small', 'satellite',
-    'assembly', 'citycar-sat14-adl', 'schedule', 'miconic-fulladl',
-    'pathways-noneg', 'tetris-opt14-strips', 'ged-sat14-strips', 'pathways',
-    'woodworking-opt08-strips', 'floortile-sat14-strips', 'nomystery-sat11-strips',
-    'transport-opt14-strips', 'woodworking-sat11-strips', 'philosophers',
-    'trucks-strips', 'hiking-sat14-strips', 'transport-sat14-strips',
-    'openstacks-sat11-strips', 'scanalyzer-08-strips', 'visitall-opt11-strips',
-    'psr-middle', 'airport', 'parking-opt11-strips', 'tpp', 'parking-sat14-strips']
-
-    strips_suite = ['airport', 'barman-opt11-strips', 'barman-opt14-strips',
-    'blocks', 'childsnack-opt14-strips', 'depot', 'driverlog',
-    'elevators-opt08-strips', 'elevators-opt11-strips',
-    'floortile-opt11-strips', 'floortile-opt14-strips', 'freecell',
-    'ged-opt14-strips', 'grid', 'gripper', 'hiking-opt14-strips',
-    'logistics00', 'logistics98', 'miconic', 'movie', 'mprime', 'mystery',
-    'nomystery-opt11-strips', 'openstacks-opt08-strips',
-    'openstacks-opt11-strips', 'openstacks-opt14-strips', 'openstacks-strips',
-    'parcprinter-08-strips', 'parcprinter-opt11-strips',
-    'parking-opt11-strips', 'parking-opt14-strips', 'pathways-noneg',
-    'pegsol-08-strips', 'pegsol-opt11-strips', 'pipesworld-notankage',
-    'pipesworld-tankage', 'psr-small', 'rovers', 'satellite',
-    'scanalyzer-08-strips', 'scanalyzer-opt11-strips', 'sokoban-opt08-strips',
-    'sokoban-opt11-strips', 'storage', 'tetris-opt14-strips',
-    'tidybot-opt11-strips', 'tidybot-opt14-strips', 'tpp',
-    'transport-opt08-strips', 'transport-opt11-strips',
+    # optimal union satisficing, strips only
+    suite = ['airport', 'barman-opt11-strips', 'barman-opt14-strips', 'blocks',
+    'childsnack-opt14-strips', 'depot', 'driverlog', 'elevators-opt08-strips',
+    'elevators-opt11-strips', 'floortile-opt11-strips',
+    'floortile-opt14-strips', 'freecell', 'ged-opt14-strips', 'grid',
+    'gripper', 'hiking-opt14-strips', 'logistics00', 'logistics98', 'miconic',
+    'movie', 'mprime', 'mystery', 'nomystery-opt11-strips',
+    'openstacks-opt08-strips', 'openstacks-opt11-strips',
+    'openstacks-opt14-strips', 'openstacks-strips', 'parcprinter-08-strips',
+    'parcprinter-opt11-strips', 'parking-opt11-strips', 'parking-opt14-strips',
+    'pathways-noneg', 'pegsol-08-strips', 'pegsol-opt11-strips',
+    'pipesworld-notankage', 'pipesworld-tankage', 'psr-small', 'rovers',
+    'satellite', 'scanalyzer-08-strips', 'scanalyzer-opt11-strips',
+    'sokoban-opt08-strips', 'sokoban-opt11-strips', 'storage',
+    'tetris-opt14-strips', 'tidybot-opt11-strips', 'tidybot-opt14-strips',
+    'tpp', 'transport-opt08-strips', 'transport-opt11-strips',
     'transport-opt14-strips', 'trucks-strips', 'visitall-opt11-strips',
     'visitall-opt14-strips', 'woodworking-opt08-strips',
-    'woodworking-opt11-strips', 'zenotravel']
+    'woodworking-opt11-strips', 'zenotravel', 'barman-sat11-strips',
+    'barman-sat14-strips', 'childsnack-sat14-strips', 'elevators-sat08-strips',
+    'elevators-sat11-strips', 'floortile-sat11-strips',
+    'floortile-sat14-strips', 'ged-sat14-strips', 'hiking-sat14-strips',
+    'nomystery-sat11-strips', 'openstacks-sat08-strips',
+    'openstacks-sat11-strips', 'openstacks-sat14-strips',
+    'parcprinter-sat11-strips', 'parking-sat11-strips', 'parking-sat14-strips',
+    'pegsol-sat11-strips', 'scanalyzer-sat11-strips', 'sokoban-sat08-strips',
+    'sokoban-sat11-strips', 'tetris-sat14-strips', 'thoughtful-sat14-strips',
+    'tidybot-sat11-strips', 'transport-sat08-strips', 'transport-sat11-strips',
+    'transport-sat14-strips', 'visitall-sat11-strips', 'visitall-sat14-strips',
+    'woodworking-sat08-strips', 'woodworking-sat11-strips']
 
     environment = BaselSlurmEnvironment(email="silvan.sievers@unibas.ch", export=["PATH"])
 
@@ -83,8 +58,7 @@ def main(revisions=None):
         environment = LocalEnvironment(processes=4)
 
     configs = {
-        IssueConfig('translate', [], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '2G']),
-        IssueConfig('translate-symm-stabinit', ['--translate-options', '--compute-symmetries', '--stabilize-initial-state', '--bliss-time-limit', '300', ], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '2G']),
+        IssueConfig('lmcut-dks-liftedsymmetries-stabinit-noneofthose', ['--translate-options', '--compute-symmetries', '--stabilize-initial-state', '--ground-symmetries', '--add-none-of-those-mappings', '--bliss-time-limit', '300', '--search-options', '--symmetries', 'sym=structural_symmetries(time_bound=0,search_symmetries=dks,source_of_symmetries=translator)', '--search', "astar(lmcut(), symmetries=sym)"], driver_options=['--translate-time-limit', '30m']),
     }
 
     exp = IssueExperiment(
@@ -97,6 +71,7 @@ def main(revisions=None):
     exp.add_parser('lab_driver_parser', exp.LAB_DRIVER_PARSER)
     exp.add_parser('exitcode_parser', exp.EXITCODE_PARSER)
     exp.add_parser('translator_parser', exp.TRANSLATOR_PARSER)
+    exp.add_parser('single_search_parser', exp.SINGLE_SEARCH_PARSER)
     exp.add_parser('symmetries_parser', 'symmetries-parser.py')
 
     generator_count_lifted = Attribute('generator_count_lifted', absolute=True, min_wins=False)
@@ -192,7 +167,7 @@ def main(revisions=None):
         symmetry_graph_size,
         time_symmetries,
     ]
-    attributes = ['error', 'run_dir'] # exp.DEFAULT_TABLE_ATTRIBUTES
+    attributes = exp.DEFAULT_TABLE_ATTRIBUTES
     attributes.extend(extra_attributes)
     attributes.append('translator_time_symmetries*')
 
@@ -213,25 +188,17 @@ def main(revisions=None):
         return props
 
     algorithm_nicks = [
-        'translate',
-        'translate-symm-stabinit',
+        'lmcut-dks-liftedsymmetries-stabinit-noneofthose',
     ]
 
     exp.add_absolute_report_step(attributes=attributes,filter_algorithm=['{}-{}'.format(REVISION, x) for x in algorithm_nicks],filter=[compute_removed_count_in_each_step,duplicate_attribute])
 
-    exp.add_report(AbsoluteReport(attributes=attributes,filter_algorithm=['{}-{}'.format(REVISION, x) for x in algorithm_nicks],filter=[compute_removed_count_in_each_step,duplicate_attribute],filter_domain=strips_suite),outfile='{}-strips-subset-abs.html'.format(exp.name))
-
     OLD_REV = 'ac5e5c9486fc'
-    # exp.add_fetcher('data/2018-03-21-lifted-stabinit-eval',filter_algorithm=['{}-{}'.format(OLD_REV, x) for x in algorithm_nicks])
-    exp.add_fetcher('data/2018-03-21-lifted-stabinit-eval',filter_algorithm=['{}-{}'.format(OLD_REV, x) for x in ['translate', 'translate-stabinit']])
+    exp.add_fetcher('data/2018-03-21-lifted-stabinit-grounded-dks-eval',filter_algorithm=['{}-{}'.format(OLD_REV, x) for x in algorithm_nicks])
 
     exp.add_report(
         ComparativeReport(
-            # algorithm_pairs=[('{}-{}'.format(OLD_REV, x), '{}-{}'.format(REVISION, x)) for x in algorithm_nicks],
-            algorithm_pairs=[
-                ('{}-translate'.format(OLD_REV), '{}-translate'.format(REVISION)),
-                ('{}-translate-stabinit'.format(OLD_REV), '{}-translate-symm-stabinit'.format(REVISION)),
-            ],
+            algorithm_pairs=[('{}-{}'.format(OLD_REV, x), '{}-{}'.format(REVISION, x)) for x in algorithm_nicks],
             attributes=attributes,
         ),
         outfile=os.path.join(exp.eval_dir, exp.name + '-compare.html'),
