@@ -1,5 +1,5 @@
 To use find symmetries with the symmtries module
-(symmetries_module.py), you need to compile the pybind PyBliss
+(symmetries.py), you need to compile the pybind PyBliss
 extension first. To do so, change into pybliss-0.73 and type "Make".
 
 External usage with find_symmetries.py:

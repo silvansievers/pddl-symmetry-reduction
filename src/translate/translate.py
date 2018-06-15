@@ -27,7 +27,7 @@ import pddl
 import pddl_parser
 import sas_tasks
 import simplify
-import symmetries_module
+import symmetries
 import timers
 import tools
 import variable_order
@@ -531,14 +531,14 @@ class Generator:
         objects = dict()
         for from_node, to_node in generator.items():
             assert isinstance(from_node, tuple)
-            if (from_node[0] == symmetries_module.NodeType.predicate
+            if (from_node[0] == symmetries.NodeType.predicate
                 and from_node[1] != to_node[1]):
                 predicates[from_node[1]] = to_node[1]
-            if (from_node[0] == symmetries_module.NodeType.constant
+            if (from_node[0] == symmetries.NodeType.constant
                 and from_node[1] != to_node[1]):
                 objects[from_node[1]] = to_node[1]
 
-            if from_node != to_node and from_node[0] in [symmetries_module.NodeType.operator, symmetries_module.NodeType.axiom]:
+            if from_node != to_node and from_node[0] in [symmetries.NodeType.operator, symmetries.NodeType.axiom]:
                 print("Generator affects operator or axiom")
                 assert len(from_node) == 3
                 name = from_node[2]
@@ -667,7 +667,7 @@ def pddl_to_sas(task):
             only_object_symmetries = options.only_object_symmetries
             stabilize_initial_state = options.stabilize_initial_state
             time_limit = options.bliss_time_limit
-            graph = symmetries_module.SymmetryGraph(task, only_object_symmetries, stabilize_initial_state)
+            graph = symmetries.SymmetryGraph(task, only_object_symmetries, stabilize_initial_state)
             if options.add_mutex_groups:
                 graph.add_mutex_groups(mutex_groups)
             generators = graph.find_automorphisms(time_limit)

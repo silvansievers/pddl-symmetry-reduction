@@ -3,7 +3,7 @@
 import normalize
 import options
 import pddl_parser
-from symmetries_module import SymmetryGraph
+from symmetries import SymmetryGraph
 import sys
 
 WRITE_DOT_GRAPH = True

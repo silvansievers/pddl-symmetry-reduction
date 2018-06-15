@@ -7,7 +7,6 @@ import options
 
 import normalize
 import pddl
-import symmetries_module
 import timers
 
 class PrologProgram:
