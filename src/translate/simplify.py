@@ -286,7 +286,7 @@ class VarValueRenaming(object):
             elif None in (new_from_fact[0], new_to_fact[0]):
                 if DUMP:
                     print("simplify: only one of from_var and to_var are removed, invalid generator")
-                if options.stabilize_initial_state:
+                if not options.do_not_stabilize_initial_state:
                     assert False
                 return None
 
@@ -301,7 +301,7 @@ class VarValueRenaming(object):
             elif always_false in (new_from_fact[1], new_to_fact[1]):
                 if DUMP:
                     print("simplify: only one of from_val and to_val are mapped always_false, invalid generator")
-                if options.stabilize_initial_state:
+                if not options.do_not_stabilize_initial_state:
                     assert False
                 return None
 

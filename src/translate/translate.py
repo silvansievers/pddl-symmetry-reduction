@@ -593,7 +593,7 @@ def filter_out_identities_or_nonpermutations(sas_generators):
                 print(sas_generator)
                 print("is the identiy!")
         elif not is_permutation(sas_generator):
-            if options.stabilize_initial_state:
+            if not options.do_not_stabilize_initial_state:
                 assert False
             elif DUMP:
                 print(sas_generator)
@@ -665,9 +665,10 @@ def pddl_to_sas(task):
     with timers.timing("Symmetries0 computing symmetries", block=True):
         if options.compute_symmetries:
             only_object_symmetries = options.only_object_symmetries
-            stabilize_initial_state = options.stabilize_initial_state
+            stabilize_initial_state = not options.do_not_stabilize_initial_state
+            stabilize_goal = not options.do_not_stabilize_goal
             time_limit = options.bliss_time_limit
-            graph = symmetries.SymmetryGraph(task, only_object_symmetries, stabilize_initial_state)
+            graph = symmetries.SymmetryGraph(task, only_object_symmetries, stabilize_initial_state, stabilize_goal)
             if options.add_mutex_groups:
                 graph.add_mutex_groups(mutex_groups)
             generators = graph.find_automorphisms(time_limit)
@@ -724,7 +725,7 @@ def pddl_to_sas(task):
                     if DUMP:
                         print("need to skip generator because it maps an atom to some "
                             "atom which does not exist in the sas representation")
-                    if options.stabilize_initial_state:
+                    if not options.do_not_stabilize_initial_state:
                         assert False
                     valid_generator = False
                     break

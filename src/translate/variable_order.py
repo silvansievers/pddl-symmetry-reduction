@@ -351,7 +351,7 @@ class VariableOrder(object):
             elif from_fact[0] not in self.new_var or to_fact[0] not in self.new_var:
                 # If only one of var and var' is removed, we know that var !=
                 # var', and the generator must be invalidated.
-                if options.stabilize_initial_state:
+                if not options.do_not_stabilize_initial_state:
                     assert False
                 #print("reorder: only one of from_var and to_var are removed, invalid generator")
                 return None

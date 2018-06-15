@@ -63,9 +63,9 @@ def parse_args():
         "predicates, operators, axioms or functions. (Set option "
         "--compute-symmetries)")
     argparser.add_argument(
-        "--stabilize-initial-state", action="store_true",
-        help="If false, only those atoms in the initial state mentioning "
-        "static predicates are added.")
+        "--do-not-stabilize-initial-state", action="store_true",
+        help="If true, only those atoms in the initial state mentioning "
+        "static predicates are added. (Set option --compute-symmetries)")
     argparser.add_argument(
         "--only-functions-from-initial-state", action="store_true",
         help="If true, include only the functions mentioned in the initial "

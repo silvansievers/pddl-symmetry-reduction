@@ -137,9 +137,10 @@ class Color:
     number = None # will be set by Symmetry Graph
 
 class SymmetryGraph:
-    def __init__(self, task, only_object_symmetries, stabilize_initial_state):
+    def __init__(self, task, only_object_symmetries, stabilize_initial_state, stabilize_goal):
         self.only_object_symmetries = only_object_symmetries
         self.stabilize_initial_state = stabilize_initial_state
+        self.stabilize_goal = stabilize_goal
         self.graph = PyblissModuleWrapper(only_object_symmetries)
         self.numbers = set()
         self.constant_functions = dict()
@@ -173,7 +174,8 @@ class SymmetryGraph:
         self._add_predicates(task)
         self._add_functions(task)
         self._add_init(task)
-        self._add_goal(task)
+        if self.stabilize_goal:
+            self._add_goal(task)
         self._add_operators(task)
         self._add_axioms(task)
 

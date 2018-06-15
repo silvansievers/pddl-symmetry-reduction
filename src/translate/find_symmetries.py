@@ -10,12 +10,13 @@ WRITE_DOT_GRAPH = True
 
 if __name__ == "__main__":
     only_object_symmetries = options.only_object_symmetries
-    stabilize_initial_state = options.stabilize_initial_state
+    stabilize_initial_state = not options.do_not_stabilize_initial_state
+    stabilize_goal = not options.do_not_stabilize_goal
     time_limit = options.bliss_time_limit
     task = pddl_parser.open()
     normalize.normalize(task)
     task.dump()
-    graph = SymmetryGraph(task, only_object_symmetries, stabilize_initial_state)
+    graph = SymmetryGraph(task, only_object_symmetries, stabilize_initial_state, stabilize_goal)
     if options.add_mutex_groups:
         print("cannot add mutex groups -- translator is not run!")
         exit(1)
