@@ -51,6 +51,8 @@ def parse_args():
     argparser.add_argument(
         "--dump-task", action="store_true",
         help="dump human-readable SAS+ representation of the task")
+
+    #### Options related to symmetries
     argparser.add_argument(
         "--compute-symmetries", action="store_true",
         help="compute symmetries on the normalized taks using bliss, dump "
@@ -58,7 +60,8 @@ def parse_args():
     argparser.add_argument(
         "--only-object-symmetries", action="store_true",
         help="HACK! Only allow objects to be permuted, but not "
-        "predicates operators, axioms or functions.")
+        "predicates, operators, axioms or functions. (Set option "
+        "--compute-symmetries)")
     argparser.add_argument(
         "--stabilize-initial-state", action="store_true",
         help="If false, only those atoms in the initial state mentioning "
@@ -66,7 +69,17 @@ def parse_args():
     argparser.add_argument(
         "--only-functions-from-initial-state", action="store_true",
         help="If true, include only the functions mentioned in the initial "
-        "states, but not the fluents or types.")
+        "states, but not the fluents or types. (Set option --compute-symmetries)")
+    argparser.add_argument(
+        "--do-not-stabilize-goal", action="store_true",
+        help="If true, literals in the goal are not colored with a special "
+        "color. (Set option --compute-symmetries)")
+    argparser.add_argument(
+        "--bliss-time-limit", default=300, type=int,
+        help="Max time for bliss to search for automorphisms. (Set option "
+        "--compute-symmetries)")
+
+    # Options related to symmetry-based reduction and expansion
     argparser.add_argument(
         "--preserve-symmetries-during-grounding", action="store_true",
         help="If true, grounding preserves unreachable structures (axioms, "
@@ -90,9 +103,6 @@ def parse_args():
         "If this option is used, generators that map none-of-those values to "
         "none-of-those values of other variables are *not* filtered out as "
         "they would otherwise be.")
-    argparser.add_argument(
-        "--bliss-time-limit", default=300, type=int,
-        help="max time for bliss to search for automorphisms")
     return argparser.parse_args()
 
 
