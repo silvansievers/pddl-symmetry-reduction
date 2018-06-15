@@ -1,4 +1,4 @@
-To use find symmetries with the symmtries module
+To use find symmetries with the symmetries module
 (symmetries.py), you need to compile the pybind PyBliss
 extension first. To do so, change into pybliss-0.73 and type "Make".
 
@@ -6,6 +6,6 @@ External usage with find_symmetries.py:
 ./find_symmetries.py ../../benchmarks/simple-drive/domain.pddl ../../benchmarks/simple-drive/p01.pddl [--only-object-symmetries] [--blis-time-limit] [--write-dot-graph]
 
 Usage from within the translator:
-./translate.py ../../benchmarks/simple-drive/domain.pddl ../../benchmarks/simple-drive/p01.pddl --only-find-symmetries [--only-object-symmetries] [--blis-time-limit] [--write-dot-graph]
+./translate.py ../../benchmarks/simple-drive/domain.pddl ../../benchmarks/simple-drive/p01.pddl --compute-symmetries [--only-object-symmetries] [--blis-time-limit] [--write-dot-graph]
 Or with fast-downward.py:
-./fast-downward.py --translate benchmarks/simple-drive/domain.pddl benchmarks/simple-drive/p01.pddl --translate-options --only-find-symmetries [--only-object-symmetries] [--blis-time-limit] [--write-dot-graph]
+./fast-downward.py --translate benchmarks/simple-drive/domain.pddl benchmarks/simple-drive/p01.pddl --translate-options --compute-symmetries [--only-object-symmetries] [--blis-time-limit] [--write-dot-graph]
