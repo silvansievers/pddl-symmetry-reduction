@@ -523,6 +523,7 @@ def unsolvable_sas_task(msg):
     print("%s! Generating unsolvable task..." % msg)
     return trivial_task(solvable=False)
 
+
 class Generator:
     def __init__(self, generator, task):
         # Transform generator into a tuple of dicts, mapping predicates
@@ -564,6 +565,7 @@ class Generator:
         assert self.is_valid()
         print("Mapping objects: {}; Mapping predicates: {}".format(self.generator[0], self.generator[1]))
 
+
 def is_permutation(sas_generator):
     # Caution! If the given sas_generator maps two keys to the same value,
     # this check may fail and loop forever.
@@ -601,34 +603,6 @@ def filter_out_identities_or_nonpermutations(sas_generators):
         else:
             remaining_generators.append(sas_generator)
     return remaining_generators
-
-
-def gcd(a, b):
-    """Return greatest common divisor using Euclid's Algorithm."""
-    while b:
-        a, b = b, a % b
-    return a
-
-
-def lcm(a, b):
-    """Return lowest common multiple."""
-    return a * b // gcd(a, b)
-
-
-def compute_order(sas_generator):
-    visited_keys = set()
-    order = 1
-    for start_key in sas_generator.keys():
-        if not start_key in visited_keys:
-            cycle_size = 1
-            visited_keys.add(start_key)
-            current_key = sas_generator[start_key]
-            while current_key != start_key:
-                current_key = tuple(sas_generator[current_key])
-                visited_keys.add(current_key)
-                cycle_size += 1
-            order = lcm(order, cycle_size)
-    return order
 
 
 def print_sas_generator(sas_generator):
@@ -679,7 +653,7 @@ def pddl_to_sas(task):
             order_list = []
             max_order = 0
             for generator in generators:
-                order = compute_order(generator)
+                order = symmetries.compute_order(generator)
                 max_order = max(max_order, order)
                 order_to_generator_count[order] += 1
                 order_list.append(order)
@@ -849,7 +823,7 @@ def pddl_to_sas(task):
         order_to_generator_count = defaultdict(int)
         order_list = []
         for sas_generator in sas_generators:
-            order = compute_order(sas_generator)
+            order = symmetries.compute_order(sas_generator)
             order_to_generator_count[order] += 1
             order_list.append(order)
         printable_order_to_count = [(order, count) for order, count in order_to_generator_count.items()]
@@ -1014,6 +988,7 @@ def dump_statistics(sas_task):
         print(warning)
     else:
         print("Translator peak memory: %d KB" % peak_memory)
+
 
 def main():
     timer = timers.Timer()
