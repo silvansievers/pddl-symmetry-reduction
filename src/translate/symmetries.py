@@ -9,6 +9,9 @@ import sys
 sys.path.append(os.path.join(dir_path, 'pybliss-0.73'))
 import pybind11_blissmodule as bliss
 
+from sympy.combinatorics.permutations import Permutation
+from sympy.combinatorics.perm_groups import PermutationGroup
+
 import options
 import timers
 
@@ -56,6 +59,14 @@ class PyblissModuleWrapper:
         automorphisms = graph.find_automorphisms(time_limit)
         time = timer.elapsed_time()
         print "Done searching for automorphisms: %ss" % time
+
+        timer = timers.Timer()
+        print "Computing group order with sympy..."
+        sympy_permutations = [Permutation(automorphism) for automorphism in automorphisms]
+        sympy_group = PermutationGroup(sympy_permutations)
+        print "Group order: %d" % sympy_group.order()
+        time = timer.elapsed_time()
+        print "Done computing group order: %ss" % time
 
         timer = timers.Timer()
         print "Translating automorphisms..."
