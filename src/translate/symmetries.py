@@ -31,7 +31,7 @@ class PyblissModuleWrapper:
         self.excluded_vertices = set()
         self.only_object_symmetries = only_object_symmetries
 
-    def find_automorphisms(self, time_limit):
+    def find_automorphisms(self, time_limit, compute_order):
         # Create and fill the graph
         timer = timers.Timer()
         print "Creating symmetry graph..."
@@ -60,13 +60,14 @@ class PyblissModuleWrapper:
         time = timer.elapsed_time()
         print "Done searching for automorphisms: %ss" % time
 
-        timer = timers.Timer()
-        print "Computing group order with sympy..."
-        sympy_permutations = [Permutation(automorphism) for automorphism in automorphisms]
-        sympy_group = PermutationGroup(sympy_permutations)
-        print "Group order: %d" % sympy_group.order()
-        time = timer.elapsed_time()
-        print "Done computing group order: %ss" % time
+        if compute_order:
+            timer = timers.Timer()
+            print "Computing group order with sympy..."
+            sympy_permutations = [Permutation(automorphism) for automorphism in automorphisms]
+            sympy_group = PermutationGroup(sympy_permutations)
+            print "Group order: %d" % sympy_group.order()
+            time = timer.elapsed_time()
+            print "Done computing group order: %ss" % time
 
         timer = timers.Timer()
         print "Translating automorphisms..."
@@ -592,11 +593,11 @@ class SymmetryGraph:
                 file.write("\"%s\" -> \"%s\";\n" % (vertex, succ))
         file.write("}\n")
 
-    def find_automorphisms(self, time_limit):
+    def find_automorphisms(self, time_limit, compute_order):
         # TODO: we sorted task's init, hence if we wanted to to use
         # the generators, we should remap init indices when required.
         # The same is true for operators.
-        automorphisms = self.graph.find_automorphisms(time_limit)
+        automorphisms = self.graph.find_automorphisms(time_limit, compute_order)
         return automorphisms
 
 

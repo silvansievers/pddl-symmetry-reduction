@@ -642,10 +642,11 @@ def pddl_to_sas(task):
             stabilize_initial_state = not options.do_not_stabilize_initial_state
             stabilize_goal = not options.do_not_stabilize_goal
             time_limit = options.bliss_time_limit
+            compute_order = options.compute_order
             graph = symmetries.SymmetryGraph(task, only_object_symmetries, stabilize_initial_state, stabilize_goal)
             if options.add_mutex_groups:
                 graph.add_mutex_groups(mutex_groups)
-            generators = graph.find_automorphisms(time_limit)
+            generators = graph.find_automorphisms(time_limit, compute_order)
             if DUMP:
                 graph.write_or_print_automorphisms(generators, dump=True)
             print("Number of lifted generators: {}".format(len(generators)))
