@@ -34,6 +34,7 @@ parser.add_pattern('generator_order_grounded_7', 'Grounded generator order 7: (\
 parser.add_pattern('generator_order_grounded_8', 'Grounded generator order 8: (\d+)', required=False, type=int)
 parser.add_pattern('generator_order_grounded_9', 'Grounded generator order 9: (\d+)', required=False, type=int)
 parser.add_pattern('symmetry_graph_size', 'Size of the lifted symmetry graph: (\d+)', required=False, type=int)
+parser.add_pattern('symmetry_group_order', 'Group order: (\d+)', required=False, type=int)
 
 def add_composed_attributes(content, props):
     generator_count_lifted = props.get('generator_count_lifted', 0)
