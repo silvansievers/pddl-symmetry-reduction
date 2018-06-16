@@ -79,7 +79,7 @@ def parse_args():
         help="Max time for bliss to search for automorphisms. (Set option "
         "--compute-symmetries)")
 
-    # Options related to symmetry-based reduction and expansion
+    # Options related to grounding of symmetries
     argparser.add_argument(
         "--preserve-symmetries-during-grounding", action="store_true",
         help="If true, grounding preserves unreachable structures (axioms, "
