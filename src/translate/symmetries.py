@@ -1,9 +1,13 @@
 #! /usr/bin/env python
 
+from __future__ import division
+
 import pddl
 
 import os
 dir_path = os.path.dirname(os.path.realpath(__file__))
+
+import Queue
 
 import sys
 sys.path.append(os.path.join(dir_path, 'pybliss-0.73'))
@@ -17,6 +21,40 @@ import timers
 
 # HACK
 GLOBAL_COLOR_COUNT = -1
+
+
+def compute_group_order_sympy(generators):
+    sympy_permutations = [Permutation(gen) for gen in generators]
+    sympy_group = PermutationGroup(sympy_permutations)
+    return sympy_group.order()
+
+
+def permute(automorphism, gen):
+    # print "permuting %s with %s" % (automorphism, gen)
+    result = list(automorphism)
+    gen_mapping = dict([(key, val) for key, val in enumerate(gen)])
+    for key, val in enumerate(automorphism):
+        result[key] = gen_mapping[val]
+    # print "result: %s" % result
+    return tuple(result)
+
+
+def compute_group_order_manual(generators):
+    closed = set()
+    open_list = Queue.Queue()
+    for gen in generators:
+        closed.add(tuple(gen))
+        open_list.put(tuple(gen))
+    while not open_list.empty():
+        automorphism = open_list.get()
+        for gen in generators:
+            if gen != automorphism:
+                new_automorphism = permute(automorphism, gen)
+                if new_automorphism not in closed:
+                    closed.add(tuple(new_automorphism))
+                    open_list.put(tuple(new_automorphism))
+    return len(closed)
+
 
 class PyblissModuleWrapper:
     """
@@ -63,14 +101,21 @@ class PyblissModuleWrapper:
         if compute_order:
             timer = timers.Timer()
             print "Computing group order with sympy..."
-            order = 0
+            order_sympy = 0
             if automorphisms:
-                sympy_permutations = [Permutation(automorphism) for automorphism in automorphisms]
-                sympy_group = PermutationGroup(sympy_permutations)
-                order = sympy_group.order()
-            print "Group order: %d" % order
+                order_sympy = compute_group_order_sympy(automorphisms)
+            print "Group order sympy: %d" % order_sympy
             time = timer.elapsed_time()
-            print "Done computing group order: %ss" % time
+            print "Done computing group order with sympy: %ss" % time
+
+            if order_sympy <= 50000:
+                print "Computing group order manually..."
+                if automorphisms:
+                    order_manual = compute_group_order_manual(automorphisms)
+                print "Group order manual: %d" % order_manual
+                time = timer.elapsed_time()
+                print "Done computing group order manually: %ss" % time
+                assert order_manual == order_sympy
 
         timer = timers.Timer()
         print "Translating automorphisms..."
