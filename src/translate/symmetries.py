@@ -63,9 +63,12 @@ class PyblissModuleWrapper:
         if compute_order:
             timer = timers.Timer()
             print "Computing group order with sympy..."
-            sympy_permutations = [Permutation(automorphism) for automorphism in automorphisms]
-            sympy_group = PermutationGroup(sympy_permutations)
-            print "Group order: %d" % sympy_group.order()
+            order = 0
+            if automorphisms:
+                sympy_permutations = [Permutation(automorphism) for automorphism in automorphisms]
+                sympy_group = PermutationGroup(sympy_permutations)
+                order = sympy_group.order()
+            print "Group order: %d" % order
             time = timer.elapsed_time()
             print "Done computing group order: %ss" % time
 
