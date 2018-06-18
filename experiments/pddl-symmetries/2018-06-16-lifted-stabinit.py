@@ -144,6 +144,7 @@ def main(revisions=None):
     symmetry_graph_size = Attribute('symmetry_graph_size', absolute=True, min_wins=True)
     time_symmetries = Attribute('time_symmetries', absolute=False, min_wins=True, functions=[geometric_mean])
     symmetry_group_order = Attribute('symmetry_group_order', absolute=False, min_wins=True, functions=[geometric_mean])
+    symmetry_group_order_time = Attribute('symmetry_group_order_time', absolute=False, min_wins=True, functions=[geometric_mean])
 
     extra_attributes = [
         generator_count_lifted,
@@ -194,6 +195,7 @@ def main(revisions=None):
         symmetry_graph_size,
         time_symmetries,
         symmetry_group_order,
+        symmetry_group_order_time,
     ]
     attributes = ['error', 'run_dir'] # exp.DEFAULT_TABLE_ATTRIBUTES
     attributes.extend(extra_attributes)
@@ -223,6 +225,7 @@ def main(revisions=None):
     exp.add_step('build', exp.build)
     exp.add_step('start', exp.start_runs)
     exp.add_fetcher(name='fetch')
+    exp.add_parse_again_step()
 
     exp.add_absolute_report_step(attributes=attributes,filter_algorithm=['{}-{}'.format(REVISION, x) for x in algorithm_nicks],filter=[compute_removed_count_in_each_step,duplicate_attribute])
 
