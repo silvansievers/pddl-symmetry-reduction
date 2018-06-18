@@ -17,7 +17,7 @@ except ImportError:
     print 'matplotlib not available, scatter plots not available'
     matplotlib = False
 
-REVISION = 'b7f6864c76a4'
+REVISION = 'b7fd52c55f9c'
 
 def main(revisions=None):
     benchmarks_dir=os.path.expanduser('~/repos/downward/benchmarks')
@@ -225,7 +225,6 @@ def main(revisions=None):
     exp.add_step('build', exp.build)
     exp.add_step('start', exp.start_runs)
     exp.add_fetcher(name='fetch')
-    exp.add_parse_again_step()
 
     exp.add_absolute_report_step(attributes=attributes,filter_algorithm=['{}-{}'.format(REVISION, x) for x in algorithm_nicks],filter=[compute_removed_count_in_each_step,duplicate_attribute])
 
