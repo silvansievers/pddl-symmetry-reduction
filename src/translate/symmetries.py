@@ -115,7 +115,10 @@ class PyblissModuleWrapper:
                 print "Group order manual: %d" % order_manual
                 time = timer.elapsed_time()
                 print "Done computing group order manually: %ss" % time
-                assert order_manual == order_sympy
+                if automorphisms and order_manual != order_sympy:
+                    print "Different group orders!"
+                    sys.exit(1)
+            sys.exit(0)
 
         timer = timers.Timer()
         print "Translating automorphisms..."
