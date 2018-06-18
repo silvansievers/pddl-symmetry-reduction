@@ -17,7 +17,7 @@ except ImportError:
     print 'matplotlib not available, scatter plots not available'
     matplotlib = False
 
-REVISION = 'b7fd52c55f9c'
+REVISION = '2d2dd3a9ba28'
 
 def main(revisions=None):
     benchmarks_dir=os.path.expanduser('~/repos/downward/benchmarks')
@@ -83,7 +83,6 @@ def main(revisions=None):
         environment = LocalEnvironment(processes=4)
 
     configs = {
-        IssueConfig('translate', [], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '2G']),
         IssueConfig('translate-symm-stabinit', ['--translate-options', '--compute-symmetries', '--compute-order', '--bliss-time-limit', '300', ], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '2G']),
     }
 
@@ -227,25 +226,6 @@ def main(revisions=None):
     exp.add_fetcher(name='fetch')
 
     exp.add_absolute_report_step(attributes=attributes,filter_algorithm=['{}-{}'.format(REVISION, x) for x in algorithm_nicks],filter=[compute_removed_count_in_each_step,duplicate_attribute])
-
-    exp.add_report(AbsoluteReport(attributes=attributes,filter_algorithm=['{}-{}'.format(REVISION, x) for x in algorithm_nicks],filter=[compute_removed_count_in_each_step,duplicate_attribute],filter_domain=strips_suite),outfile='{}-strips-subset-abs.html'.format(exp.name),name='report-{}-strips-subset-abs.html'.format(exp.name))
-
-    OLD_REV = 'ac5e5c9486fc'
-    # exp.add_fetcher('data/2018-03-21-lifted-stabinit-eval',filter_algorithm=['{}-{}'.format(OLD_REV, x) for x in algorithm_nicks])
-    exp.add_fetcher('data/2018-03-21-lifted-stabinit-eval',filter_algorithm=['{}-{}'.format(OLD_REV, x) for x in ['translate', 'translate-stabinit']])
-
-    exp.add_report(
-        ComparativeReport(
-            # algorithm_pairs=[('{}-{}'.format(OLD_REV, x), '{}-{}'.format(REVISION, x)) for x in algorithm_nicks],
-            algorithm_pairs=[
-                ('{}-translate'.format(OLD_REV), '{}-translate'.format(REVISION)),
-                ('{}-translate-stabinit'.format(OLD_REV), '{}-translate-symm-stabinit'.format(REVISION)),
-            ],
-            attributes=attributes,
-        ),
-        outfile=os.path.join(exp.eval_dir, exp.name + '-compare.html'),
-        name='report-{}-compare.html'.format(exp.name)
-    )
 
     exp.run_steps()
 
