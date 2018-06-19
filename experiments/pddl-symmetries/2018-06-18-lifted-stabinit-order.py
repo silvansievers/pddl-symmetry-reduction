@@ -17,7 +17,7 @@ except ImportError:
     print 'matplotlib not available, scatter plots not available'
     matplotlib = False
 
-REVISION = '60f9d60b4f7c'
+REVISION = 'a0543980bc13'
 
 def main(revisions=None):
     benchmarks_dir=os.path.expanduser('~/repos/downward/benchmarks')
@@ -83,7 +83,9 @@ def main(revisions=None):
         environment = LocalEnvironment(processes=4)
 
     configs = {
-        IssueConfig('translate-symm-stabinit', ['--translate-options', '--compute-symmetries', '--compute-order', '--bliss-time-limit', '300', ], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '2G']),
+        IssueConfig('translate', [], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '2G']),
+        IssueConfig('translate-symm-stabinit', ['--translate-options', '--compute-symmetries', '--do-not-stabilize-goal', '--compute-order', '--bliss-time-limit', '300', ], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '2G']),
+        IssueConfig('translate-symm-stabinitgoal', ['--translate-options', '--compute-symmetries', '--compute-order', '--bliss-time-limit', '300', ], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '2G']),
     }
 
     exp = IssueExperiment(
@@ -142,7 +144,7 @@ def main(revisions=None):
     ignore_none_of_those_mapping = Attribute('ignore_none_of_those_mapping', absolute=True, min_wins=True)
     symmetry_graph_size = Attribute('symmetry_graph_size', absolute=True, min_wins=True)
     time_symmetries = Attribute('time_symmetries', absolute=False, min_wins=True, functions=[geometric_mean])
-    symmetry_group_order = Attribute('symmetry_group_order', absolute=False, min_wins=True, functions=[geometric_mean])
+    symmetry_group_order = Attribute('symmetry_group_order', absolute=True, min_wins=True)
     symmetry_group_order_time = Attribute('symmetry_group_order_time', absolute=False, min_wins=True, functions=[geometric_mean])
 
     extra_attributes = [
@@ -219,6 +221,7 @@ def main(revisions=None):
     algorithm_nicks = [
         'translate',
         'translate-symm-stabinit',
+        'translate-symm-stabinitgoal',
     ]
 
     exp.add_step('build', exp.build)
