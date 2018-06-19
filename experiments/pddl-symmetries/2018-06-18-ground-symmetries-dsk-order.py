@@ -84,7 +84,7 @@ def main(revisions=None):
     generators_orders = Attribute('generators_orders', absolute=True, min_wins=False)
     symmetry_graph_size = Attribute('symmetry_graph_size', absolute=True, min_wins=True)
     time_symmetries = Attribute('time_symmetries', absolute=False, min_wins=True, functions=[geometric_mean])
-    symmetry_group_order = Attribute('symmetry_group_order', absolute=True, min_wins=True, functions=[arithmetic_mean])
+    symmetry_group_order = Attribute('symmetry_group_order', absolute=True, min_wins=True, functions=[geometric_mean])
 
     extra_attributes = [
         generators_count,
