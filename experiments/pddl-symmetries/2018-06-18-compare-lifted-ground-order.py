@@ -87,6 +87,7 @@ def main(revisions=None):
                 ('{}-translate-symm-stabinitgoal'.format(REVISION), '{}-lmcut-dks-stabinitgoal'.format(REVISION)),
             ],
             attributes=attributes,
+            filter_domain=suite,
         ),
         outfile=os.path.join(exp.eval_dir, 'a' + exp.name + '-compare.html'),
     )
