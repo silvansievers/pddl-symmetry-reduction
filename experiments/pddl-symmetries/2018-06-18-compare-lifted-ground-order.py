@@ -76,7 +76,7 @@ def main(revisions=None):
     attributes = exp.DEFAULT_TABLE_ATTRIBUTES
     attributes.extend(extra_attributes)
 
-    exp.add_fetcher('data/2018-06-18-lifted-stabinit-order', filter_algorithm=['{}-translate-symm-stabinit'.format(REVISION), '{}-translate-symm-stabinitgoal'.format(REVISION)])
+    exp.add_fetcher('data/2018-06-18-lifted-stabinit-order-eval', filter_algorithm=['{}-translate-symm-stabinit'.format(REVISION), '{}-translate-symm-stabinitgoal'.format(REVISION)])
     exp.add_fetcher('data/2018-06-18-ground-symmetries-dsk-order-eval', filter_algorithm=['{}-lmcut-dks-stabgoal'.format(REVISION), '{}-lmcut-dks-stabinitgoal'.format(REVISION)])
 
     exp.add_absolute_report_step(attributes=attributes,filter_domain=suite)
