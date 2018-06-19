@@ -5,7 +5,7 @@ import os
 import suites
 
 from lab.environments import LocalEnvironment, BaselSlurmEnvironment
-from lab.reports import Attribute, geometric_mean
+from lab.reports import Attribute, arithmetic_mean, geometric_mean
 from downward.reports.compare import ComparativeReport
 
 from common_setup import IssueConfig, IssueExperiment, DEFAULT_OPTIMAL_SUITE, is_test_run
