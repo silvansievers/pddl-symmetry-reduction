@@ -58,9 +58,10 @@ def main(revisions=None):
         environment = LocalEnvironment(processes=4)
 
     configs = {
-        IssueConfig('lmcut', ['--search', 'astar(lmcut())']),
-        IssueConfig('lmcut-dks-stabgoal', ['--symmetries', 'sym=structural_symmetries(time_bound=0,search_symmetries=dks,write_generators=true)', '--search', 'astar(lmcut(),symmetries=sym)']),
-        IssueConfig('lmcut-dks-stabinitgoal', ['--symmetries', 'sym=structural_symmetries(time_bound=0,search_symmetries=dks,stabilize_initial_state=true,write_generators=true)', '--search', 'astar(lmcut(),symmetries=sym)'],),
+        IssueConfig('lmcut-dks-stabgoal', ['--symmetries', 'sym=structural_symmetries(time_bound=0,search_symmetries=dks,stabilize_goal=true,stabilize_initial_state=false,write_generators=true)', '--search', 'astar(lmcut(),symmetries=sym)']),
+        IssueConfig('lmcut-dks-stabgoal-stabinit', ['--symmetries', 'sym=structural_symmetries(time_bound=0,search_symmetries=dks,stabilize_goal=true,stabilize_initial_state=true,write_generators=true)', '--search', 'astar(lmcut(),symmetries=sym)']),
+        IssueConfig('lmcut-dks', ['--symmetries', 'sym=structural_symmetries(time_bound=0,search_symmetries=dks,stabilize_goal=false,stabilize_initial_state=false,write_generators=true)', '--search', 'astar(lmcut(),symmetries=sym)']),
+        IssueConfig('lmcut-dks-stabinit', ['--symmetries', 'sym=structural_symmetries(time_bound=0,search_symmetries=dks,stabilize_goal=false,stabilize_initial_state=true,write_generators=true)', '--search', 'astar(lmcut(),symmetries=sym)']),
     }
 
     exp = IssueExperiment(
@@ -97,17 +98,11 @@ def main(revisions=None):
     attributes = exp.DEFAULT_TABLE_ATTRIBUTES
     attributes.extend(extra_attributes)
 
-    algorithm_nicks = [
-        'lmcut',
-        'lmcut-dks-stabgoal',
-        'lmcut-dks-stabinitgoal',
-    ]
-
     exp.add_step('build', exp.build)
     exp.add_step('start', exp.start_runs)
     exp.add_fetcher(name='fetch')
 
-    exp.add_absolute_report_step(attributes=attributes,filter_algorithm=['{}-{}'.format(REVISION, x) for x in algorithm_nicks])
+    exp.add_absolute_report_step(attributes=attributes)
 
     exp.run_steps()
 

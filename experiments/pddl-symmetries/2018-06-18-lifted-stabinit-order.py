@@ -83,9 +83,10 @@ def main(revisions=None):
         environment = LocalEnvironment(processes=4)
 
     configs = {
-        IssueConfig('translate', [], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '2G']),
         IssueConfig('translate-symm-stabinit', ['--translate-options', '--compute-symmetries', '--do-not-stabilize-goal', '--compute-order', '--bliss-time-limit', '300', ], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '2G']),
-        IssueConfig('translate-symm-stabinitgoal', ['--translate-options', '--compute-symmetries', '--compute-order', '--bliss-time-limit', '300', ], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '2G']),
+        IssueConfig('translate-symm-stabgoal-stabinit', ['--translate-options', '--compute-symmetries', '--compute-order', '--bliss-time-limit', '300', ], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '2G']),
+        IssueConfig('translate-symm', ['--translate-options', '--compute-symmetries', '--do-not-stabilize-goal', '--do-not-stabilize-initial-state', '--compute-order', '--bliss-time-limit', '300', ], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '2G']),
+        IssueConfig('translate-symm-stabgoal', ['--translate-options', '--compute-symmetries', '--do-not-stabilize-initial-state', '--compute-order', '--bliss-time-limit', '300', ], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '2G']),
     }
 
     exp = IssueExperiment(
@@ -202,33 +203,11 @@ def main(revisions=None):
     attributes.extend(extra_attributes)
     attributes.append('translator_time_symmetries*')
 
-    def compute_removed_count_in_each_step(props):
-        count_lifted = props.get('generator_count_lifted', 0)
-        count_grounded_1 = props.get('generator_count_grounded_1_after_grounding', 0)
-        count_grounded_2 = props.get('generator_count_grounded_2_after_sas_task', 0)
-        count_grounded_3 = props.get('generator_count_grounded_3_after_filtering_props', 0)
-        count_grounded_4 = props.get('generator_count_grounded_4_after_reordering_filtering_vars', 0)
-        props['removed1_after_grounding'] = count_lifted - count_grounded_1
-        props['removed2_after_sas_task'] = count_grounded_1 - count_grounded_2
-        props['removed3_after_filtering_props'] = count_grounded_2 - count_grounded_3
-        props['removed4_after_reordering_filtering_vars'] = count_grounded_3 - count_grounded_4
-        return props
-
-    def duplicate_attribute(props):
-        props['time_symmetries'] = props.get('translator_time_symmetries0_computing_symmetries', None)
-        return props
-
-    algorithm_nicks = [
-        'translate',
-        'translate-symm-stabinit',
-        'translate-symm-stabinitgoal',
-    ]
-
     exp.add_step('build', exp.build)
     exp.add_step('start', exp.start_runs)
     exp.add_fetcher(name='fetch')
 
-    exp.add_absolute_report_step(attributes=attributes,filter_algorithm=['{}-{}'.format(REVISION, x) for x in algorithm_nicks],filter=[compute_removed_count_in_each_step,duplicate_attribute])
+    exp.add_absolute_report_step(attributes=attributes)
 
     exp.run_steps()
 
