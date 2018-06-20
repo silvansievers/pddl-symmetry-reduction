@@ -145,7 +145,7 @@ def main(revisions=None):
     symmetry_graph_size = Attribute('symmetry_graph_size', absolute=True, min_wins=True)
     time_symmetries = Attribute('time_symmetries', absolute=False, min_wins=True, functions=[geometric_mean])
     symmetry_group_order = Attribute('symmetry_group_order', absolute=True, min_wins=True, functions=[geometric_mean])
-    symmetry_group_order_time = Attribute('symmetry_group_order_time', absolute=False, min_wins=True, functions=[geometric_mean])
+    symmetry_group_order_time = Attribute('symmetry_group_order_time', absolute=False, min_wins=False, functions=[geometric_mean])
 
     extra_attributes = [
         generator_count_lifted,
