@@ -8,6 +8,7 @@ from lab.environments import LocalEnvironment, BaselSlurmEnvironment
 from lab.reports import Attribute, arithmetic_mean, geometric_mean
 from downward.reports.absolute import AbsoluteReport
 from downward.reports.compare import ComparativeReport
+from downward.reports.scatter import ScatterPlotReport
 
 from common_setup import IssueConfig, IssueExperiment, DEFAULT_OPTIMAL_SUITE, is_test_run
 try:
@@ -91,6 +92,17 @@ def main(revisions=None):
         ),
         outfile=os.path.join(exp.eval_dir, 'a' + exp.name + '-compare.html'),
     )
+
+    if matplotlib:
+        exp.add_report(
+            ScatterPlotReport(
+                filter_algorithm=['{}-translate-symm-stabinitgoal'.format(REVISION), '{}-lmcut-dks-stabinitgoal'.format(REVISION)],
+                attributes=[symmetry_group_order],
+                get_category=lambda run1, run2: run1["domain"],
+                filter_domain=suite,
+            ),
+            outfile=os.path.join(exp.eval_dir, 'a' + exp.name + '-scatter-order.png'),
+        )
 
     exp.run_steps()
 
