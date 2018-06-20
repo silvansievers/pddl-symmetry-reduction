@@ -42,6 +42,7 @@ def compute_group_order_manual(generators):
 if __name__ == "__main__":
     file_name = "generators.py"
     print "Running symmetry group order computation..."
+    order = 0
     try:
         gens = []
         with open(file_name) as f:
@@ -56,6 +57,6 @@ if __name__ == "__main__":
                 line = [int(x) for x in line]
                 gens.append(line)
         order = compute_group_order_sympy(gens)
-        print "Symmetry group order: %d" % order
     except IOError as err:
         print "%s does not exist" % file_name
+    print "Symmetry group order: %d" % order
