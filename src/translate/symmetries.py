@@ -307,8 +307,7 @@ class SymmetryGraph:
             derived = pred.name in derived_predicates
             add_predicate(pred.name, len(pred.arguments), derived)
         for type in task.types:
-            if type.name != "object":
-                add_predicate(type.get_predicate_name(), 1, False)
+            add_predicate(type.get_predicate_name(), 1, False)
 
     def _add_functions(self, task):
         """Add a node for each function symbol.
@@ -411,10 +410,12 @@ class SymmetryGraph:
             counter = len(init)
             for o in task.objects:
                 the_type = self.type_dict[o.type_name]
-                while the_type.name != "object":
+                while True:
                     literal = pddl.Atom(the_type.get_predicate_name(), (o.name,))
                     self._add_literal(NodeType.init, Color.init, literal, (counter,))
                     counter += 1
+                    if the_type.basetype_name is None:
+                        break
                     the_type = self.type_dict[the_type.basetype_name]
 
     def _add_goal(self, task):
