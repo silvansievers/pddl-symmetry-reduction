@@ -18,7 +18,7 @@ except ImportError:
     print 'matplotlib not availabe, scatter plots not available'
     matplotlib = False
 
-REVISION = 'a0543980bc13'
+REVISION = '44bfdbcc7926'
 
 def main(revisions=None):
     benchmarks_dir=os.path.expanduser('~/repos/downward/benchmarks')
@@ -77,16 +77,21 @@ def main(revisions=None):
     attributes = exp.DEFAULT_TABLE_ATTRIBUTES
     attributes.extend(extra_attributes)
 
-    exp.add_fetcher('data/2018-06-18-lifted-stabinit-order-eval', filter_algorithm=['{}-translate-symm-stabinit'.format(REVISION), '{}-translate-symm-stabinitgoal'.format(REVISION)])
-    exp.add_fetcher('data/2018-06-18-ground-symmetries-dsk-order-eval', filter_algorithm=['{}-lmcut-dks-stabgoal'.format(REVISION), '{}-lmcut-dks-stabinitgoal'.format(REVISION)])
+    exp.add_fetcher('data/2018-06-18-lifted-stabinit-order-eval')
+    exp.add_fetcher('data/2018-06-18-ground-symmetries-dsk-order-eval',merge=True)
 
     exp.add_absolute_report_step(attributes=attributes,filter_domain=suite)
 
+    algorithm_pairs=[
+        ('{}-translate-symm'.format(REVISION), '{}-lmcut-dks'.format(REVISION)),
+        ('{}-translate-symm-stabinit'.format(REVISION), '{}-lmcut-dks-stabinit'.format(REVISION)),
+        ('{}-translate-symm-stabgoal'.format(REVISION), '{}-lmcut-dks-stabgoal'.format(REVISION)),
+        ('{}-translate-symm-stabgoal-stabinit'.format(REVISION), '{}-lmcut-dks-stabgoal-stabinit'.format(REVISION)),
+    ]
+
     exp.add_report(
         ComparativeReport(
-            algorithm_pairs=[
-                ('{}-translate-symm-stabinitgoal'.format(REVISION), '{}-lmcut-dks-stabinitgoal'.format(REVISION)),
-            ],
+            algorithm_pairs=algorithm_pairs,
             attributes=attributes,
             filter_domain=suite,
         ),
@@ -94,15 +99,16 @@ def main(revisions=None):
     )
 
     if matplotlib:
-        exp.add_report(
-            ScatterPlotReport(
-                filter_algorithm=['{}-translate-symm-stabinitgoal'.format(REVISION), '{}-lmcut-dks-stabinitgoal'.format(REVISION)],
-                attributes=[symmetry_group_order],
-                get_category=lambda run1, run2: run1["domain"],
-                filter_domain=suite,
-            ),
-            outfile=os.path.join(exp.eval_dir, 'a' + exp.name + '-scatter-order.png'),
-        )
+        for (algo1, algo2) in algorithm_pairs:
+            exp.add_report(
+                ScatterPlotReport(
+                    filter_algorithm=[algo1, algo2],
+                    attributes=[symmetry_group_order],
+                    get_category=lambda run1, run2: run1["domain"],
+                    filter_domain=suite,
+                ),
+                outfile=os.path.join(exp.eval_dir, 'a' + exp.name + '-scatter-order-%s-%s.png' % (algo1, algo2)),
+            )
 
     exp.run_steps()
 
