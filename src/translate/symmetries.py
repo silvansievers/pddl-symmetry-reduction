@@ -108,17 +108,17 @@ class PyblissModuleWrapper:
             time = timer.elapsed_time()
             print "Done computing group order with sympy: %ss" % time
 
-            if order_sympy <= 50000:
-                print "Computing group order manually..."
-                order_manual = 0
-                if automorphisms:
-                    order_manual = compute_group_order_manual(automorphisms)
-                print "Group order manual: %d" % order_manual
-                time = timer.elapsed_time()
-                print "Done computing group order manually: %ss" % time
-                if order_manual != order_sympy:
-                    print "Different group orders!"
-                    sys.exit(1)
+            # if order_sympy <= 50000:
+                # print "Computing group order manually..."
+                # order_manual = 0
+                # if automorphisms:
+                    # order_manual = compute_group_order_manual(automorphisms)
+                # print "Group order manual: %d" % order_manual
+                # time = timer.elapsed_time()
+                # print "Done computing group order manually: %ss" % time
+                # if order_manual != order_sympy:
+                    # print "Different group orders!"
+                    # sys.exit(1)
             sys.exit(0)
 
         timer = timers.Timer()

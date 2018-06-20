@@ -80,8 +80,8 @@ def parse_args():
         "--compute-symmetries)")
     argparser.add_argument(
         "--compute-order", action="store_true",
-        help="If true, compute the group order with sympy (Set option "
-        " --compute-symmetries)")
+        help="If true, compute the symmetry group order with sympy and stop "
+        "afterwards. (Set option --compute-symmetries)")
 
     # Options related to grounding of symmetries
     argparser.add_argument(
