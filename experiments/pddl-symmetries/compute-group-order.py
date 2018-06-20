@@ -3,6 +3,16 @@
 
 import Queue
 
+from sympy.combinatorics.permutations import Permutation
+from sympy.combinatorics.perm_groups import PermutationGroup
+
+
+def compute_group_order_sympy(generators):
+    sympy_permutations = [Permutation(gen) for gen in generators]
+    sympy_group = PermutationGroup(sympy_permutations)
+    return sympy_group.order()
+
+
 def permute(automorphism, gen):
     # print "permuting %s with %s" % (automorphism, gen)
     result = list(automorphism)
@@ -31,6 +41,7 @@ def compute_group_order_manual(generators):
 
 if __name__ == "__main__":
     file_name = "generators.py"
+    print "Running symmetry group order computation..."
     try:
         gens = []
         with open(file_name) as f:
@@ -44,7 +55,7 @@ if __name__ == "__main__":
                 line = line.split(' ')
                 line = [int(x) for x in line]
                 gens.append(line)
-        order = compute_group_order_manual(gens)
+        order = compute_group_order_sympy(gens)
         print "Symmetry group order: %d" % order
     except IOError as err:
         print "%s does not exist" % file_name
