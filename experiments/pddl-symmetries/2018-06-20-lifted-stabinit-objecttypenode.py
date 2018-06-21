@@ -84,7 +84,7 @@ def main(revisions=None):
 
     configs = {
         IssueConfig('translate', [], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '2G']),
-        IssueConfig('translate-symm-stabinit', ['--translate-options', '--compute-symmetries', '--do-not-stabilize-goal', '--bliss-time-limit', '300', ], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '2G']),
+        IssueConfig('translate-symm-stabgoal-stabinit', ['--translate-options', '--compute-symmetries', '--bliss-time-limit', '300', ], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '2G']),
     }
 
     exp = IssueExperiment(
@@ -219,7 +219,7 @@ def main(revisions=None):
 
     algorithm_nicks = [
         'translate',
-        'translate-symm-stabinit',
+        'translate-symm-stabgoal-stabinit',
     ]
 
     exp.add_absolute_report_step(attributes=attributes,filter_algorithm=['{}-{}'.format(REVISION, x) for x in algorithm_nicks],filter=[compute_removed_count_in_each_step,duplicate_attribute])
@@ -227,11 +227,13 @@ def main(revisions=None):
     exp.add_report(AbsoluteReport(attributes=attributes,filter_algorithm=['{}-{}'.format(REVISION, x) for x in algorithm_nicks],filter=[compute_removed_count_in_each_step,duplicate_attribute],filter_domain=strips_suite),outfile='a{}-strips-subset-abs.html'.format(exp.name))
 
     OLD_REV = 'e028b93170de'
-    exp.add_fetcher('data/2018-05-30-lifted-stabinit-eval',filter_algorithm=['{}-{}'.format(OLD_REV, x) for x in algorithm_nicks])
+    # exp.add_fetcher('data/2018-05-30-lifted-stabinit-eval',filter_algorithm=['{}-{}'.format(OLD_REV, x) for x in old_algorithm_nicks])
+    exp.add_fetcher('data/2018-05-30-lifted-stabinit-eval',filter_algorithm=['{}-translate'.format(OLD_REV), '{}-translate-symm-stabinit'.format(OLD_REV)])
 
     exp.add_report(
         ComparativeReport(
-            algorithm_pairs=[('{}-{}'.format(OLD_REV, x), '{}-{}'.format(REVISION, x)) for x in algorithm_nicks],
+            # algorithm_pairs=[('{}-{}'.format(OLD_REV, x), '{}-{}'.format(REVISION, x)) for x in algorithm_nicks],
+            algorithm_pairs=[('{}-translate-symm-stabinit'.format(OLD_REV), '{}-translate-symm-stabgoal-stabinit'.format(REVISION))],
             attributes=attributes,
         ),
         outfile=os.path.join(exp.eval_dir, 'a' + exp.name + '-compare.html'),
