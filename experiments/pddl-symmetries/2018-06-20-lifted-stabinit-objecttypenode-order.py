@@ -17,7 +17,7 @@ except ImportError:
     print 'matplotlib not available, scatter plots not available'
     matplotlib = False
 
-REVISION = 'd082e1906a8e'
+REVISION = 'bae4cb80d970'
 
 def main(revisions=None):
     benchmarks_dir=os.path.expanduser('~/repos/downward/benchmarks')
@@ -208,6 +208,24 @@ def main(revisions=None):
     exp.add_fetcher(name='fetch')
 
     exp.add_absolute_report_step(attributes=attributes)
+
+    algorithm_nicks = [
+        'translate-symm',
+        'translate-symm-stabinit',
+        'translate-symm-stabgoal',
+        'translate-symm-stabgoal-stabinit',
+    ]
+
+    OTHER_REV = '44bfdbcc7926'
+    exp.add_fetcher('data/2018-06-18-lifted-stabinit-order-eval',filter_algorithm=['{}-{}'.format(OTHER_REV, x) for x in algorithm_nicks])
+
+    exp.add_report(
+        ComparativeReport(
+            algorithm_pairs=[('{}-{}'.format(OTHER_REV, x), '{}-{}'.format(REVISION, x)) for x in algorithm_nicks],
+            attributes=attributes,
+        ),
+        outfile=os.path.join(exp.eval_dir, 'a' + exp.name + '-compare.html'),
+    )
 
     exp.run_steps()
 
