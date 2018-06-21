@@ -77,7 +77,7 @@ def main(revisions=None):
     exp.add_parser(exp.TRANSLATOR_PARSER)
     exp.add_parser(exp.SINGLE_SEARCH_PARSER)
     exp.add_resource(name='compute_group_order', source='compute-group-order.py')
-    exp.add_command('compute-group-order', ['{compute_group_order}'])
+    exp.add_command('compute-group-order', ['{compute_group_order}'], time_limit=600, memory_limit=3584)
     exp.add_parser('search-symmetries-parser.py')
 
     generators_count = Attribute('generators_count', absolute=True, min_wins=False)
