@@ -84,7 +84,7 @@ def main(revisions=None):
 
     configs = {
         IssueConfig('translate', [], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '2G']),
-        IssueConfig('translate-symm-stabinit', ['--translate-options', '--compute-symmetries', '--bliss-time-limit', '300', ], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '2G']),
+        IssueConfig('translate-symm-stabinit', ['--translate-options', '--compute-symmetries', '--do-not-stabilize-goal', '--bliss-time-limit', '300', ], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '2G']),
     }
 
     exp = IssueExperiment(
