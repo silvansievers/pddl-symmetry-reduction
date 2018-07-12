@@ -643,7 +643,8 @@ def pddl_to_sas(task):
             stabilize_goal = not options.do_not_stabilize_goal
             time_limit = options.bliss_time_limit
             compute_order = options.compute_order
-            graph = symmetries.SymmetryGraph(task, only_object_symmetries, stabilize_initial_state, stabilize_goal)
+            add_object_type_nodes = options.add_object_type_nodes
+            graph = symmetries.SymmetryGraph(task, only_object_symmetries, stabilize_initial_state, stabilize_goal, add_object_type_nodes)
             if options.add_mutex_groups:
                 graph.add_mutex_groups(mutex_groups)
             generators = graph.find_automorphisms(time_limit, compute_order)

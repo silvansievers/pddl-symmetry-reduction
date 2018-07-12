@@ -14,10 +14,11 @@ if __name__ == "__main__":
     stabilize_goal = not options.do_not_stabilize_goal
     time_limit = options.bliss_time_limit
     compute_order = options.compute_order
+    add_object_type_nodes = options.add_object_type_nodes
     task = pddl_parser.open()
     normalize.normalize(task)
     task.dump()
-    graph = SymmetryGraph(task, only_object_symmetries, stabilize_initial_state, stabilize_goal)
+    graph = SymmetryGraph(task, only_object_symmetries, stabilize_initial_state, stabilize_goal, add_object_type_nodes)
     if options.add_mutex_groups:
         print("cannot add mutex groups -- translator is not run!")
         exit(1)

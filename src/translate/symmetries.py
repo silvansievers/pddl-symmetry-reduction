@@ -201,10 +201,11 @@ class Color:
     number = None # will be set by Symmetry Graph
 
 class SymmetryGraph:
-    def __init__(self, task, only_object_symmetries, stabilize_initial_state, stabilize_goal):
+    def __init__(self, task, only_object_symmetries, stabilize_initial_state, stabilize_goal, add_object_type_nodes):
         self.only_object_symmetries = only_object_symmetries
         self.stabilize_initial_state = stabilize_initial_state
         self.stabilize_goal = stabilize_goal
+        self.add_object_type_nodes = add_object_type_nodes
         self.graph = PyblissModuleWrapper(only_object_symmetries)
         self.numbers = set()
         self.constant_functions = dict()
@@ -307,7 +308,8 @@ class SymmetryGraph:
             derived = pred.name in derived_predicates
             add_predicate(pred.name, len(pred.arguments), derived)
         for type in task.types:
-            add_predicate(type.get_predicate_name(), 1, False)
+            if type.name != "object" or self.add_object_type_nodes:
+                add_predicate(type.get_predicate_name(), 1, False)
 
     def _add_functions(self, task):
         """Add a node for each function symbol.
@@ -410,11 +412,11 @@ class SymmetryGraph:
             counter = len(init)
             for o in task.objects:
                 the_type = self.type_dict[o.type_name]
-                while True:
+                while the_type.name != "object" or self.add_object_type_nodes:
                     literal = pddl.Atom(the_type.get_predicate_name(), (o.name,))
                     self._add_literal(NodeType.init, Color.init, literal, (counter,))
                     counter += 1
-                    if the_type.basetype_name is None:
+                    if self.add_object_type_nodes and the_type.basetype_name is None:
                         break
                     the_type = self.type_dict[the_type.basetype_name]
 

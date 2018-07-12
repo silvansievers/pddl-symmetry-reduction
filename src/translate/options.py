@@ -82,6 +82,10 @@ def parse_args():
         "--compute-order", action="store_true",
         help="If true, compute the symmetry group order with sympy and stop "
         "afterwards. (Set option --compute-symmetries)")
+    argparser.add_argument(
+        "--add-object-type-nodes", action="store_true",
+        help="If true, add nodes representing the type 'object' in the "
+        "abstract structure graph (Set option --compute-symmetries)")
 
     # Options related to grounding of symmetries
     argparser.add_argument(
