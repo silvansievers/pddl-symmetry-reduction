@@ -52,11 +52,11 @@ void Group::add_to_var_by_val(int var) {
 void Group::compute_symmetries(const TaskProxy &task_proxy) {
     if (initialized || !generators.empty()) {
         cerr << "Already computed symmetries" << endl;
-        exit_with(ExitCode::CRITICAL_ERROR);
+        exit_with(ExitCode::SEARCH_CRITICAL_ERROR);
     }
     if (sos == SourceOfSymmetries::NoSource) {
         cerr << "no source of symmetries given" << endl;
-        exit_with(ExitCode::INPUT_ERROR);
+        exit_with(ExitCode::SEARCH_INPUT_ERROR);
     } else if (sos == SourceOfSymmetries::GraphCreator) {
         GraphCreator graph_creator;
         bool success = graph_creator.compute_symmetries(
