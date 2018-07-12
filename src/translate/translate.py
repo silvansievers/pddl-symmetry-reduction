@@ -642,29 +642,14 @@ def pddl_to_sas(task):
             stabilize_initial_state = not options.do_not_stabilize_initial_state
             stabilize_goal = not options.do_not_stabilize_goal
             time_limit = options.bliss_time_limit
-            compute_order = options.compute_order
+            compute_group_order = options.compute_group_order
             add_object_type_nodes = options.add_object_type_nodes
             graph = symmetries.SymmetryGraph(task, only_object_symmetries, stabilize_initial_state, stabilize_goal, add_object_type_nodes)
             if options.add_mutex_groups:
                 graph.add_mutex_groups(mutex_groups)
-            generators = graph.find_automorphisms(time_limit, compute_order)
+            generators = graph.find_automorphisms(time_limit, compute_group_order)
             if DUMP:
                 graph.write_or_print_automorphisms(generators, dump=True)
-            print("Number of lifted generators: {}".format(len(generators)))
-            order_to_generator_count = defaultdict(int)
-            order_list = []
-            max_order = 0
-            for generator in generators:
-                order = symmetries.compute_order(generator)
-                max_order = max(max_order, order)
-                order_to_generator_count[order] += 1
-                order_list.append(order)
-            print("Maximum generator order: {}".format(max_order))
-            printable_order_to_count = [(order, count) for order, count in order_to_generator_count.items()]
-            print("Lifted generator orders: {}".format(printable_order_to_count))
-            print("Lifted generator orders list: {}".format(order_list))
-            for order in range(2, 50):
-                print("Lifted generator order {}: {}".format(order, order_to_generator_count[order]))
 
     with timers.timing("Symmetries1 transforming generators into predicate object mappings", block=True):
         if options.compute_symmetries and options.ground_symmetries:

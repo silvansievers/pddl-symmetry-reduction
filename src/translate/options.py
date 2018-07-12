@@ -79,7 +79,7 @@ def parse_args():
         help="Max time for bliss to search for automorphisms. (Set option "
         "--compute-symmetries)")
     argparser.add_argument(
-        "--compute-order", action="store_true",
+        "--compute-group-order", action="store_true",
         help="If true, compute the symmetry group order with sympy and stop "
         "afterwards. (Set option --compute-symmetries)")
     argparser.add_argument(

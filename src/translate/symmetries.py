@@ -4,6 +4,7 @@ from __future__ import division
 
 import pddl
 
+from collections import defaultdict
 import os
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -69,7 +70,7 @@ class PyblissModuleWrapper:
         self.excluded_vertices = set()
         self.only_object_symmetries = only_object_symmetries
 
-    def find_automorphisms(self, time_limit, compute_order):
+    def find_automorphisms(self, time_limit, compute_group_order):
         # Create and fill the graph
         timer = timers.Timer()
         print "Creating symmetry graph..."
@@ -98,7 +99,33 @@ class PyblissModuleWrapper:
         time = timer.elapsed_time()
         print "Done searching for automorphisms: %ss" % time
 
-        if compute_order:
+        timer = timers.Timer()
+        print "Translating automorphisms..."
+        generators = []
+        for aut in automorphisms:
+            generators.append(self._translate_generator(aut))
+        time = timer.elapsed_time()
+        print "Done translating automorphisms: %ss" % time
+
+        print("Number of lifted generators: {}".format(len(generators)))
+        order_to_generator_count = defaultdict(int)
+        order_list = []
+        max_order = 0
+        for generator in generators:
+            order = compute_order(generator)
+            max_order = max(max_order, order)
+            order_to_generator_count[order] += 1
+            order_list.append(order)
+        print("Maximum generator order: {}".format(max_order))
+        printable_order_to_count = [(order, count) for order, count in order_to_generator_count.items()]
+        print("Lifted generator orders: {}".format(printable_order_to_count))
+        print("Lifted generator orders list: {}".format(order_list))
+        for order in range(2, 50):
+            print("Lifted generator order {}: {}".format(order, order_to_generator_count[order]))
+
+        if compute_group_order:
+            # We do this on the "un-translated" generators on purpose because
+            # these are in the right format for sympy.
             timer = timers.Timer()
             print "Computing group order with sympy..."
             order_sympy = 0
@@ -120,15 +147,7 @@ class PyblissModuleWrapper:
                     # print "Different group orders!"
                     # sys.exit(1)
             sys.exit(0)
-
-        timer = timers.Timer()
-        print "Translating automorphisms..."
-        translated_auts = []
-        for aut in automorphisms:
-            translated_auts.append(self._translate_generator(aut))
-        time = timer.elapsed_time()
-        print "Done translating automorphisms: %ss" % time
-        return translated_auts
+        return generators
 
     def _translate_generator(self, generator):
         result = {}
@@ -648,11 +667,11 @@ class SymmetryGraph:
                 file.write("\"%s\" -> \"%s\";\n" % (vertex, succ))
         file.write("}\n")
 
-    def find_automorphisms(self, time_limit, compute_order):
+    def find_automorphisms(self, time_limit, compute_group_order):
         # TODO: we sorted task's init, hence if we wanted to to use
         # the generators, we should remap init indices when required.
         # The same is true for operators.
-        automorphisms = self.graph.find_automorphisms(time_limit, compute_order)
+        automorphisms = self.graph.find_automorphisms(time_limit, compute_group_order)
         return automorphisms
 
 
