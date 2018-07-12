@@ -146,7 +146,6 @@ class PyblissModuleWrapper:
                 # if order_manual != order_sympy:
                     # print "Different group orders!"
                     # sys.exit(1)
-            sys.exit(0)
         return generators
 
     def _translate_generator(self, generator):
