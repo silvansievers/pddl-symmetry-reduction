@@ -476,7 +476,7 @@ class SymmetryGraph:
 
         # condition from types
         for param in params:
-            if param.type_name != "object":
+            if param.type_name != "object" or self.add_object_type_nodes:
                 pred_name = self.type_dict[param.type_name].get_predicate_name()
                 literal = pddl.Atom(pred_name, (param.name,))
                 self._add_condition(node_type, color,literal,
