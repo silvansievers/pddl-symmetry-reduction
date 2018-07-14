@@ -234,7 +234,7 @@ def main(revisions=None):
 
     exp.add_report(AbsoluteReport(attributes=attributes,filter_algorithm=['{}-{}'.format(REVISION, x) for x in algorithm_nicks],filter=[compute_removed_count_in_each_step,duplicate_attribute],filter_domain=strips_suite),outfile='{}-strips-subset-abs.html'.format(exp.name))
 
-    OLD_REV = 'bae4cb80d970'
+    OLD_REV = 'e028b93170de'
     # exp.add_fetcher('data/2018-05-30-lifted-stabinit-eval',filter_algorithm=['{}-{}'.format(OLD_REV, x) for x in old_algorithm_nicks])
     exp.add_fetcher('data/2018-05-30-lifted-stabinit-eval',filter_algorithm=['{}-translate'.format(OLD_REV), '{}-translate-symm-stabinit'.format(OLD_REV)])
 
