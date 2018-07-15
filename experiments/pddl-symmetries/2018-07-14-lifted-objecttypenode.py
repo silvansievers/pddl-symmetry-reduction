@@ -231,7 +231,6 @@ def main(revisions=None):
     exp.add_absolute_report_step(attributes=attributes,filter_algorithm=['{}-{}'.format(REVISION, x) for x in algorithm_nicks],filter=[compute_removed_count_in_each_step,duplicate_attribute])
 
     other_algorithm_nicks = [
-        'translate',
         'translate-symm-stabgoal-stabinit',
         'translate-symm-stabinit',
         'translate-symm-stabgoal',
