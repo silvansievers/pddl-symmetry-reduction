@@ -133,7 +133,7 @@ def main(revisions=None):
     environment = BaselSlurmEnvironment(email="silvan.sievers@unibas.ch", export=["PATH"])
 
     if is_test_run():
-        suite = ['gripper:prob01.pddl', 'depot:p01.pddl', 'mystery:prob07.pddl']
+        suite = ['gripper:prob01.pddl', 'depot:p01.pddl', 'mystery:prob07.pddl', 'miconic-simpleadl:s1-0.pddl']
         environment = LocalEnvironment(processes=4)
 
     configs = {
