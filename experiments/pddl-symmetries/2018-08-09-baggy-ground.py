@@ -178,7 +178,14 @@ def main(revisions=None):
     exp.add_step('start', exp.start_runs)
     exp.add_fetcher(name='fetch')
 
-    exp.add_absolute_report_step(attributes=attributes)
+    algorithm_nicks = [
+        'baggy-ground-symmetries-stabgoal-stabinit',
+        'baggy-ground-symmetries-stabinit',
+        'baggy-ground-symmetries-stabgoal',
+        'baggy-ground-symmetries',
+    ]
+
+    exp.add_absolute_report_step(attributes=attributes,filter_algorithm=['{}-{}'.format(REVISION, x) for x in algorithm_nicks])
 
     exp.run_steps()
 

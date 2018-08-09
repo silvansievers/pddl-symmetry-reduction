@@ -193,7 +193,7 @@ def main(revisions=None):
         return props
 
     algorithm_nicks = [
-        'baggy-translate'
+        'baggy-translate',
         'baggy-translate-symm-stabgoal-stabinit',
         'baggy-translate-symm-stabinit',
         'baggy-translate-symm-stabgoal',
