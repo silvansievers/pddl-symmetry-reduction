@@ -656,6 +656,8 @@ def pddl_to_sas(task):
             generators = graph.find_automorphisms(time_limit, compute_group_order)
             if DUMP:
                 graph.write_or_print_automorphisms(generators, dump=True)
+            if options.stop_after_computing_symmetries:
+                sys.exit(0)
 
     with timers.timing("Symmetries1 transforming generators into predicate object mappings", block=True):
         if options.compute_symmetries and options.ground_symmetries:

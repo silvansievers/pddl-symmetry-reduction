@@ -87,6 +87,10 @@ def parse_args():
         "--add-object-type-nodes", action="store_true",
         help="If true, add nodes representing the type 'object' in the "
         "abstract structure graph (Set option --compute-symmetries)")
+    argparser.add_argument(
+        "--stop-after-computing-symmetries", action="store_true",
+        help="If true, stop after computingn symmetries. (Set option "
+        "--compute-symmetries)")
 
     # Options related to grounding of symmetries
     argparser.add_argument(
