@@ -54,14 +54,14 @@ def main(revisions=None):
     environment = BaselSlurmEnvironment(email="silvan.sievers@unibas.ch", export=["PATH"])
 
     if is_test_run():
-        suite = ['gripper:prob01.pddl', 'depot:p01.pddl', 'mystery:prob07.pddl']
+        suite = ['gripper:prob01.pddl', 'depot:p01.pddl', 'mystery:prob07.pddl', 'miconic-simpleadl:s1-0.pddl']
         environment = LocalEnvironment(processes=4)
 
     configs = {
-        IssueConfig('lmcut-dks-stabgoal-stabinit', ['--symmetries', 'sym=structural_symmetries(time_bound=0,search_symmetries=dks,stabilize_goal=true,stabilize_initial_state=true,write_generators=true)', '--search', 'astar(lmcut(),symmetries=sym)']),
-        IssueConfig('lmcut-dks-stabinit', ['--symmetries', 'sym=structural_symmetries(time_bound=0,search_symmetries=dks,stabilize_goal=false,stabilize_initial_state=true,write_generators=true)', '--search', 'astar(lmcut(),symmetries=sym)']),
-        IssueConfig('lmcut-dks-stabgoal', ['--symmetries', 'sym=structural_symmetries(time_bound=0,search_symmetries=dks,stabilize_goal=true,stabilize_initial_state=false,write_generators=true)', '--search', 'astar(lmcut(),symmetries=sym)']),
-        IssueConfig('lmcut-dks', ['--symmetries', 'sym=structural_symmetries(time_bound=0,search_symmetries=dks,stabilize_goal=false,stabilize_initial_state=false,write_generators=true)', '--search', 'astar(lmcut(),symmetries=sym)']),
+        IssueConfig('ground-symmetries-stabgoal-stabinit', ['--symmetries', 'sym=structural_symmetries(time_bound=0,search_symmetries=dks,stabilize_goal=true,stabilize_initial_state=true,write_generators=true)', '--search', 'astar(blind(),symmetries=sym)']),
+        IssueConfig('ground-symmetries-stabinit', ['--symmetries', 'sym=structural_symmetries(time_bound=0,search_symmetries=dks,stabilize_goal=false,stabilize_initial_state=true,write_generators=true)', '--search', 'astar(blind(),symmetries=sym)']),
+        IssueConfig('ground-symmetries-stabgoal', ['--symmetries', 'sym=structural_symmetries(time_bound=0,search_symmetries=dks,stabilize_goal=true,stabilize_initial_state=false,write_generators=true)', '--search', 'astar(blind(),symmetries=sym)']),
+        IssueConfig('ground-symmetries', ['--symmetries', 'sym=structural_symmetries(time_bound=0,search_symmetries=dks,stabilize_goal=false,stabilize_initial_state=false,write_generators=true)', '--search', 'astar(blind(),symmetries=sym)']),
     }
 
     exp = IssueExperiment(
@@ -101,20 +101,27 @@ def main(revisions=None):
     exp.add_fetcher(name='fetch')
 
     algorithm_nicks = [
+        'ground-symmetries-stabgoal-stabinit',
+        'ground-symmetries-stabinit',
+        'ground-symmetries-stabgoal',
+        'ground-symmetries',
+    ]
+
+    exp.add_absolute_report_step(attributes=attributes,filter_algorithm=['{}-{}'.format(REVISION, x) for x in algorithm_nicks])
+
+    old_algorithm_nicks = [
         'lmcut-dks-stabgoal-stabinit',
         'lmcut-dks-stabinit',
         'lmcut-dks-stabgoal',
         'lmcut-dks',
     ]
 
-    exp.add_absolute_report_step(attributes=attributes,filter_algorithm=['{}-{}'.format(REVISION, x) for x in algorithm_nicks])
-
     OLD_REV = 'af5fe90d4c29'
-    exp.add_fetcher('data/2018-07-12-ground-order-eval',filter_algorithm=['{}-{}'.format(OLD_REV, x) for x in algorithm_nicks])
+    exp.add_fetcher('data/2018-07-12-ground-order-eval',filter_algorithm=['{}-{}'.format(OLD_REV, x) for x in old_algorithm_nicks])
 
     exp.add_report(
         ComparativeReport(
-            algorithm_pairs=[('{}-{}'.format(OLD_REV, x), '{}-{}'.format(REVISION, x)) for x in algorithm_nicks],
+            algorithm_pairs=[('{}-{}'.format(OLD_REV, old_algorithm_nicks[index]), '{}-{}'.format(REVISION, algorithm_nicks[index])) for index in range(4)],
             attributes=attributes,
         ),
         outfile=os.path.join(exp.eval_dir, exp.name + '-compare.html'),

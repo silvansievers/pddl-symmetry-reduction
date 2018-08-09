@@ -132,14 +132,14 @@ def main(revisions=None):
     environment = BaselSlurmEnvironment(email="silvan.sievers@unibas.ch", export=["PATH"])
 
     if is_test_run():
-        suite = ['gripper:prob01.pddl', 'depot:p01.pddl', 'mystery:prob07.pddl']
+        suite = ['gripper:prob01.pddl', 'depot:p01.pddl', 'mystery:prob07.pddl', 'miconic-simpleadl:s1-0.pddl']
         environment = LocalEnvironment(processes=4)
 
     configs = {
-        IssueConfig('baggy-lmcut-dks-stabgoal-stabinit', ['--symmetries', 'sym=structural_symmetries(time_bound=0,search_symmetries=dks,stabilize_goal=true,stabilize_initial_state=true,write_generators=true)', '--search', 'astar(lmcut(),symmetries=sym)']),
-        IssueConfig('baggy-lmcut-dks-stabinit', ['--symmetries', 'sym=structural_symmetries(time_bound=0,search_symmetries=dks,stabilize_goal=false,stabilize_initial_state=true,write_generators=true)', '--search', 'astar(lmcut(),symmetries=sym)']),
-        IssueConfig('baggy-lmcut-dks-stabgoal', ['--symmetries', 'sym=structural_symmetries(time_bound=0,search_symmetries=dks,stabilize_goal=true,stabilize_initial_state=false,write_generators=true)', '--search', 'astar(lmcut(),symmetries=sym)']),
-        IssueConfig('baggy-lmcut-dks', ['--symmetries', 'sym=structural_symmetries(time_bound=0,search_symmetries=dks,stabilize_goal=false,stabilize_initial_state=false,write_generators=true)', '--search', 'astar(lmcut(),symmetries=sym)']),
+        IssueConfig('baggy-ground-symmetries-stabgoal-stabinit', ['--symmetries', 'sym=structural_symmetries(time_bound=0,search_symmetries=dks,stabilize_goal=true,stabilize_initial_state=true,write_generators=true)', '--search', 'astar(blind(),symmetries=sym)']),
+        IssueConfig('baggy-ground-symmetries-stabinit', ['--symmetries', 'sym=structural_symmetries(time_bound=0,search_symmetries=dks,stabilize_goal=false,stabilize_initial_state=true,write_generators=true)', '--search', 'astar(blind(),symmetries=sym)']),
+        IssueConfig('baggy-ground-symmetries-stabgoal', ['--symmetries', 'sym=structural_symmetries(time_bound=0,search_symmetries=dks,stabilize_goal=true,stabilize_initial_state=false,write_generators=true)', '--search', 'astar(blind(),symmetries=sym)']),
+        IssueConfig('baggy-ground-symmetries', ['--symmetries', 'sym=structural_symmetries(time_bound=0,search_symmetries=dks,stabilize_goal=false,stabilize_initial_state=false,write_generators=true)', '--search', 'astar(blind(),symmetries=sym)']),
     }
 
     exp = IssueExperiment(
