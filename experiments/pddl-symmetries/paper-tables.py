@@ -11,6 +11,7 @@ from downward.experiment import FastDownwardExperiment
 from downward.reports import PlanningReport
 from downward.reports.absolute import AbsoluteReport
 from downward.reports.compare import ComparativeReport
+from downward.reports.scatter import ScatterPlotReport
 
 from lab.reports import Attribute, geometric_mean
 
@@ -266,108 +267,125 @@ suite = [domain for domain in suite_all_opt_sat if domain not in duplicates]
 
 def symmetries_or_not(props):
     generator_count_lifted = props.get('generator_count_lifted', 0)
+    generators_count = props.get('generators_count', 0)
     props['num_tasks'] = 1
-    has_symmetries = False
-    if generator_count_lifted > 0:
+    has_symmetries = 0
+    if generator_count_lifted > 0 or generators_count > 0:
         has_symmetries = 1
     props['has_symmetries'] = has_symmetries
     return props
 
-def parse_list_of_generator_orders(props):
-    generator_orders_lifted_list = props.get('generator_orders_lifted_list', [])
-    orders = []
-    if generator_orders_lifted_list:
-        assert len(generator_orders_lifted_list) == 1
-        string_order_list = generator_orders_lifted_list[0]
-        if string_order_list != '':
-            string_order_list = string_order_list.split(',')
-            if string_order_list:
-                orders = [int(string_order) for string_order in string_order_list]
-    props['orders'] = orders
-    return props
+# def parse_list_of_generator_orders(props):
+    # generator_orders_lifted_list = props.get('generator_orders_lifted_list', [])
+    # orders = []
+    # if generator_orders_lifted_list:
+        # assert len(generator_orders_lifted_list) == 1
+        # string_order_list = generator_orders_lifted_list[0]
+        # if string_order_list != '':
+            # string_order_list = string_order_list.split(',')
+            # if string_order_list:
+                # orders = [int(string_order) for string_order in string_order_list]
+    # props['orders'] = orders
+    # return props
 
 exp = FastDownwardExperiment()
 
-REV_REG = 'df0a8bea28c7'
-REV_BAG = '10e2e6a48a8b'
+REVISION1 = 'f8e65d0f4b44'
+REVISION2 = 'ef5ac3aa3935'
 
-def rename_revision(run):
+def remove_revision(run):
     algo = run['algorithm']
-    algo = algo.replace('{}-'.format(REV_REG), 'regular-')
-    algo = algo.replace('{}-'.format(REV_BAG), 'baggy-')
+    algo = algo.replace('{}-'.format(REVISION1), '')
+    algo = algo.replace('{}-'.format(REVISION2), '')
     run['algorithm'] = algo
     return run
 
-exp.add_fetcher(os.path.expanduser('~/repos/downward/pddl-symmetries/experiments/pddl-symmetries/data/2017-08-16-lifted-stabinit-eval'),filter=[symmetries_or_not,parse_list_of_generator_orders,rename_revision],filter_domain=suite)
-exp.add_fetcher(os.path.expanduser('~/repos/downward/pddl-symmetries/experiments/pddl-symmetries/data/2017-09-11-lifted-stabinit-rerun-scicore-eval'),filter=[symmetries_or_not,parse_list_of_generator_orders,rename_revision],filter_domain=suite)
+def duplicate_attribute(props):
+    props['time_symmetries'] = props.get('translator_time_symmetries0_computing_symmetries', None)
+    return props
 
-num_tasks = Attribute('num_tasks', absolute=True)
-has_symmetries = Attribute('has_symmetries', absolute=True, min_wins=False)
-generator_count_lifted_sum = Attribute('generator_count_lifted', absolute=True, min_wins=False, functions=[sum])
-generator_count_lifted_gm = Attribute('generator_count_lifted', absolute=True, min_wins=False, functions=[numpy.median])
-translator_time_symmetries0_computing_symmetries = Attribute('translator_time_symmetries0_computing_symmetries', absolute=False, min_wins=True, functions=[geometric_mean])
-#orders_gm = Attribute('orders', absolute=True, min_wins=False, functions=[geometric_mean])
-#orders_mean = Attribute('orders', absolute=True, min_wins=False, functions=[numpy.median])
+exp.add_fetcher('data/2018-08-09-lifted-eval',filter=[remove_revision,symmetries_or_not,duplicate_attribute],filter_domain=suite)
+exp.add_fetcher('data/2018-08-09-ground-eval',filter=[remove_revision,symmetries_or_not],filter_domain=suite,merge=True)
+exp.add_fetcher('data/2018-08-09-baggy-lifted-eval',filter=[remove_revision,symmetries_or_not,duplicate_attribute],filter_domain=suite,merge=True)
+exp.add_fetcher('data/2018-08-09-baggy-ground-eval',filter=[remove_revision,symmetries_or_not],filter_domain=suite,merge=True)
 
-def print_stuff(run):
-    translator_time_symmetries0_computing_symmetries = run.get('translator_time_symmetries0_computing_symmetries', None)
-    if translator_time_symmetries0_computing_symmetries is not None and translator_time_symmetries0_computing_symmetries >= 2:
-        print("time_symmetries", translator_time_symmetries0_computing_symmetries, run.get('domain'), run.get('problem'))
-    return run
+# num_tasks = Attribute('num_tasks', absolute=True)
+# has_symmetries = Attribute('has_symmetries', absolute=True, min_wins=False)
+# generator_count_lifted_sum = Attribute('generator_count_lifted', absolute=True, min_wins=False, functions=[sum])
+# generator_count_lifted_gm = Attribute('generator_count_lifted', absolute=True, min_wins=False, functions=[numpy.median])
+# translator_time_symmetries0_computing_symmetries = Attribute('translator_time_symmetries0_computing_symmetries', absolute=False, min_wins=True, functions=[geometric_mean])
+# orders_gm = Attribute('orders', absolute=True, min_wins=False, functions=[geometric_mean])
+# orders_mean = Attribute('orders', absolute=True, min_wins=False, functions=[numpy.median])
 
-exp.add_report(AbsoluteReport(attributes=[generator_count_lifted_sum]))
+# def print_stuff(run):
+    # translator_time_symmetries0_computing_symmetries = run.get('translator_time_symmetries0_computing_symmetries', None)
+    # if translator_time_symmetries0_computing_symmetries is not None and translator_time_symmetries0_computing_symmetries >= 2:
+        # print("time_symmetries", translator_time_symmetries0_computing_symmetries, run.get('domain'), run.get('problem'))
+    # return run
+
+# exp.add_report(AbsoluteReport(attributes=[generator_count_lifted_sum]))
 
 exp.add_report(
     DomainAttributesReport(
         filter_algorithm=[
-            'regular-translate-stabinit',
-            'baggy-translate-stabinit',
+            'ground-symmetries-stabgoal-stabinit',
+            'translate-symm-stabgoal-stabinit',
+            'baggy-translate-symm-stabgoal-stabinit',
         ],
         format='tex',
         attribute_aggregation_pairs=[
             ('num_tasks', sum),
             ('has_symmetries', sum),
-            ('generator_count_lifted', sum),
-            ('generator_count_lifted', numpy.median),
-            ('translator_time_symmetries0_computing_symmetries', geometric_mean),
-            ('orders', geometric_mean),
-            ('orders', numpy.median),
+            ('time_symmetries', geometric_mean),
+            # ('symmetry_group_order', sum),
         ],
         #filter=[print_stuff],
-        ),
-        outfile=os.path.join(exp.eval_dir, 'regular'),
-    )
-
-exp.add_report(
-    DomainAttributesReport(
-        filter_algorithm=[
-            'baggy-translate-stabinit',
-        ],
-        format='tex',
-        attribute_aggregation_pairs=[
-            ('num_tasks', sum),
-            ('has_symmetries', sum),
-            ('generator_count_lifted', sum),
-            ('generator_count_lifted', numpy.median),
-            ('translator_time_symmetries0_computing_symmetries', geometric_mean),
-            ('orders', geometric_mean),
-            ('orders', numpy.median),
-        ],
-        #filter=[print_stuff],
-        ),
-        outfile=os.path.join(exp.eval_dir, 'baggy'),
-    )
-
-exp.add_report(
-    ComparativeReport(
-        attributes=[num_tasks, has_symmetries],
-        algorithm_pairs=[
-            #('regular-translate', 'baggy-translate'),
-            ('regular-translate-stabinit', 'baggy-translate-stabinit'),
-        ],
-        format='tex',
-        ),
-    outfile=os.path.join(exp.eval_dir, 'compare-regular-baggy.tex')
+    ),
+    outfile=os.path.join(exp.eval_dir, 'ground-vs-lifted-vs-baggylifted.txt'),
 )
+
+exp.add_report(
+    ScatterPlotReport(
+        filter_algorithm=[
+            'translate-symm-stabgoal-stabinit',
+            'ground-symmetries-stabgoal-stabinit',
+        ],
+        get_category=lambda run1, run2: run1['domain'],
+        attributes=['symmetry_group_order'],
+    ),
+    outfile=os.path.join(exp.eval_dir, 'lifted-vs-ground.png'),
+)
+
+# exp.add_report(
+    # DomainAttributesReport(
+        # filter_algorithm=[
+            # 'baggy-translate-stabinit',
+        # ],
+        # format='tex',
+        # attribute_aggregation_pairs=[
+            # ('num_tasks', sum),
+            # ('has_symmetries', sum),
+            # ('generator_count_lifted', sum),
+            # ('generator_count_lifted', numpy.median),
+            # ('translator_time_symmetries0_computing_symmetries', geometric_mean),
+            # ('orders', geometric_mean),
+            # ('orders', numpy.median),
+        # ],
+        # #filter=[print_stuff],
+        # ),
+        # outfile=os.path.join(exp.eval_dir, 'baggy'),
+    # )
+
+# exp.add_report(
+    # ComparativeReport(
+        # attributes=[num_tasks, has_symmetries],
+        # algorithm_pairs=[
+            # #('regular-translate', 'baggy-translate'),
+            # ('regular-translate-stabinit', 'baggy-translate-stabinit'),
+        # ],
+        # format='tex',
+        # ),
+    # outfile=os.path.join(exp.eval_dir, 'compare-regular-baggy.tex')
+# )
 
 exp.run_steps()
