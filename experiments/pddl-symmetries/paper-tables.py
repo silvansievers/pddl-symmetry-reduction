@@ -31,6 +31,9 @@ class DomainAttributesReport(PlanningReport):
         attributes = set()
         for attribute, aggregation in self.attribute_aggregation_pairs:
             attributes.add(attribute)
+        ### Begin HACK
+        attributes.add('num_tasks')
+        ### End HACK
         domain_algorithm_attribute_to_values = {}
         for (domain, algo), runs in self.domain_algorithm_runs.items():
             for attribute in attributes:
@@ -38,6 +41,37 @@ class DomainAttributesReport(PlanningReport):
                     run.get(attribute, None) for run in runs if run.get(attribute, None) is not None]
 
         lines = []
+
+        ### Begin HACK
+        algopair_domain_attribute_better = defaultdict(int)
+        algopair_domain_attribute_worse = defaultdict(int)
+        min_wins = False
+        attribute = 'symmetry_group_order'
+        for index1, algo1 in enumerate(self.algorithms):
+            for index2, algo2 in enumerate(self.algorithms, start=index1+1):
+                for domain, problems in self.domains.items():
+                    for problem in problems:
+                        algo1_run = self.runs.get((domain, problem, algo1), None)
+                        algo2_run = self.runs.get((domain, problem, algo2), None)
+                        if algo1_run is None or algo2_run is None:
+                            diff = None
+                        else:
+                            algo1_value = algo1_run.get(attribute)
+                            algo2_value = algo2_run.get(attribute)
+                            try:
+                                diff = float(algo2_value) - float(algo1_value)
+                            except (ValueError, TypeError, KeyError):
+                                diff = None
+                        if diff is not None:
+                            if (diff < 0 and min_wins) or (diff > 0 and not min_wins):
+                                # algo2 is better
+                                algopair_domain_attribute_better[
+                                    (algo1, algo2), domain, attribute] += 1
+                            elif (diff > 0 and min_wins) or (diff < 0 and not min_wins):
+                                # algo2 is worse
+                                algopair_domain_attribute_worse[
+                                    (algo1, algo2), domain, attribute] += 1
+        ### End HACK
 
         # header lines
         algorithms_line = ['algorithm']
@@ -55,7 +89,19 @@ class DomainAttributesReport(PlanningReport):
         algorithm_attribute_aggregation_to_values = defaultdict(list)
         for domain in sorted(self.domains.keys()):
             domain_line = ['\\textsc{{{}}}'.format(domain)]
-            for algorithm in self.algorithms:
+            for index, algorithm in enumerate(self.algorithms, start=1):
+                ### Begin HACK
+                if index % 2 == 1:
+                    values = domain_algorithm_attribute_to_values.get((domain, algorithm, 'num_tasks'), None)
+                    assert isinstance(values, list) or values is None
+                    if values and isinstance(values[0], list): # flatten values
+                        values = list(itertools.chain.from_iterable(values))
+                    if values:
+                        aggregated_value = sum(values)
+                    else:
+                        aggregated_value = ''
+                    domain_line.append(aggregated_value)
+                ### End HACK
                 for attribute, aggregation in self.attribute_aggregation_pairs:
                     values = domain_algorithm_attribute_to_values.get((domain, algorithm, attribute), None)
                     assert isinstance(values, list) or values is None
@@ -74,11 +120,16 @@ class DomainAttributesReport(PlanningReport):
                         # aggregation functions.
                         aggregated_value = ''
                     domain_line.append(aggregated_value)
+                ### Begin HACK
+                if index % 2 == 0:
+                    domain_line.append(algopair_domain_attribute_better[(self.algorithms[index-2], self.algorithms[index-1]), domain, 'symmetry_group_order'])
+                    domain_line.append(algopair_domain_attribute_worse[(self.algorithms[index-2], self.algorithms[index-1]), domain, 'symmetry_group_order'])
+                ### End HACK
             lines.append(self.format_line(domain_line))
 
         # summary line
         summary_line = ['summary']
-        for algorithm in self.algorithms:
+        for index, algorithm in enumerate(self.algorithms, start=1):
             for attribute, aggregation in self.attribute_aggregation_pairs:
                 values = algorithm_attribute_aggregation_to_values[(algorithm, attribute, aggregation)]
                 if values:
@@ -86,6 +137,11 @@ class DomainAttributesReport(PlanningReport):
                 else:
                     summary_value = None
                 summary_line.append(summary_value)
+            ### Begin HACK
+            if index % 2 == 0:
+                summary_line.append(sum([algopair_domain_attribute_better[(self.algorithms[index-2], self.algorithms[index-1]), domain, 'symmetry_group_order'] for domain in self.domains.keys()]))
+                summary_line.append(sum([algopair_domain_attribute_worse[(self.algorithms[index-2], self.algorithms[index-1]), domain, 'symmetry_group_order'] for domain in self.domains.keys()]))
+            ### End HACK
         lines.append(self.format_line(summary_line))
 
         return '\n'.join(lines)
@@ -293,19 +349,6 @@ def symmetries_or_not(props):
     props['has_symmetries'] = has_symmetries
     return props
 
-# def parse_list_of_generator_orders(props):
-    # generator_orders_lifted_list = props.get('generator_orders_lifted_list', [])
-    # orders = []
-    # if generator_orders_lifted_list:
-        # assert len(generator_orders_lifted_list) == 1
-        # string_order_list = generator_orders_lifted_list[0]
-        # if string_order_list != '':
-            # string_order_list = string_order_list.split(',')
-            # if string_order_list:
-                # orders = [int(string_order) for string_order in string_order_list]
-    # props['orders'] = orders
-    # return props
-
 exp = FastDownwardExperiment()
 
 REVISION1 = 'f8e65d0f4b44'
@@ -327,21 +370,11 @@ exp.add_fetcher('data/2018-08-09-ground-eval',filter=[remove_revision,symmetries
 exp.add_fetcher('data/2018-08-09-baggy-lifted-eval',filter=[remove_revision,symmetries_or_not,duplicate_attribute],filter_domain=suite,merge=True)
 exp.add_fetcher('data/2018-08-09-baggy-ground-eval',filter=[remove_revision,symmetries_or_not],filter_domain=suite,merge=True)
 
-# num_tasks = Attribute('num_tasks', absolute=True)
-# has_symmetries = Attribute('has_symmetries', absolute=True, min_wins=False)
-# generator_count_lifted_sum = Attribute('generator_count_lifted', absolute=True, min_wins=False, functions=[sum])
-# generator_count_lifted_gm = Attribute('generator_count_lifted', absolute=True, min_wins=False, functions=[numpy.median])
-# translator_time_symmetries0_computing_symmetries = Attribute('translator_time_symmetries0_computing_symmetries', absolute=False, min_wins=True, functions=[geometric_mean])
-# orders_gm = Attribute('orders', absolute=True, min_wins=False, functions=[geometric_mean])
-# orders_mean = Attribute('orders', absolute=True, min_wins=False, functions=[numpy.median])
-
-# def print_stuff(run):
-    # translator_time_symmetries0_computing_symmetries = run.get('translator_time_symmetries0_computing_symmetries', None)
-    # if translator_time_symmetries0_computing_symmetries is not None and translator_time_symmetries0_computing_symmetries >= 2:
-        # print("time_symmetries", translator_time_symmetries0_computing_symmetries, run.get('domain'), run.get('problem'))
-    # return run
-
-# exp.add_report(AbsoluteReport(attributes=[generator_count_lifted_sum]))
+def print_stuff(run):
+    time_symmetries = run.get('time_symmetries', None)
+    if time_symmetries is not None and time_symmetries >= 2:
+        print("time_symmetries", time_symmetries, run.get('domain'), run.get('problem'))
+    return run
 
 exp.add_report(
     SuiteReport(
@@ -2125,13 +2158,14 @@ exp.add_report(
         filter_algorithm=[
             'ground-symmetries-stabgoal-stabinit',
             'translate-symm-stabgoal-stabinit',
+            'baggy-ground-symmetries-stabgoal-stabinit',
             'baggy-translate-symm-stabgoal-stabinit',
         ],
         format='tex',
         attribute_aggregation_pairs=[
-            ('num_tasks', sum),
+            # ('num_tasks', sum),
             ('has_symmetries', sum),
-            ('time_symmetries', geometric_mean),
+            # ('time_symmetries', geometric_mean),
             # ('symmetry_group_order', sum),
         ],
         #filter=[print_stuff],
@@ -2139,13 +2173,14 @@ exp.add_report(
     outfile=os.path.join(exp.eval_dir, 'ground-lifted-baggylifted.txt'),
 )
 
+symmetry_group_order = Attribute('symmetry_group_order', absolute=True, min_wins=False)
 exp.add_report(
     ComparisonReport(
         algorithm_pairs=[
             ('ground-symmetries-stabgoal-stabinit', 'translate-symm-stabgoal-stabinit'),
         ],
         format='tex',
-        attributes=['symmetry_group_order'],
+        attributes=[symmetry_group_order],
     ),
     outfile=os.path.join(exp.eval_dir, 'ground-lifted-compare.tex'),
 )
@@ -2170,45 +2205,13 @@ exp.add_report(
 exp.add_report(
     ScatterPlotReport(
         filter_algorithm=[
-            'translate-symm-stabgoal-stabinit',
             'ground-symmetries-stabgoal-stabinit',
+            'translate-symm-stabgoal-stabinit',
         ],
         get_category=lambda run1, run2: run1['domain'],
         attributes=['symmetry_group_order'],
     ),
-    outfile=os.path.join(exp.eval_dir, 'lifted-vs-ground.png'),
+    outfile=os.path.join(exp.eval_dir, 'ground-vs-lifted.png'),
 )
-
-# exp.add_report(
-    # DomainAttributesReport(
-        # filter_algorithm=[
-            # 'baggy-translate-stabinit',
-        # ],
-        # format='tex',
-        # attribute_aggregation_pairs=[
-            # ('num_tasks', sum),
-            # ('has_symmetries', sum),
-            # ('generator_count_lifted', sum),
-            # ('generator_count_lifted', numpy.median),
-            # ('translator_time_symmetries0_computing_symmetries', geometric_mean),
-            # ('orders', geometric_mean),
-            # ('orders', numpy.median),
-        # ],
-        # #filter=[print_stuff],
-        # ),
-        # outfile=os.path.join(exp.eval_dir, 'baggy'),
-    # )
-
-# exp.add_report(
-    # ComparativeReport(
-        # attributes=[num_tasks, has_symmetries],
-        # algorithm_pairs=[
-            # #('regular-translate', 'baggy-translate'),
-            # ('regular-translate-stabinit', 'baggy-translate-stabinit'),
-        # ],
-        # format='tex',
-        # ),
-    # outfile=os.path.join(exp.eval_dir, 'compare-regular-baggy.tex')
-# )
 
 exp.run_steps()
