@@ -17,7 +17,7 @@ except ImportError:
     print 'matplotlib not available, scatter plots not available'
     matplotlib = False
 
-REVISION = 'f8e65d0f4b44'
+REVISION = 'ef5ac3aa3935'
 
 def main(revisions=None):
     benchmarks_dir=os.path.expanduser('~/repos/downward/baggy-benchmarks')
