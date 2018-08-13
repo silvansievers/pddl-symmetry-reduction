@@ -83,11 +83,10 @@ def main(revisions=None):
         environment = LocalEnvironment(processes=4)
 
     configs = {
-        IssueConfig('translate', [], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '3584M']),
-        IssueConfig('translate-symm-stabgoal-stabinit', ['--translate-options', '--compute-symmetries', '--bliss-time-limit', '300', '--stop-after-computing-symmetries'], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '3584M']),
-        IssueConfig('translate-symm-stabinit', ['--translate-options', '--compute-symmetries', '--do-not-stabilize-goal', '--bliss-time-limit', '300', '--stop-after-computing-symmetries'], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '3584M']),
-        IssueConfig('translate-symm-stabgoal', ['--translate-options', '--compute-symmetries', '--do-not-stabilize-initial-state', '--bliss-time-limit', '300', '--stop-after-computing-symmetries'], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '3584M']),
-        IssueConfig('translate-symm', ['--translate-options', '--compute-symmetries', '--do-not-stabilize-goal', '--do-not-stabilize-initial-state', '--bliss-time-limit', '300', '--stop-after-computing-symmetries'], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '3584M']),
+        IssueConfig('translate-symm-stabgoal-stabinit-no-order', ['--translate-options', '--compute-symmetries', '--bliss-time-limit', '300', '--stop-after-computing-symmetries'], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '3584M']),
+        IssueConfig('translate-symm-stabinit-no-order', ['--translate-options', '--compute-symmetries', '--do-not-stabilize-goal', '--bliss-time-limit', '300', '--stop-after-computing-symmetries'], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '3584M']),
+        IssueConfig('translate-symm-stabgoal-no-order', ['--translate-options', '--compute-symmetries', '--do-not-stabilize-initial-state', '--bliss-time-limit', '300', '--stop-after-computing-symmetries'], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '3584M']),
+        IssueConfig('translate-symm-no-order', ['--translate-options', '--compute-symmetries', '--do-not-stabilize-goal', '--do-not-stabilize-initial-state', '--bliss-time-limit', '300', '--stop-after-computing-symmetries'], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '3584M']),
     }
 
     exp = IssueExperiment(
