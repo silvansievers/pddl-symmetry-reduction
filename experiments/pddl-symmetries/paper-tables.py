@@ -353,6 +353,14 @@ duplicates = [
 suite = [domain for domain in suite_all_opt_sat if domain not in duplicates]
 #suite = suite_all_opt_sat
 
+def not_unsolvable(run):
+    unsolvable = ['miconic-fulladl:f21-3.pddl', 'miconic-fulladl:f30-2.pddl',
+    'mystery:prob04.pddl', 'mystery:prob05.pddl', 'mystery:prob07.pddl',
+    'mystery:prob08.pddl', 'mystery:prob12.pddl', 'mystery:prob16.pddl',
+    'mystery:prob18.pddl', 'mystery:prob21.pddl', 'mystery:prob22.pddl',
+    'mystery:prob23.pddl', 'mystery:prob24.pddl']
+    return run['domain'] + ':' + run['problem'] not in unsolvable
+
 def symmetries_or_not(props):
     generator_count_lifted = props.get('generator_count_lifted', 0)
     generators_count = props.get('generators_count', 0)
@@ -383,9 +391,13 @@ exp.add_fetcher('data/2018-08-09-lifted-eval',filter=[remove_revision,symmetries
 exp.add_fetcher('data/2018-08-09-ground-eval',filter=[remove_revision,symmetries_or_not],filter_domain=suite,merge=True)
 exp.add_fetcher('data/2018-08-09-baggy-lifted-eval',filter=[remove_revision,symmetries_or_not,duplicate_attribute],filter_domain=suite,merge=True)
 exp.add_fetcher('data/2018-08-09-baggy-ground-eval',filter=[remove_revision,symmetries_or_not],filter_domain=suite,merge=True)
+exp.add_fetcher('data/2018-08-13-lifted-no-order-eval',filter=[remove_revision,symmetries_or_not],filter_domain=suite,merge=True) # for runtime results
+exp.add_fetcher('data/2018-08-13-baggy-lifted-no-order-eval',filter=[remove_revision,symmetries_or_not],filter_domain=suite,merge=True) # for runtime results
 
 def print_stuff(run):
     time_symmetries = run.get('time_symmetries', None)
+    if time_symmetries is None:
+        print("{} could not compute symmetries on {} {}".format(run.get('algorithm'), run.get('domain'), run.get('problem')))
     if time_symmetries is not None and time_symmetries >= 2:
         print("{} takes {} to compute symmetries on {} {}".format(run.get('algorithm'), time_symmetries, run.get('domain'), run.get('problem')))
     return run
@@ -2181,21 +2193,50 @@ exp.add_report(
             # ('time_symmetries', geometric_mean),
             # ('symmetry_group_order', sum),
         ],
-        filter=[print_stuff],
     ),
     outfile=os.path.join(exp.eval_dir, 'ground-lifted-baggylifted.txt'),
 )
 
-symmetry_group_order = Attribute('symmetry_group_order', absolute=True, min_wins=False)
+def clamp_large_values(run):
+    symmetry_group_order = run.get('symmetry_group_order', None)
+    if symmetry_group_order is not None and symmetry_group_order > 10**15:
+        symmetry_group_order = 10**15
+    if symmetry_group_order == 0:
+        return False
+    run['symmetry_group_order'] = symmetry_group_order
+    return run
+
+exp.add_report(
+    ScatterPlotReport(
+        filter_algorithm=[
+            'ground-symmetries-stabgoal-stabinit',
+            'translate-symm-stabgoal-stabinit',
+        ],
+        # get_category=lambda run1, run2: run1['domain'],
+        attributes=['symmetry_group_order'],
+        filter=[clamp_large_values],
+        format='tex',
+    ),
+    outfile=os.path.join(exp.eval_dir, 'ground-vs-lifted-symmetry-group-order.tex'),
+)
+
+##### From here on: use experiment data without group order computation #####
+
+symmetry_graph_size = Attribute('symmetry_graph_size', absolute=True, min_wins=True)
+time_symmetries = Attribute('time_symmetries', absolute=False, min_wins=True, functions=[geometric_mean])
+has_symmetries = Attribute('has_symmetries', absolute=True, min_wins=False)
+attributes = [symmetry_graph_size, time_symmetries, has_symmetries]
+
 exp.add_report(
     ComparisonReport(
         algorithm_pairs=[
-            ('ground-symmetries-stabgoal-stabinit', 'translate-symm-stabgoal-stabinit'),
+            ('ground-symmetries-stabgoal-stabinit', 'translate-symm-stabgoal-stabinit-no-order'),
         ],
-        format='tex',
-        attributes=[symmetry_group_order],
+        format='html',
+        attributes=attributes,
+        filter=[print_stuff],
     ),
-    outfile=os.path.join(exp.eval_dir, 'ground-lifted-compare.tex'),
+    outfile=os.path.join(exp.eval_dir, 'ground-lifted-compare.html'),
 )
 
 def filter_baggy_tasks(run):
@@ -2206,25 +2247,141 @@ def filter_baggy_tasks(run):
 exp.add_report(
     ComparisonReport(
         algorithm_pairs=[
-            ('translate-symm-stabgoal-stabinit', 'baggy-translate-symm-stabgoal-stabinit'),
+            ('translate-symm-stabgoal-stabinit-no-order', 'baggy-translate-symm-stabgoal-stabinit-no-order'),
         ],
-        format='tex',
-        attributes=['symmetry_group_order'],
+        format='html',
+        attributes=attributes,
         filter=[filter_baggy_tasks],
     ),
-    outfile=os.path.join(exp.eval_dir, 'lifted-baggylifted-compare.tex'),
+    outfile=os.path.join(exp.eval_dir, 'lifted-baggylifted-compare.html'),
+)
+
+
+class DomainsWithLargeDifferencesReport(PlanningReport):
+    def __init__(self, attribute_threshold_pairs, **kwargs):
+        self.attribute_threshold_pairs = attribute_threshold_pairs
+        kwargs.setdefault('format', 'txt')
+        PlanningReport.__init__(self, **kwargs)
+
+    def get_text(self):
+        """
+        We do not need any markup processing or loop over attributes here,
+        so the get_text() method is implemented right here.
+        """
+        attributes = set()
+        for attribute, threshold in self.attribute_threshold_pairs:
+            attributes.add(attribute)
+
+        domain_problem_algorithm_attribute_values = {}
+        algo_domain_problem_algorithm = {}
+        for algo in self.algorithms:
+            algo_domain_problem_algorithm[algo] = {}
+            for domain in self.domains.keys():
+                algo_domain_problem_algorithm[algo][domain] = defaultdict(dict)
+        for (domain, algo), runs in self.domain_algorithm_runs.items():
+            for attribute in attributes:
+                for run in runs:
+                    problem = run['problem']
+                    #value = run.get(attribute, float('inf'))
+                    value = run.get(attribute, None)
+                    algo_domain_problem_algorithm[algo][domain][problem][attribute] = value
+
+        assert(len(self.algorithms) == 2)
+        algo1 = self.algorithms[0]
+        algo2 = self.algorithms[1]
+        attribute_to_domains_with_large_diff = defaultdict(set)
+        for domain, problems in self.domains.items():
+            for problem in problems:
+                for attribute, threshold in self.attribute_threshold_pairs:
+                    val1 = algo_domain_problem_algorithm[algo1][domain][problem][attribute]
+                    val2 = algo_domain_problem_algorithm[algo2][domain][problem][attribute]
+                    if val1 is None and val2 is None:
+                        continue
+                    if val1 == 0:
+                        val1 = 0.01
+                    if val2 == 0:
+                        val2 = 0.01
+                    if val1 is None or val2 is None or (val1 >= threshold * val2 or val2 >= threshold * val1):
+                        attribute_to_domains_with_large_diff[attribute].add(domain)
+
+        lines = []
+        for attribute in attributes:
+            lines.append("{}:".format(attribute))
+            lines.append("[")
+            for domain in attribute_to_domains_with_large_diff[attribute]:
+                lines.append("  '{}',".format(domain))
+            lines.append("]")
+            lines.append("")
+        return '\n'.join(lines)
+
+exp.add_report(
+    DomainsWithLargeDifferencesReport(
+        [('symmetry_graph_size', 20)],
+        filter_algorithm=[
+            'ground-symmetries-stabgoal-stabinit',
+            'translate-symm-stabgoal-stabinit-no-order',
+        ],
+        filter=[not_unsolvable],
+        filter_domain=suite,
+    ),
+    name='domains_with_diff_of_symmetry_graph_size_larger_10',
+    outfile=os.path.join(exp.eval_dir, 'domains_with_diff_of_symmetry_graph_size_larger_10.txt'),
+)
+
+# generated with above DomainsWithLargeDifferencesReport
+domains_with_diff_of_symmetry_graph_size_larger_20 = [
+  'psr-small',
+  'mystery',
+  'satellite',
+  'hiking-sat14-strips',
+  'scanalyzer-sat11-strips',
+  'pipesworld-tankage',
+  'trucks',
+  'transport-sat14-strips',
+  'scanalyzer-opt11-strips',
+  'tetris-sat14-strips',
+  'parking-opt14-strips',
+  'psr-large',
+  'tetris-opt14-strips',
+  'parking-sat14-strips',
+  'logistics98',
+  'mprime',
+  'zenotravel',
+  'depot',
+  'miconic-fulladl',
+  'tidybot-sat11-strips',
+]
+
+def domain_category_for_grounding_reduced(run1, run2):
+    if run1['domain'] in domains_with_diff_of_symmetry_graph_size_larger_20:
+        return run1['domain']
+    return None
+
+exp.add_report(
+    ScatterPlotReport(
+        filter_algorithm=[
+            'ground-symmetries-stabgoal-stabinit',
+            'translate-symm-stabgoal-stabinit-no-order',
+        ],
+        # get_category=lambda run1, run2: run1['domain'],
+        get_category=domain_category_for_grounding_reduced,
+        attributes=['symmetry_graph_size'],
+        format='tex',
+    ),
+    outfile=os.path.join(exp.eval_dir, 'ground-vs-lifted-symmetry-graph-size.tex'),
 )
 
 exp.add_report(
     ScatterPlotReport(
         filter_algorithm=[
             'ground-symmetries-stabgoal-stabinit',
-            'translate-symm-stabgoal-stabinit',
+            'translate-symm-stabgoal-stabinit-no-order',
         ],
-        get_category=lambda run1, run2: run1['domain'],
-        attributes=['symmetry_group_order'],
+        # get_category=lambda run1, run2: run1['domain'],
+        attributes=['time_symmetries'],
+        format='png',
     ),
-    outfile=os.path.join(exp.eval_dir, 'ground-vs-lifted.png'),
+    outfile=os.path.join(exp.eval_dir, 'ground-vs-lifted-time-symmetries.png'),
 )
 
 exp.run_steps()
