@@ -192,11 +192,10 @@ def main(revisions=None):
         return props
 
     algorithm_nicks = [
-        'baggy-translate',
-        'baggy-translate-symm-stabgoal-stabinit',
-        'baggy-translate-symm-stabinit',
-        'baggy-translate-symm-stabgoal',
-        'baggy-translate-symm',
+        'baggy-translate-symm-stabgoal-stabinit-no-order',
+        'baggy-translate-symm-stabinit-no-order',
+        'baggy-translate-symm-stabgoal-no-order',
+        'baggy-translate-symm-no-order',
     ]
 
     exp.add_absolute_report_step(attributes=attributes,filter_algorithm=['{}-{}'.format(REVISION, x) for x in algorithm_nicks],filter=[duplicate_attribute])

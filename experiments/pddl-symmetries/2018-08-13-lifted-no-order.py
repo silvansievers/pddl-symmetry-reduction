@@ -138,25 +138,13 @@ def main(revisions=None):
         return props
 
     algorithm_nicks = [
-        'translate',
-        'translate-symm-stabgoal-stabinit',
-        'translate-symm-stabinit',
-        'translate-symm-stabgoal',
-        'translate-symm',
+        'translate-symm-stabgoal-stabinit-no-order',
+        'translate-symm-stabinit-no-order',
+        'translate-symm-stabgoal-no-order',
+        'translate-symm-no-order',
     ]
 
     exp.add_absolute_report_step(attributes=attributes,filter_algorithm=['{}-{}'.format(REVISION, x) for x in algorithm_nicks],filter=[duplicate_attribute])
-
-    OLD_REV = 'af5fe90d4c29'
-    exp.add_fetcher('data/2018-07-12-lifted-eval',filter_algorithm=['{}-{}'.format(OLD_REV, x) for x in algorithm_nicks])
-
-    exp.add_report(
-        ComparativeReport(
-            algorithm_pairs=[('{}-{}'.format(OLD_REV, x), '{}-{}'.format(REVISION, x)) for x in algorithm_nicks],
-            attributes=attributes,
-        ),
-        outfile=os.path.join(exp.eval_dir, exp.name + '-compare.html'),
-    )
 
     exp.run_steps()
 
