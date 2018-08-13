@@ -47,30 +47,31 @@ class DomainAttributesReport(PlanningReport):
         algopair_domain_attribute_worse = defaultdict(int)
         min_wins = False
         attribute = 'symmetry_group_order'
-        for index1, algo1 in enumerate(self.algorithms):
-            for index2, algo2 in enumerate(self.algorithms, start=index1+1):
-                for domain, problems in self.domains.items():
-                    for problem in problems:
-                        algo1_run = self.runs.get((domain, problem, algo1), None)
-                        algo2_run = self.runs.get((domain, problem, algo2), None)
-                        if algo1_run is None or algo2_run is None:
+        assert len(self.algorithms) == 3
+
+        for algo1, algo2 in [(self.algorithms[0], self.algorithms[1]), (self.algorithms[1], self.algorithms[2])]:
+            for domain, problems in self.domains.items():
+                for problem in problems:
+                    algo1_run = self.runs.get((domain, problem, algo1), None)
+                    algo2_run = self.runs.get((domain, problem, algo2), None)
+                    if algo1_run is None or algo2_run is None:
+                        diff = None
+                    else:
+                        algo1_value = algo1_run.get(attribute)
+                        algo2_value = algo2_run.get(attribute)
+                        try:
+                            diff = float(algo2_value) - float(algo1_value)
+                        except (ValueError, TypeError, KeyError):
                             diff = None
-                        else:
-                            algo1_value = algo1_run.get(attribute)
-                            algo2_value = algo2_run.get(attribute)
-                            try:
-                                diff = float(algo2_value) - float(algo1_value)
-                            except (ValueError, TypeError, KeyError):
-                                diff = None
-                        if diff is not None:
-                            if (diff < 0 and min_wins) or (diff > 0 and not min_wins):
-                                # algo2 is better
-                                algopair_domain_attribute_better[
-                                    (algo1, algo2), domain, attribute] += 1
-                            elif (diff > 0 and min_wins) or (diff < 0 and not min_wins):
-                                # algo2 is worse
-                                algopair_domain_attribute_worse[
-                                    (algo1, algo2), domain, attribute] += 1
+                    if diff is not None:
+                        if (diff < 0 and min_wins) or (diff > 0 and not min_wins):
+                            # algo2 is better
+                            algopair_domain_attribute_better[
+                                (algo1, algo2), domain, attribute] += 1
+                        elif (diff > 0 and min_wins) or (diff < 0 and not min_wins):
+                            # algo2 is worse
+                            algopair_domain_attribute_worse[
+                                (algo1, algo2), domain, attribute] += 1
         ### End HACK
 
         # header lines
@@ -80,9 +81,18 @@ class DomainAttributesReport(PlanningReport):
         lines.append(self.format_line(algorithms_line))
 
         attributes_line = ['attributes']
-        for algorithm in self.algorithms:
+        for index, algorithm in enumerate(self.algorithms, start=1):
+            ### Begin HACK
+            if index % 2 == 1:
+                attributes_line.append('num_tasks')
+            ### End HACK
             for attribute, aggregation in self.attribute_aggregation_pairs:
                 attributes_line.append(attribute)
+            ### Begin HACK
+            if index == 2 or index == 3:
+                attributes_line.append('+')
+                attributes_line.append('-')
+            ### End HACK
         lines.append(self.format_line(attributes_line))
 
         # body lines
@@ -121,7 +131,7 @@ class DomainAttributesReport(PlanningReport):
                         aggregated_value = ''
                     domain_line.append(aggregated_value)
                 ### Begin HACK
-                if index % 2 == 0:
+                if index == 2 or index == 3:
                     domain_line.append(algopair_domain_attribute_better[(self.algorithms[index-2], self.algorithms[index-1]), domain, 'symmetry_group_order'])
                     domain_line.append(algopair_domain_attribute_worse[(self.algorithms[index-2], self.algorithms[index-1]), domain, 'symmetry_group_order'])
                 ### End HACK
@@ -130,6 +140,10 @@ class DomainAttributesReport(PlanningReport):
         # summary line
         summary_line = ['summary']
         for index, algorithm in enumerate(self.algorithms, start=1):
+            ### Begin HACK
+            if index % 2 == 1:
+                summary_line.append('num_tasks')
+            ### End HACK
             for attribute, aggregation in self.attribute_aggregation_pairs:
                 values = algorithm_attribute_aggregation_to_values[(algorithm, attribute, aggregation)]
                 if values:
@@ -138,7 +152,7 @@ class DomainAttributesReport(PlanningReport):
                     summary_value = None
                 summary_line.append(summary_value)
             ### Begin HACK
-            if index % 2 == 0:
+            if index == 2 or index == 3:
                 summary_line.append(sum([algopair_domain_attribute_better[(self.algorithms[index-2], self.algorithms[index-1]), domain, 'symmetry_group_order'] for domain in self.domains.keys()]))
                 summary_line.append(sum([algopair_domain_attribute_worse[(self.algorithms[index-2], self.algorithms[index-1]), domain, 'symmetry_group_order'] for domain in self.domains.keys()]))
             ### End HACK
@@ -373,7 +387,7 @@ exp.add_fetcher('data/2018-08-09-baggy-ground-eval',filter=[remove_revision,symm
 def print_stuff(run):
     time_symmetries = run.get('time_symmetries', None)
     if time_symmetries is not None and time_symmetries >= 2:
-        print("time_symmetries", time_symmetries, run.get('domain'), run.get('problem'))
+        print("{} takes {} to compute symmetries on {} {}".format(run.get('algorithm'), time_symmetries, run.get('domain'), run.get('problem')))
     return run
 
 exp.add_report(
@@ -2158,7 +2172,6 @@ exp.add_report(
         filter_algorithm=[
             'ground-symmetries-stabgoal-stabinit',
             'translate-symm-stabgoal-stabinit',
-            'baggy-ground-symmetries-stabgoal-stabinit',
             'baggy-translate-symm-stabgoal-stabinit',
         ],
         format='tex',
@@ -2168,7 +2181,7 @@ exp.add_report(
             # ('time_symmetries', geometric_mean),
             # ('symmetry_group_order', sum),
         ],
-        #filter=[print_stuff],
+        filter=[print_stuff],
     ),
     outfile=os.path.join(exp.eval_dir, 'ground-lifted-baggylifted.txt'),
 )
