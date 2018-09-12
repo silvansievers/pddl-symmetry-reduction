@@ -14,47 +14,11 @@ import sys
 sys.path.append(os.path.join(dir_path, 'pybliss-0.73'))
 import pybind11_blissmodule as bliss
 
-from sympy.combinatorics.permutations import Permutation
-from sympy.combinatorics.perm_groups import PermutationGroup
-
 import options
 import timers
 
 # HACK
 GLOBAL_COLOR_COUNT = -1
-
-
-def compute_group_order_sympy(generators):
-    sympy_permutations = [Permutation(gen) for gen in generators]
-    sympy_group = PermutationGroup(sympy_permutations)
-    return sympy_group.order()
-
-
-def permute(automorphism, gen):
-    # print "permuting %s with %s" % (automorphism, gen)
-    result = list(automorphism)
-    gen_mapping = dict([(key, val) for key, val in enumerate(gen)])
-    for key, val in enumerate(automorphism):
-        result[key] = gen_mapping[val]
-    # print "result: %s" % result
-    return tuple(result)
-
-
-def compute_group_order_manual(generators):
-    closed = set()
-    open_list = Queue.Queue()
-    for gen in generators:
-        closed.add(tuple(gen))
-        open_list.put(tuple(gen))
-    while not open_list.empty():
-        automorphism = open_list.get()
-        for gen in generators:
-            if gen != automorphism:
-                new_automorphism = permute(automorphism, gen)
-                if new_automorphism not in closed:
-                    closed.add(tuple(new_automorphism))
-                    open_list.put(tuple(new_automorphism))
-    return len(closed)
 
 
 class PyblissModuleWrapper:
@@ -70,7 +34,7 @@ class PyblissModuleWrapper:
         self.excluded_vertices = set()
         self.only_object_symmetries = only_object_symmetries
 
-    def find_automorphisms(self, time_limit, compute_group_order):
+    def find_automorphisms(self, time_limit, write_group_generators):
         # Create and fill the graph
         timer = timers.Timer()
         print "Creating symmetry graph..."
@@ -99,6 +63,22 @@ class PyblissModuleWrapper:
         time = timer.elapsed_time()
         print "Done searching for automorphisms: %ss" % time
 
+        if write_group_generators:
+            # We write the "un-translated" generators on purpose because
+            # these are in the right format to be processed by, e.g., sympy
+            # to compute the order. We don't do it here to exclude the
+            # computational overhead from the translator run.
+            file = open('generators.py', 'w')
+            for automorphism in automorphisms:
+                file.write('[')
+                for index, value in enumerate(automorphism):
+                    file.write("{}".format(value))
+                    if index != len(automorphism) - 1:
+                        file.write(', ')
+                file.write(']')
+                file.write('\n')
+            file.close()
+
         timer = timers.Timer()
         print "Translating automorphisms..."
         generators = []
@@ -123,29 +103,6 @@ class PyblissModuleWrapper:
         for order in range(2, 50):
             print("Lifted generator order {}: {}".format(order, order_to_generator_count[order]))
 
-        if compute_group_order:
-            # We do this on the "un-translated" generators on purpose because
-            # these are in the right format for sympy.
-            timer = timers.Timer()
-            print "Computing group order with sympy..."
-            order_sympy = 0
-            if automorphisms:
-                order_sympy = compute_group_order_sympy(automorphisms)
-            print "Group order sympy: %d" % order_sympy
-            time = timer.elapsed_time()
-            print "Done computing group order with sympy: %ss" % time
-
-            # if order_sympy <= 50000:
-                # print "Computing group order manually..."
-                # order_manual = 0
-                # if automorphisms:
-                    # order_manual = compute_group_order_manual(automorphisms)
-                # print "Group order manual: %d" % order_manual
-                # time = timer.elapsed_time()
-                # print "Done computing group order manually: %ss" % time
-                # if order_manual != order_sympy:
-                    # print "Different group orders!"
-                    # sys.exit(1)
         return generators
 
     def _translate_generator(self, generator):

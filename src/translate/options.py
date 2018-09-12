@@ -79,10 +79,11 @@ def parse_args():
         help="Max time for bliss to search for automorphisms. (Set option "
         "--compute-symmetries)")
     argparser.add_argument(
-        "--compute-group-order", action="store_true",
-        help="If true, compute the symmetry group order with sympy. Caution: "
-        "Can be very expensive and the runtime is included in the translate "
-        "runtime limit! (Set option --compute-symmetries)")
+        "--write-group-generators", action="store_true",
+        help="If true, write the group generators to the file 'generators.py'. "
+        "Each line contains a list of integers in the Python list format. "
+        "The list is to be read as a permutation of the integers 0 to length "
+        "of the list. (Set option --compute-symmetries)")
     argparser.add_argument(
         "--add-object-type-nodes", action="store_true",
         help="If true, add nodes representing the type 'object' in the "
