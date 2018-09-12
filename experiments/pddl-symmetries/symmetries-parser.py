@@ -7,15 +7,6 @@ from lab.parser import Parser
 parser = Parser()
 parser.add_pattern('generator_count_lifted', 'Number of lifted generators: (\d+)', required=False, type=int)
 parser.add_pattern('generator_count_lifted_mapping_objects_predicates', 'Number of lifted generators mapping predicates or objects: (\d+)', required=False, type=int)
-parser.add_pattern('generator_order_lifted_2', 'Lifted generator order 2: (\d+)', required=False, type=int)
-parser.add_pattern('generator_order_lifted_3', 'Lifted generator order 3: (\d+)', required=False, type=int)
-parser.add_pattern('generator_order_lifted_4', 'Lifted generator order 4: (\d+)', required=False, type=int)
-parser.add_pattern('generator_order_lifted_5', 'Lifted generator order 5: (\d+)', required=False, type=int)
-parser.add_pattern('generator_order_lifted_6', 'Lifted generator order 6: (\d+)', required=False, type=int)
-parser.add_pattern('generator_order_lifted_7', 'Lifted generator order 7: (\d+)', required=False, type=int)
-parser.add_pattern('generator_order_lifted_8', 'Lifted generator order 8: (\d+)', required=False, type=int)
-parser.add_pattern('generator_order_lifted_9', 'Lifted generator order 9: (\d+)', required=False, type=int)
-parser.add_pattern('generator_order_lifted_max', 'Maximum generator order: (\d+)', required=False, type=int)
 parser.add_pattern('generator_count_grounded_1_after_grounding', '(\d+) out of \d+ generators left after grounding them', required=False, type=int)
 parser.add_pattern('generator_count_grounded_2_after_sas_task', '(\d+) out of \d+ generators left after the sas task has been created', required=False, type=int)
 parser.add_pattern('generator_count_grounded_3_after_filtering_props', '(\d+) out of \d+ generators left after filtering unreachable propositions', required=False, type=int)
@@ -34,8 +25,7 @@ parser.add_pattern('generator_order_grounded_7', 'Grounded generator order 7: (\
 parser.add_pattern('generator_order_grounded_8', 'Grounded generator order 8: (\d+)', required=False, type=int)
 parser.add_pattern('generator_order_grounded_9', 'Grounded generator order 9: (\d+)', required=False, type=int)
 parser.add_pattern('symmetry_graph_size', 'Size of the lifted symmetry graph: (\d+)', required=False, type=int)
-parser.add_pattern('symmetry_group_order', 'Group order sympy: (\d+)', required=False, type=int)
-parser.add_pattern('symmetry_group_order_time', 'Done computing group order with sympy: (.+)s', required=False, type=float)
+parser.add_pattern('symmetry_group_order', 'Symmetry group order: (\d+)', required=False, type=int)
 
 def add_composed_attributes(content, props):
     generator_count_lifted = props.get('generator_count_lifted', 0)
@@ -49,18 +39,6 @@ def add_composed_attributes(content, props):
     props['translator_completed'] = translator_completed
 
 parser.add_function(add_composed_attributes)
-
-def parse_generator_orders(content, props):
-    lifted_generator_orders = re.findall(r'Lifted generator orders: \[(.*)\]', content)
-    props['generator_orders_lifted'] = lifted_generator_orders
-    lifted_generator_orders_list = re.findall(r'Lifted generator orders list: \[(.*)\]', content)
-    props['generator_orders_lifted_list'] = lifted_generator_orders_list
-    grounded_generator_orders = re.findall(r'Grounded generator orders: \[(.*)\]', content)
-    props['generator_orders_grounded'] = grounded_generator_orders
-    grounded_generator_orders_list = re.findall(r'Grounded generator orders list: \[(.*)\]', content)
-    props['generator_orders_grounded_list'] = grounded_generator_orders_list
-
-parser.add_function(parse_generator_orders)
 
 def parse_boolean_flags(content, props):
     bliss_memory_out = False
