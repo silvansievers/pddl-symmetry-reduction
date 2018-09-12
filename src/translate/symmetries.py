@@ -62,6 +62,7 @@ class PyblissModuleWrapper:
         automorphisms = graph.find_automorphisms(time_limit)
         time = timer.elapsed_time()
         print "Done searching for automorphisms: %ss" % time
+        print("Number of lifted generators: {}".format(len(automorphisms)))
 
         if write_group_generators:
             # We write the "un-translated" generators on purpose because
@@ -86,22 +87,6 @@ class PyblissModuleWrapper:
             generators.append(self._translate_generator(aut))
         time = timer.elapsed_time()
         print "Done translating automorphisms: %ss" % time
-
-        print("Number of lifted generators: {}".format(len(generators)))
-        order_to_generator_count = defaultdict(int)
-        order_list = []
-        max_order = 0
-        for generator in generators:
-            order = compute_order(generator)
-            max_order = max(max_order, order)
-            order_to_generator_count[order] += 1
-            order_list.append(order)
-        print("Maximum generator order: {}".format(max_order))
-        printable_order_to_count = [(order, count) for order, count in order_to_generator_count.items()]
-        print("Lifted generator orders: {}".format(printable_order_to_count))
-        print("Lifted generator orders list: {}".format(order_list))
-        for order in range(2, 50):
-            print("Lifted generator order {}: {}".format(order, order_to_generator_count[order]))
 
         return generators
 
@@ -674,35 +659,6 @@ class SymmetryGraph:
                 assert isinstance(atom, pddl.Atom)
                 lit_node = self._add_literal(NodeType.mutex_group, Color.mutex_group, atom, (index))
                 self.graph.add_edge(group_node, lit_node)
-
-
-
-def gcd(a, b):
-    """Return greatest common divisor using Euclid's Algorithm."""
-    while b:
-        a, b = b, a % b
-    return a
-
-
-def lcm(a, b):
-    """Return lowest common multiple."""
-    return a * b // gcd(a, b)
-
-
-def compute_order(generator):
-    visited_keys = set()
-    order = 1
-    for start_key in generator.keys():
-        if not start_key in visited_keys:
-            cycle_size = 1
-            visited_keys.add(start_key)
-            current_key = generator[start_key]
-            while current_key != start_key:
-                current_key = tuple(generator[current_key])
-                visited_keys.add(current_key)
-                cycle_size += 1
-            order = lcm(order, cycle_size)
-    return order
 
 
 def get_mapped_objects(generator):
