@@ -6,6 +6,11 @@
 
 #include "group.h"
 
+/*
+  This class represents search symmetries, i.e., it only stores a mapping of
+  variables and values, but not of operators of the planning task, since the
+  mapping of these is not used for symmetry pruning techniques.
+*/
 class Permutation{
 public:
     explicit Permutation(const Group &group);
@@ -24,11 +29,6 @@ public:
     void dump_var_vals() const;
     void dump() const;
     void dump_fdr() const;
-    void write(std::ofstream &file) const;
-
-    int get_order() const {
-        return order;
-    }
 
     std::pair<int, int> get_new_var_val_by_old_var_val(const int var, const int val) const;
 
@@ -45,7 +45,6 @@ private:
     std::vector<int> from_vars;
     // Affected vars by cycles
     std::vector<std::vector<int> > affected_vars_cycles;
-    int order;
 
     void finalize();
     void _allocate();

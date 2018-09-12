@@ -25,14 +25,17 @@ using namespace utils;
 Group::Group(const options::Options &opts)
     : stabilize_initial_state(opts.get<bool>("stabilize_initial_state")),
       stabilize_goal(opts.get<bool>("stabilize_goal")),
+      use_color_for_stabilizing_goal(opts.get<bool>("use_color_for_stabilizing_goal")),
       time_bound(opts.get<int>("time_bound")),
       dump_symmetry_graph(opts.get<bool>("dump_symmetry_graph")),
       search_symmetries(SearchSymmetries(opts.get_enum("search_symmetries"))),
       sos(static_cast<SourceOfSymmetries>(opts.get_enum("source_of_symmetries"))),
       dump_permutations(opts.get<bool>("dump_permutations")),
-      write_generators(opts.get<bool>("write_generators")),
+      write_search_generators(opts.get<bool>("write_search_generators")),
+      write_all_generators(opts.get<bool>("write_all_generators")),
       num_vars(0),
       permutation_length(0),
+      graph_size(0),
       num_identity_generators(0),
       initialized(false) {
 }
@@ -60,7 +63,13 @@ void Group::compute_symmetries(const TaskProxy &task_proxy) {
     } else if (sos == SourceOfSymmetries::GraphCreator) {
         GraphCreator graph_creator;
         bool success = graph_creator.compute_symmetries(
-            task_proxy, stabilize_initial_state, stabilize_goal, time_bound, dump_symmetry_graph, write_generators, this);
+            task_proxy,
+            stabilize_initial_state,
+            stabilize_goal,
+            use_color_for_stabilizing_goal,
+            time_bound,
+            dump_symmetry_graph,
+            this);
         if (!success) {
             generators.clear();
         }
@@ -82,13 +91,41 @@ void Group::compute_symmetries(const TaskProxy &task_proxy) {
     // found or not to avoid future attempts at computing symmetries if
     // none can be found.
     initialized = true;
+
+    if (write_search_generators || write_all_generators) {
+        utils::exit_with(utils::ExitCode::SUCCESS);
+    }
+}
+
+void Group::write_generator_to_file(const unsigned int *generator) const {
+    assert(write_search_generators || write_all_generators);
+    ofstream file;
+    file.open("generators.py", std::ios_base::app);
+    file << "[";
+    int length = (write_search_generators ? permutation_length : graph_size);
+    for (int i = 0; i < length; ++i) {
+        int val = generator[i];
+        file << val;
+        if (i != length - 1) {
+            file << ", ";
+        }
+    }
+    file << "]";
+    file << endl;
+    file.close();
 }
 
 void Group::add_raw_generator(const unsigned int *generator) {
     Permutation permutation(*this, generator);
     if (permutation.identity()) {
         ++num_identity_generators;
+        if (write_all_generators) {
+            write_generator_to_file(generator);
+        }
     } else {
+        if (write_search_generators || write_all_generators) {
+            write_generator_to_file(generator);
+        }
         generators.push_back(move(permutation));
     }
 }
@@ -163,34 +200,20 @@ void Group::dump_variables_equivalence_classes() const {
     }
 }
 
-void Group::write_generators_to_file() const {
-    ofstream file;
-    file.open ("generators.py");
-    for (const Permutation &perm : generators) {
-        perm.write(file);
-        file << endl;
-    }
-    file.close();
-}
-
 void Group::statistics() const {
-    int num_gen = get_num_generators();
-    cout << "Number of generators: " << num_gen << endl;
-    cout << "Number of identity generators (on states, not on operators): "
+    cout << "Size of the grounded symmetry graph: "
+         << graph_size << endl;
+    cout << "Number of search generators (affecting facts): "
+         << get_num_generators() << endl;
+    cout << "Number of identity generators (on facts, not on operators): "
          << get_num_identity_generators() << endl;
-    cout << "Order of generators: [";
-    for (int gen_no = 0; gen_no < num_gen; ++gen_no) {
-        cout << get_permutation(gen_no).get_order();
-        if (gen_no != num_gen - 1)
-            cout << ", ";
-    }
-    cout << "]" << endl;
+    cout << "Total number of generators: "
+         << get_num_generators() + get_num_identity_generators() << endl;
 
     if (dump_permutations) {
         dump_generators();
         dump_variables_equivalence_classes();
     }
-
 }
 
 vector<int> Group::get_canonical_representative(const GlobalState &state) const {
@@ -317,6 +340,10 @@ static shared_ptr<Group> _parse(OptionParser &parser) {
     parser.add_option<bool>("stabilize_goal",
                             "Compute symmetries stabilizing the goal",
                             "true");
+    parser.add_option<bool>("use_color_for_stabilizing_goal",
+                            "Use a color to stabilize the goal instead of "
+                            "using an additional node linked to goal values.",
+                            "true");
     parser.add_option<bool>("dump_symmetry_graph",
                            "Dump symmetry graph in dot format",
                            "false");
@@ -348,10 +375,16 @@ static shared_ptr<Group> _parse(OptionParser &parser) {
     parser.add_option<bool>("dump_permutations",
                            "Dump the generators",
                            "false");
-    parser.add_option<bool>("write_generators",
-                            "Write symmetry group generators to a file and "
-                            "stop afterwards.",
-                            "false");
+    parser.add_option<bool>(
+        "write_search_generators",
+        "Write symmetry group generators that affect variables to a file and "
+        "stop afterwards.",
+        "false");
+    parser.add_option<bool>(
+        "write_all_generators",
+        "Write all symmetry group generators to a file, including those that "
+        "do not affect variables, and stop afterwards.",
+        "false");
 
     Options opts = parser.parse();
 
