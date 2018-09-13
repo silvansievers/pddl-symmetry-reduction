@@ -189,8 +189,14 @@ def main(revisions=None):
 
     exp.add_absolute_report_step(attributes=attributes,filter_algorithm=['{}-{}'.format(REVISION, x) for x in algorithm_nicks])
 
+    def rename_attributes(props):
+        props['num_search_generators'] = props['generators_count']
+        props['num_total_generators'] = props['generators_count']
+        props['num_operator_generators'] = 0
+        return props
+
     OLD_REV = 'f8e65d0f4b44'
-    exp.add_fetcher('data/2018-08-09-baggy-ground-eval',filter_algorithm=['{}-{}'.format(OLD_REV, x) for x in algorithm_nicks])
+    exp.add_fetcher('data/2018-08-09-baggy-ground-eval',filter_algorithm=['{}-{}'.format(OLD_REV, x) for x in algorithm_nicks],filter=[rename_attributes])
 
     exp.add_report(
         ComparativeReport(
