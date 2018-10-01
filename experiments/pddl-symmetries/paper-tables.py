@@ -61,7 +61,7 @@ class DomainAttributesReport(PlanningReport):
                         algo2_value = algo2_run.get(attribute)
                         try:
                             diff = float(algo2_value) - float(algo1_value)
-                        except (ValueError, TypeError, KeyError):
+                        except (ValueError, TypeError, KeyError, OverflowError):
                             diff = None
                     if diff is not None:
                         if (diff < 0 and min_wins) or (diff > 0 and not min_wins):
@@ -363,23 +363,21 @@ def not_unsolvable(run):
 
 def symmetries_or_not(props):
     generator_count_lifted = props.get('generator_count_lifted', 0)
-    generators_count = props.get('generators_count', 0)
+    num_total_generators = props.get('num_total_generators', 0)
     props['num_tasks'] = 1
     has_symmetries = 0
-    if generator_count_lifted > 0 or generators_count > 0:
+    if generator_count_lifted > 0 or num_total_generators > 0:
         has_symmetries = 1
     props['has_symmetries'] = has_symmetries
     return props
 
 exp = FastDownwardExperiment()
 
-REVISION1 = 'f8e65d0f4b44'
-REVISION2 = 'ef5ac3aa3935'
+REVISION = 'e698d6049851'
 
 def remove_revision(run):
     algo = run['algorithm']
-    algo = algo.replace('{}-'.format(REVISION1), '')
-    algo = algo.replace('{}-'.format(REVISION2), '')
+    algo = algo.replace('{}-'.format(REVISION), '')
     run['algorithm'] = algo
     return run
 
@@ -387,12 +385,10 @@ def duplicate_attribute(props):
     props['time_symmetries'] = props.get('translator_time_symmetries0_computing_symmetries', None)
     return props
 
-exp.add_fetcher('data/2018-08-09-lifted-eval',filter=[remove_revision,symmetries_or_not,duplicate_attribute],filter_domain=suite)
-exp.add_fetcher('data/2018-08-09-ground-eval',filter=[remove_revision,symmetries_or_not],filter_domain=suite,merge=True)
-exp.add_fetcher('data/2018-08-09-baggy-lifted-eval',filter=[remove_revision,symmetries_or_not,duplicate_attribute],filter_domain=suite,merge=True)
-exp.add_fetcher('data/2018-08-09-baggy-ground-eval',filter=[remove_revision,symmetries_or_not],filter_domain=suite,merge=True)
-exp.add_fetcher('data/2018-08-13-lifted-no-order-eval',filter=[remove_revision,symmetries_or_not],filter_domain=suite,merge=True) # for runtime results
-exp.add_fetcher('data/2018-08-13-baggy-lifted-no-order-eval',filter=[remove_revision,symmetries_or_not],filter_domain=suite,merge=True) # for runtime results
+exp.add_fetcher('data/2018-09-12-lifted-eval',filter=[remove_revision,symmetries_or_not,duplicate_attribute],filter_domain=suite)
+exp.add_fetcher('data/2018-09-12-baggy-lifted-eval',filter=[remove_revision,symmetries_or_not,duplicate_attribute],filter_domain=suite,merge=True)
+exp.add_fetcher('data/2018-09-12-ground-eval',filter=[remove_revision,symmetries_or_not],filter_domain=suite,merge=True)
+exp.add_fetcher('data/2018-09-12-baggy-ground-eval',filter=[remove_revision,symmetries_or_not],filter_domain=suite,merge=True)
 
 def print_stuff(run):
     time_symmetries = run.get('time_symmetries', None)
@@ -2220,8 +2216,6 @@ exp.add_report(
     outfile=os.path.join(exp.eval_dir, 'ground-vs-lifted-symmetry-group-order.tex'),
 )
 
-##### From here on: use experiment data without group order computation #####
-
 symmetry_graph_size = Attribute('symmetry_graph_size', absolute=True, min_wins=True)
 time_symmetries = Attribute('time_symmetries', absolute=False, min_wins=True, functions=[geometric_mean])
 has_symmetries = Attribute('has_symmetries', absolute=True, min_wins=False)
@@ -2230,7 +2224,7 @@ attributes = [symmetry_graph_size, time_symmetries, has_symmetries]
 exp.add_report(
     ComparisonReport(
         algorithm_pairs=[
-            ('ground-symmetries-stabgoal-stabinit', 'translate-symm-stabgoal-stabinit-no-order'),
+            ('ground-symmetries-stabgoal-stabinit', 'translate-symm-stabgoal-stabinit'),
         ],
         format='html',
         attributes=attributes,
@@ -2247,7 +2241,7 @@ def filter_baggy_tasks(run):
 exp.add_report(
     ComparisonReport(
         algorithm_pairs=[
-            ('translate-symm-stabgoal-stabinit-no-order', 'baggy-translate-symm-stabgoal-stabinit-no-order'),
+            ('translate-symm-stabgoal-stabinit', 'baggy-translate-symm-stabgoal-stabinit'),
         ],
         format='html',
         attributes=attributes,
@@ -2319,7 +2313,7 @@ exp.add_report(
         [('symmetry_graph_size', 20)],
         filter_algorithm=[
             'ground-symmetries-stabgoal-stabinit',
-            'translate-symm-stabgoal-stabinit-no-order',
+            'translate-symm-stabgoal-stabinit',
         ],
         filter=[not_unsolvable],
         filter_domain=suite,
@@ -2361,7 +2355,7 @@ exp.add_report(
     ScatterPlotReport(
         filter_algorithm=[
             'ground-symmetries-stabgoal-stabinit',
-            'translate-symm-stabgoal-stabinit-no-order',
+            'translate-symm-stabgoal-stabinit',
         ],
         # get_category=lambda run1, run2: run1['domain'],
         get_category=domain_category_for_grounding_reduced,
@@ -2375,7 +2369,7 @@ exp.add_report(
     ScatterPlotReport(
         filter_algorithm=[
             'ground-symmetries-stabgoal-stabinit',
-            'translate-symm-stabgoal-stabinit-no-order',
+            'translate-symm-stabgoal-stabinit',
         ],
         # get_category=lambda run1, run2: run1['domain'],
         attributes=['time_symmetries'],
