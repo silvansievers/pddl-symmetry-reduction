@@ -645,16 +645,6 @@ class SymmetryGraph:
         if write:
             file.close()
 
-    def add_mutex_groups(self, mutex_groups):
-        for index, mutex_group in enumerate(mutex_groups):
-            assert isinstance(mutex_group, list)
-            group_node = self._get_mutex_group_node((index))
-            self.graph.add_vertex(group_node, Color.mutex_group)
-            for atom in mutex_group:
-                assert isinstance(atom, pddl.Atom)
-                lit_node = self._add_literal(NodeType.mutex_group, Color.mutex_group, atom, (index))
-                self.graph.add_edge(group_node, lit_node)
-
 
 def get_mapped_objects(generator):
     keys = sorted(generator.keys())

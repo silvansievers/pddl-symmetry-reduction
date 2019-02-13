@@ -650,8 +650,6 @@ def pddl_to_sas(task):
             time_limit = options.bliss_time_limit
             write_group_generators = options.write_group_generators
             graph = symmetries.SymmetryGraph(task, only_object_symmetries, stabilize_initial_state, stabilize_goal)
-            if options.add_mutex_groups:
-                graph.add_mutex_groups(mutex_groups)
             generators = graph.find_automorphisms(time_limit, write_group_generators)
             if DUMP:
                 graph.write_or_print_automorphisms(generators, dump=True)

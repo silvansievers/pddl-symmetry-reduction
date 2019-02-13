@@ -90,10 +90,6 @@ def parse_args():
         help="If true, grounding preserves unreachable structures (axioms, "
         "operators, ...) if they are symmetric to a reachable structure.")
     argparser.add_argument(
-        "--add-mutex-groups", action="store_true",
-        help="If true, add mutex groups to the symmetry graph prior computing "
-        "symmetries. Does not work with --preserve-symmetries-during-grounding.")
-    argparser.add_argument(
         "--ground-symmetries", action="store_true",
         help="If true, ground lifted symmetries to the search representation, "
         "mapping facts to facts.")
