@@ -706,7 +706,7 @@ def compute_symmetric_object_sets(objects, transpositions):
 
 def create_abstract_structure(task):
     counter = itertools.count()
-    init = get_as_for_initial_state(task.init)
+    init = get_as_for_initial_state(task.init, task.objects)
     goal = get_as_for_goal(task.goal)
     axioms = get_as_for_axioms(task.axioms, counter)
     actions = get_as_for_actions(task.actions, counter)
@@ -714,19 +714,30 @@ def create_abstract_structure(task):
 
 def get_as_for_literal(literal, variable_mapping={}):
     res = [literal.predicate]
-    res.extend([variable_mapping.get(x,x) for x in literal.args])
+    res.extend(variable_mapping.get(x,x) for x in literal.args)
     if literal.negated:
         res = ("!", tuple(res))
     else:
         res = tuple(res)
     return res
 
-def get_as_for_initial_state(init):
-    # TODO function assignments
-    # TODO types
+def get_as_for_initial_state(init, objects):
     result = []
-    for atom in init:
-        result.append(get_as_for_literal(atom))
+    for entry in init:
+        if isinstance(entry, pddl.Literal):
+            result.append(get_as_for_literal(entry))
+        else: # numeric function
+            assert(isinstance(entry, pddl.Assign))
+            assert(isinstance(entry.fluent, pddl.PrimitiveNumericExpression))
+            assert(isinstance(entry.expression, pddl.NumericConstant))
+            if entry.fluent.symbol == "total-cost":
+                continue
+            function_term = [entry.fluent.symbol]
+            function_term.extend(entry.fluent.args)
+            result.append((tuple(function_term), entry.expression.value))
+    
+    for obj in objects:
+        result.append((obj.type_name, obj.name))
     return frozenset(result)
 
 def get_as_for_goal(goal):
@@ -785,7 +796,18 @@ def get_as_for_actions(actions, counter):
                 assert False
             literal = get_as_for_literal(eff.literal, eff_var_mapping)
             effect.append((frozenset(effvars), frozenset(effcond), literal))
-        result.append((frozenset(params), frozenset(pre), frozenset(effect)))
+        if action.cost:
+            val = action.cost.expression
+            if isinstance(val, pddl.PrimitiveNumericExpression):
+                cost = [val.symbol]
+                cost.extend(variable_mapping.get(x,x) for x in val.args)
+                cost = tuple(cost)
+            else:
+                assert(isinstance(val, pddl.NumericConstant))
+                cost = val.value
+        else:
+            cost = 1
+        result.append((frozenset(params), frozenset(pre), frozenset(effect), cost))
     return frozenset(result)
 
 
@@ -824,7 +846,8 @@ def build_type_function(task):
     type_dict["!"] = NEGATION
     for obj in task.objects:
         type_dict[obj.name] = OBJECT
-        type_dict[obj.type_name] = PREDICATE
+    for t in task.types:
+        type_dict[t.name] = PREDICATE
     for predicate in task.predicates:
         type_dict[predicate.name] = PREDICATE
     for function in task.functions:
