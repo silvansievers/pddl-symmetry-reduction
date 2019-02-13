@@ -67,10 +67,6 @@ def parse_args():
         help="If true, only those atoms in the initial state mentioning "
         "static predicates are added. (Set option --compute-symmetries)")
     argparser.add_argument(
-        "--only-functions-from-initial-state", action="store_true",
-        help="If true, include only the functions mentioned in the initial "
-        "states, but not the fluents or types. (Set option --compute-symmetries)")
-    argparser.add_argument(
         "--do-not-stabilize-goal", action="store_true",
         help="If true, the goal is ignored in the symmetry computation. "
         "(Set option --compute-symmetries)")

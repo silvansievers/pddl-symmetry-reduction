@@ -353,8 +353,6 @@ class SymmetryGraph:
         init = sorted(task.init, key=get_key)
         for no, entry in enumerate(init):
             if isinstance(entry, pddl.Literal):
-                if options.only_functions_from_initial_state:
-                    continue
                 if self.stabilize_initial_state or entry.predicate not in self.fluent_predicates:
                     self._add_literal(NodeType.init, Color.init, entry, (no,))
             else: # numeric function
@@ -367,16 +365,15 @@ class SymmetryGraph:
                 num_node = self._get_number_node(entry.expression.value)
                 self.graph.add_edge(last, num_node)
 
-        if not options.only_functions_from_initial_state:
-            # add types
-            counter = len(init)
-            for o in task.objects:
-                the_type = self.type_dict[o.type_name]
-                while the_type.name != "object":
-                    literal = pddl.Atom(the_type.get_predicate_name(), (o.name,))
-                    self._add_literal(NodeType.init, Color.init, literal, (counter,))
-                    counter += 1
-                    the_type = self.type_dict[the_type.basetype_name]
+        # add types
+        counter = len(init)
+        for o in task.objects:
+            the_type = self.type_dict[o.type_name]
+            while the_type.name != "object":
+                literal = pddl.Atom(the_type.get_predicate_name(), (o.name,))
+                self._add_literal(NodeType.init, Color.init, literal, (counter,))
+                counter += 1
+                the_type = self.type_dict[the_type.basetype_name]
 
     def _add_goal(self, task):
         if isinstance(task.goal, pddl.Literal):
