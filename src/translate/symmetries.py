@@ -702,160 +702,154 @@ def compute_symmetric_object_sets(objects, transpositions):
 
 
 def create_abstract_structure(task, exclude_goal=False, only_static_initial_state=False):
-    counter = itertools.count()
+
+    def as_for_literal(literal, variable_mapping={}):
+        res = [literal.predicate]
+        res.extend(variable_mapping.get(x,x) for x in literal.args)
+        if literal.negated:
+            res = ("!", tuple(res))
+        else:
+            res = tuple(res)
+        return res
+
+    def as_for_initial_state():
+        result = []
+        if only_static_initial_state:
+            fluent_predicates = set()
+            for action in task.actions:
+                for effect in action.effects:
+                    fluent_predicates.add(effect.literal.predicate)
+            for axiom in task.axioms:
+                fluent_predicates.add(axiom.name)
+        for entry in task.init:
+            if isinstance(entry, pddl.Literal):
+                if (not only_static_initial_state or 
+                    entry.predicate not in fluent_predicates):
+                    result.append(as_for_literal(entry))
+            else: # numeric function
+                assert(isinstance(entry, pddl.Assign))
+                assert(isinstance(entry.fluent, pddl.PrimitiveNumericExpression))
+                assert(isinstance(entry.expression, pddl.NumericConstant))
+                if entry.fluent.symbol == "total-cost":
+                    continue
+                function_term = [entry.fluent.symbol]
+                function_term.extend(entry.fluent.args)
+                result.append((tuple(function_term), entry.expression.value))
     
-    if only_static_initial_state:
-        fluent_predicates = set()
-        for action in task.actions:
-            for effect in action.effects:
-                fluent_predicates.add(effect.literal.predicate)
-        for axiom in task.axioms:
-            fluent_predicates.add(axiom.name)
-        init = get_as_for_initial_state(task.init, task.objects,
-                                        fluent_predicates,
-                                        only_static_initial_state)
-    else:
-        init = get_as_for_initial_state(task.init, task.objects)
-    if  not exclude_goal:
-        goal = get_as_for_goal(task.goal)
-    axioms = get_as_for_axioms(task.axioms, counter)
-    actions = get_as_for_actions(task.actions, counter)
-    if exclude_goal:
-        return (actions, axioms, init)
-    return (actions, axioms, init, goal)
-
-def get_as_for_literal(literal, variable_mapping={}):
-    res = [literal.predicate]
-    res.extend(variable_mapping.get(x,x) for x in literal.args)
-    if literal.negated:
-        res = ("!", tuple(res))
-    else:
-        res = tuple(res)
-    return res
-
-def get_as_for_initial_state(init, objects,
-    fluent_predicates=[], only_static_initial_state=False):
-    result = []
-    for entry in init:
-        if isinstance(entry, pddl.Literal):
-            if (not only_static_initial_state or 
-                entry.predicate not in fluent_predicates):
-                result.append(get_as_for_literal(entry))
-        else: # numeric function
-            assert(isinstance(entry, pddl.Assign))
-            assert(isinstance(entry.fluent, pddl.PrimitiveNumericExpression))
-            assert(isinstance(entry.expression, pddl.NumericConstant))
-            if entry.fluent.symbol == "total-cost":
-                continue
-            function_term = [entry.fluent.symbol]
-            function_term.extend(entry.fluent.args)
-            result.append((tuple(function_term), entry.expression.value))
+        for obj in task.objects:
+            if obj.type_name != "object":
+                result.append((obj.type_name, obj.name))
+        return frozenset(result)
     
-    for obj in objects:
-        if obj.type_name != "object":
-            result.append((obj.type_name, obj.name))
-    return frozenset(result)
-
-def get_as_for_goal(goal):
-    result = []
-    if isinstance(goal, pddl.Conjunction):
-        for literal in goal.parts:
-            result.append(get_as_for_literal(literal))
-    elif isinstance(goal, pddl.Literal):
-        result.append(get_as_for_literal(goal))
-    else:
-        assert False
-    return frozenset(result)
-
-def get_as_for_actions(actions, counter):
-    result = []
-    for action in actions:
-        variable_mapping = dict()
-        params = []
-        pre = []
-        effect = []
-        for index, param in enumerate(action.parameters):
-            new_var = "?x%s" % next(counter)
-            params.append(new_var)
-            variable_mapping[param.name] = new_var
-            if param.type_name != "object":
-                pre.append((param.type_name, new_var))
-        if isinstance(action.precondition, pddl.Conjunction):
-            for literal in action.precondition.parts:
-                pre.append(get_as_for_literal(literal, variable_mapping))
-        elif isinstance(action.precondition, pddl.Literal):
-            pre.append(get_as_for_literal(action.precondition, variable_mapping))
-        elif isinstance(action.precondition, pddl.Truth):
-            pass
+    def as_for_goal():
+        result = []
+        if isinstance(task.goal, pddl.Conjunction):
+            for literal in task.goal.parts:
+                result.append(as_for_literal(literal))
+        elif isinstance(task.goal, pddl.Literal):
+            result.append(as_for_literal(task.goal))
         else:
             assert False
-        for eff in action.effects:
-            effcond = []
-            effvars = []
-            if eff.parameters:
-                eff_var_mapping = dict(variable_mapping)
-            else:
-                eff_var_mapping = variable_mapping
-            for param in eff.parameters:
+        return frozenset(result)
+
+    def as_for_actions():
+        result = []
+        for action in task.actions:
+            variable_mapping = dict()
+            params = []
+            pre = []
+            effect = []
+            for index, param in enumerate(action.parameters):
                 new_var = "?x%s" % next(counter)
-                effvars.append(new_var)
-                eff_var_mapping[param.name] = new_var
+                params.append(new_var)
+                variable_mapping[param.name] = new_var
                 if param.type_name != "object":
-                    effcond.append((param.type_name, new_var))
-                 
-            if isinstance(eff.condition, pddl.Conjunction):
+                    pre.append((param.type_name, new_var))
+            if isinstance(action.precondition, pddl.Conjunction):
                 for literal in action.precondition.parts:
-                    effcond.append(get_as_for_literal(literal, eff_var_mapping))
-            elif isinstance(eff.condition, pddl.Literal):
-                effcond.append(get_as_for_literal(eff.condition, eff_var_mapping))
-            elif isinstance(eff.condition, pddl.Truth):
+                    pre.append(as_for_literal(literal, variable_mapping))
+            elif isinstance(action.precondition, pddl.Literal):
+                pre.append(as_for_literal(action.precondition, variable_mapping))
+            elif isinstance(action.precondition, pddl.Truth):
                 pass
             else:
                 assert False
-            literal = get_as_for_literal(eff.literal, eff_var_mapping)
-            effect.append((frozenset(effvars), frozenset(effcond), literal))
-        if action.cost:
-            val = action.cost.expression
-            if isinstance(val, pddl.PrimitiveNumericExpression):
-                cost = [val.symbol]
-                cost.extend(variable_mapping.get(x,x) for x in val.args)
-                cost = tuple(cost)
+            for eff in action.effects:
+                effcond = []
+                effvars = []
+                if eff.parameters:
+                    eff_var_mapping = dict(variable_mapping)
+                else:
+                    eff_var_mapping = variable_mapping
+                for param in eff.parameters:
+                    new_var = "?x%s" % next(counter)
+                    effvars.append(new_var)
+                    eff_var_mapping[param.name] = new_var
+                    if param.type_name != "object":
+                        effcond.append((param.type_name, new_var))
+                     
+                if isinstance(eff.condition, pddl.Conjunction):
+                    for literal in action.precondition.parts:
+                        effcond.append(as_for_literal(literal, eff_var_mapping))
+                elif isinstance(eff.condition, pddl.Literal):
+                    effcond.append(as_for_literal(eff.condition, eff_var_mapping))
+                elif isinstance(eff.condition, pddl.Truth):
+                    pass
+                else:
+                    assert False
+                literal = as_for_literal(eff.literal, eff_var_mapping)
+                effect.append((frozenset(effvars), frozenset(effcond), literal))
+            if action.cost:
+                val = action.cost.expression
+                if isinstance(val, pddl.PrimitiveNumericExpression):
+                    cost = [val.symbol]
+                    cost.extend(variable_mapping.get(x,x) for x in val.args)
+                    cost = tuple(cost)
+                else:
+                    assert(isinstance(val, pddl.NumericConstant))
+                    cost = val.value
             else:
-                assert(isinstance(val, pddl.NumericConstant))
-                cost = val.value
-        else:
-            cost = 1
-        result.append((frozenset(params), frozenset(pre), frozenset(effect), cost))
-    return frozenset(result)
+                cost = 1
+            result.append((frozenset(params), frozenset(pre), frozenset(effect), cost))
+        return frozenset(result)
 
-
-def get_as_for_axioms(axioms, counter):
-    result = []
-    for axiom in axioms:
-        variable_mapping = dict()
-        params = set()
-        pre = set()
-        effect = [axiom.name]
-        for index, param in enumerate(axiom.parameters):
-            new_var = "?x%s" % next(counter)
-            params.add(new_var)
-            if index < axiom.num_external_parameters:
-                effect.append(new_var)
-            variable_mapping[param.name] = new_var
-            if param.type_name != "object":
-                pre.add((param.type_name, new_var))
-        effect = tuple(effect)
-        if isinstance(axiom.condition, pddl.Conjunction):
-            for literal in axiom.condition.parts:
-                pre.add(get_as_for_literal(literal, variable_mapping))
-        elif isinstance(axiom.condition, pddl.Literal):
-            pre.add(get_as_for_literal(axiom.condition, variable_mapping))
-        elif isinstance(axiom.condition, pddl.Truth):
-           pass 
-        else:
-            assert False
-        result.append((frozenset(params), frozenset(pre), effect))
-    return frozenset(result)
+    def as_for_axioms():
+        result = []
+        for axiom in task.axioms:
+            variable_mapping = dict()
+            params = set()
+            pre = set()
+            effect = [axiom.name]
+            for index, param in enumerate(axiom.parameters):
+                new_var = "?x%s" % next(counter)
+                params.add(new_var)
+                if index < axiom.num_external_parameters:
+                    effect.append(new_var)
+                variable_mapping[param.name] = new_var
+                if param.type_name != "object":
+                    pre.add((param.type_name, new_var))
+            effect = tuple(effect)
+            if isinstance(axiom.condition, pddl.Conjunction):
+                for literal in axiom.condition.parts:
+                    pre.add(as_for_literal(literal, variable_mapping))
+            elif isinstance(axiom.condition, pddl.Literal):
+                pre.add(as_for_literal(axiom.condition, variable_mapping))
+            elif isinstance(axiom.condition, pddl.Truth):
+               pass 
+            else:
+                assert False
+            result.append((frozenset(params), frozenset(pre), effect))
+        return frozenset(result)
+    
+    counter = itertools.count()
+    
+    init = as_for_initial_state()
+    actions = as_for_actions()
+    axioms = as_for_axioms()
+    if exclude_goal:
+        return (actions, axioms, init)
+    else:
+        return (actions, axioms, init, as_for_goal())
 
 
 def build_type_function(task):
