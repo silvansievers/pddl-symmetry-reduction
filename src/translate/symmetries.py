@@ -103,7 +103,7 @@ class PyblissModuleWrapper:
         return self.vertex_to_color[vertex]
 
     def add_vertex(self, vertex, color, exclude=False):
-        vertex = tuple(vertex)
+        vertex = vertex
         # Do nothing if the vertex has already been added
         if vertex in self.vertex_to_color:
             if not self.only_object_symmetries:
@@ -724,72 +724,73 @@ def get_as_for_literal(literal, variable_mapping={}):
 def get_as_for_initial_state(init):
     # TODO function assignments
     # TODO types
-    # TODO equality
-    result = set()
+    result = []
     for atom in init:
-        result.add(get_as_for_literal(atom))
-    return result
+        result.append(get_as_for_literal(atom))
+    return frozenset(result)
 
 def get_as_for_goal(goal):
-    result = set()
+    result = []
     if isinstance(goal, pddl.Conjunction):
         for literal in goal.parts:
-            result.add(get_as_for_literal(literal))
+            result.append(get_as_for_literal(literal))
     elif isinstance(goal, pddl.Literal):
-        result.add(get_as_for_literal(goal))
+        result.append(get_as_for_literal(goal))
     else:
         assert False
-    return result
+    return frozenset(result)
 
 def get_as_for_actions(actions, counter):
-    result = set()
+    result = []
     for action in actions:
         variable_mapping = dict()
-        params = set()
-        pre = set()
-        effect = set()
+        params = []
+        pre = []
+        effect = []
         for index, param in enumerate(action.parameters):
             new_var = "?x%s" % next(counter)
-            params.add(new_var)
+            params.append(new_var)
             variable_mapping[param.name] = new_var
-            pre.add((param.type_name, new_var))
+            pre.append((param.type_name, new_var))
         if isinstance(action.precondition, pddl.Conjunction):
             for literal in action.precondition.parts:
-                pre.add(get_as_for_literal(literal, variable_mapping))
+                pre.append(get_as_for_literal(literal, variable_mapping))
         elif isinstance(action.precondition, pddl.Literal):
-                pre.add(get_as_for_literal(action.precondition, variable_mapping))
+            pre.append(get_as_for_literal(action.precondition, variable_mapping))
+        elif isinstance(action.precondition, pddl.Truth):
+            pass
         else:
             assert False
         for eff in action.effects:
-            effcond = set()
-            effvars = set()
+            effcond = []
+            effvars = []
             if eff.parameters:
                 eff_var_mapping = dict(variable_mapping)
             else:
                 eff_var_mapping = variable_mapping
             for param in eff.parameters:
                 new_var = "?x%s" % next(counter)
-                effvars.add(new_var)
+                effvars.append(new_var)
                 eff_var_mapping[param.name] = new_var
-                effcond.add((param.type_name, new_var))
+                effcond.append((param.type_name, new_var))
                  
             if isinstance(eff.condition, pddl.Conjunction):
                 for literal in action.precondition.parts:
-                    effcond.add(get_as_for_literal(literal, eff_var_mapping))
+                    effcond.append(get_as_for_literal(literal, eff_var_mapping))
             elif isinstance(eff.condition, pddl.Literal):
-                effcond.add(get_as_for_literal(eff.condition, eff_var_mapping))
+                effcond.append(get_as_for_literal(eff.condition, eff_var_mapping))
             elif isinstance(eff.condition, pddl.Truth):
                 pass
             else:
                 assert False
             literal = get_as_for_literal(eff.literal, eff_var_mapping)
-            effect.add((frozenset(effvars), frozenset(effcond), literal))
-        result.add((frozenset(params), frozenset(pre), frozenset(effect)))
-    return result
+            effect.append((frozenset(effvars), frozenset(effcond), literal))
+        result.append((frozenset(params), frozenset(pre), frozenset(effect)))
+    return frozenset(result)
 
 
 def get_as_for_axioms(axioms, counter):
-    result = set()
+    result = []
     for axiom in axioms:
         variable_mapping = dict()
         params = set()
@@ -812,17 +813,82 @@ def get_as_for_axioms(axioms, counter):
            pass 
         else:
             assert False
-        result.add((frozenset(params), frozenset(pre), effect))
-    return result
+        result.append((frozenset(params), frozenset(pre), effect))
+    return frozenset(result)
 
 
-def get_abstract_structure_graph(abstract_structure):
+def build_type_function(task):
+    (OBJECT, VARIABLE, PREDICATE, FUNCTION, NEGATION, FIRST_NUMBER) = range(6)
+    
+    type_dict = dict()
+    type_dict["!"] = NEGATION
+    for obj in task.objects:
+        type_dict[obj.name] = OBJECT
+        type_dict[obj.type_name] = PREDICATE
+    for predicate in task.predicates:
+        type_dict[predicate.name] = PREDICATE
+    for function in task.functions:
+        type_dict[function.name] = FUNCTION
+
+    def get_type(symbol):
+        if symbol in type_dict:
+            return type_dict[symbol]
+        try:
+            num = int(symbol)
+            return num + FIRST_NUMBER
+        except ValueError:
+            pass
+        assert symbol.startswith("?")
+        return VARIABLE
+
+    return get_type
+
+
+def get_abstract_structure_graph(abstract_structure, get_type):
+    SET_COLOR = -1
+    TUPLE_COLOR = -2
+    AUX_COLOR = -3
     def process_structure(struct):
+        if struct in structure_to_no:
+            return structure_to_no[struct]
+        no = next(vertex_counter)
         if isinstance(struct, tuple):
-            pass
-        if isinstance(struct, frozenset):
-            pass
+            graph.add_vertex(no, TUPLE_COLOR)
+            curr = no
+            for elem in struct:
+                child_no = process_structure(elem)
+                aux_no = next(vertex_counter)
+                graph.add_vertex(aux_no, AUX_COLOR)
+                graph.add_edge(aux_no, child_no)
+                graph.add_edge(curr, aux_no)
+                curr = aux_no
+        elif isinstance(struct, frozenset):
+            graph.add_vertex(no, SET_COLOR)
+            for elem in struct:
+                child_no = process_structure(elem)
+                graph.add_edge(no, child_no)
+        else:
+            graph.add_vertex(no, get_type(struct))
+        vertex_no_to_structure[no] = struct
+        structure_to_no[struct] = no
+        return no
     
-    graph = PyblissModuleWrapper()
+    graph = PyblissModuleWrapper(False)
+    vertex_counter = itertools.count()
+    vertex_no_to_structure = dict()
+    structure_to_no = dict()
+    process_structure(abstract_structure)
+    return graph, vertex_no_to_structure
+   
 
-    
+def print_generator(generator, vertex_no_to_structure):
+    keys = sorted(generator.keys())
+    for from_vertex in keys:
+        to_vertex = generator[from_vertex]
+        from_struct = vertex_no_to_structure.get(from_vertex)
+        to_struct = vertex_no_to_structure.get(to_vertex)
+        if from_struct != to_struct:
+            assert type(from_struct) == type(to_struct)
+            if (not isinstance(from_struct, tuple) and 
+                not isinstance(from_struct, set)):
+                print ("%s => %s" % (from_struct, to_struct))
