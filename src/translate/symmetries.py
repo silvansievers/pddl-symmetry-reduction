@@ -701,9 +701,21 @@ def compute_symmetric_object_sets(objects, transpositions):
     return symmetric_object_sets
 
 
-def create_abstract_structure(task, exclude_goal=False):
+def create_abstract_structure(task, exclude_goal=False, only_static_initial_state=False):
     counter = itertools.count()
-    init = get_as_for_initial_state(task.init, task.objects)
+    
+    if only_static_initial_state:
+        fluent_predicates = set()
+        for action in task.actions:
+            for effect in action.effects:
+                fluent_predicates.add(effect.literal.predicate)
+        for axiom in task.axioms:
+            fluent_predicates.add(axiom.name)
+        init = get_as_for_initial_state(task.init, task.objects,
+                                        fluent_predicates,
+                                        only_static_initial_state)
+    else:
+        init = get_as_for_initial_state(task.init, task.objects)
     if  not exclude_goal:
         goal = get_as_for_goal(task.goal)
     axioms = get_as_for_axioms(task.axioms, counter)
@@ -721,11 +733,14 @@ def get_as_for_literal(literal, variable_mapping={}):
         res = tuple(res)
     return res
 
-def get_as_for_initial_state(init, objects):
+def get_as_for_initial_state(init, objects,
+    fluent_predicates=[], only_static_initial_state=False):
     result = []
     for entry in init:
         if isinstance(entry, pddl.Literal):
-            result.append(get_as_for_literal(entry))
+            if (not only_static_initial_state or 
+                entry.predicate not in fluent_predicates):
+                result.append(get_as_for_literal(entry))
         else: # numeric function
             assert(isinstance(entry, pddl.Assign))
             assert(isinstance(entry.fluent, pddl.PrimitiveNumericExpression))
