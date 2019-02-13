@@ -5,6 +5,7 @@ from __future__ import division
 import pddl
 
 from collections import defaultdict
+import itertools
 import os
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -701,3 +702,127 @@ def compute_symmetric_object_sets(objects, transpositions):
     print("Time to compute symmetric object sets: {}s".format(timer.elapsed_time()))
     sys.stdout.flush()
     return symmetric_object_sets
+
+
+def create_abstract_structure(task):
+    counter = itertools.count()
+    init = get_as_for_initial_state(task.init)
+    goal = get_as_for_goal(task.goal)
+    axioms = get_as_for_axioms(task.axioms, counter)
+    actions = get_as_for_actions(task.actions, counter)
+    return (actions, axioms, init, goal)
+
+def get_as_for_literal(literal, variable_mapping={}):
+    res = [literal.predicate]
+    res.extend([variable_mapping.get(x,x) for x in literal.args])
+    if literal.negated:
+        res = ("!", tuple(res))
+    else:
+        res = tuple(res)
+    return res
+
+def get_as_for_initial_state(init):
+    # TODO function assignments
+    # TODO types
+    # TODO equality
+    result = set()
+    for atom in init:
+        result.add(get_as_for_literal(atom))
+    return result
+
+def get_as_for_goal(goal):
+    result = set()
+    if isinstance(goal, pddl.Conjunction):
+        for literal in goal.parts:
+            result.add(get_as_for_literal(literal))
+    elif isinstance(goal, pddl.Literal):
+        result.add(get_as_for_literal(goal))
+    else:
+        assert False
+    return result
+
+def get_as_for_actions(actions, counter):
+    result = set()
+    for action in actions:
+        variable_mapping = dict()
+        params = set()
+        pre = set()
+        effect = set()
+        for index, param in enumerate(action.parameters):
+            new_var = "?x%s" % next(counter)
+            params.add(new_var)
+            variable_mapping[param.name] = new_var
+            pre.add((param.type_name, new_var))
+        if isinstance(action.precondition, pddl.Conjunction):
+            for literal in action.precondition.parts:
+                pre.add(get_as_for_literal(literal, variable_mapping))
+        elif isinstance(action.precondition, pddl.Literal):
+                pre.add(get_as_for_literal(action.precondition, variable_mapping))
+        else:
+            assert False
+        for eff in action.effects:
+            effcond = set()
+            effvars = set()
+            if eff.parameters:
+                eff_var_mapping = dict(variable_mapping)
+            else:
+                eff_var_mapping = variable_mapping
+            for param in eff.parameters:
+                new_var = "?x%s" % next(counter)
+                effvars.add(new_var)
+                eff_var_mapping[param.name] = new_var
+                effcond.add((param.type_name, new_var))
+                 
+            if isinstance(eff.condition, pddl.Conjunction):
+                for literal in action.precondition.parts:
+                    effcond.add(get_as_for_literal(literal, eff_var_mapping))
+            elif isinstance(eff.condition, pddl.Literal):
+                effcond.add(get_as_for_literal(eff.condition, eff_var_mapping))
+            elif isinstance(eff.condition, pddl.Truth):
+                pass
+            else:
+                assert False
+            literal = get_as_for_literal(eff.literal, eff_var_mapping)
+            effect.add((frozenset(effvars), frozenset(effcond), literal))
+        result.add((frozenset(params), frozenset(pre), frozenset(effect)))
+    return result
+
+
+def get_as_for_axioms(axioms, counter):
+    result = set()
+    for axiom in axioms:
+        variable_mapping = dict()
+        params = set()
+        pre = set()
+        effect = [axiom.name]
+        for index, param in enumerate(axiom.parameters):
+            new_var = "?x%s" % next(counter)
+            params.add(new_var)
+            if index < axiom.num_external_parameters:
+                effect.append(new_var)
+            variable_mapping[param.name] = new_var
+            pre.add((param.type_name, new_var))
+        effect = tuple(effect)
+        if isinstance(axiom.condition, pddl.Conjunction):
+            for literal in axiom.condition.parts:
+                pre.add(get_as_for_literal(literal, variable_mapping))
+        elif isinstance(axiom.condition, pddl.Literal):
+            pre.add(get_as_for_literal(axiom.condition, variable_mapping))
+        elif isinstance(axiom.condition, pddl.Truth):
+           pass 
+        else:
+            assert False
+        result.add((frozenset(params), frozenset(pre), effect))
+    return result
+
+
+def get_abstract_structure_graph(abstract_structure):
+    def process_structure(struct):
+        if isinstance(struct, tuple):
+            pass
+        if isinstance(struct, frozenset):
+            pass
+    
+    graph = PyblissModuleWrapper()
+
+    
