@@ -72,8 +72,8 @@ def parse_args():
         "states, but not the fluents or types. (Set option --compute-symmetries)")
     argparser.add_argument(
         "--do-not-stabilize-goal", action="store_true",
-        help="If true, literals in the goal are not colored with a special "
-        "color. (Set option --compute-symmetries)")
+        help="If true, the goal is ignored in the symmetry computation. "
+        "(Set option --compute-symmetries)")
     argparser.add_argument(
         "--bliss-time-limit", default=300, type=int,
         help="Max time for bliss to search for automorphisms. (Set option "
