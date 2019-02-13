@@ -3,7 +3,7 @@
 import normalize
 import options
 import pddl_parser
-from symmetries import SymmetryGraph, create_abstract_structure, build_type_function, get_abstract_structure_graph, print_generator
+from symmetries import SymmetryGraph, create_abstract_structure, build_type_function, build_type_function_only_object_symmetries, get_abstract_structure_graph, print_generator
 import sys
 
 WRITE_DOT_GRAPH = True
@@ -13,7 +13,10 @@ if __name__ == "__main__":
     normalize.normalize(task)
 #    task.dump()
     abstract_structure = create_abstract_structure(task, options.do_not_stabilize_goal, options.do_not_stabilize_initial_state)
-    type_function = build_type_function(task)
+    if options.only_object_symmetries:
+        type_function = build_type_function_only_object_symmetries(task)
+    else:
+        type_function = build_type_function(task)
     graph, vertex_no_to_structure = get_abstract_structure_graph(abstract_structure, type_function)
     generators = graph.find_automorphisms(options.bliss_time_limit, options.write_group_generators)
     for g in generators:

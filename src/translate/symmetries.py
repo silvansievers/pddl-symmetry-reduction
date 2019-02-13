@@ -849,8 +849,42 @@ def create_abstract_structure(task, exclude_goal=False, only_static_initial_stat
         return (actions, axioms, init, as_for_goal())
 
 
+# TODO this type function prevent predicates to be mapped but it can for example
+# not filter swaps duplicate operators. However, we also want to allow
+# object symmetries to map actions. So we probably need to filter for symmetries
+# that do not map any object in a post-processing step.
+def build_type_function_only_object_symmetries(task):
+    (OBJECT, VARIABLE, NEGATION) = range(3)
+   
+    counter = itertools.count(3)
+    type_dict = dict()
+    type_dict["!"] = NEGATION
+    for obj in task.objects:
+        type_dict[obj.name] = OBJECT
+    for t in task.types:
+        type_dict[t.name] = next(counter)
+    for predicate in task.predicates:
+        type_dict[predicate.name] = next(counter)
+    for function in task.functions:
+        type_dict[function.name] = next(counter)
+    FIRST_NUMBER = next(counter)
+
+    def get_type(symbol):
+        if symbol in type_dict:
+            return type_dict[symbol]
+        try:
+            num = int(symbol)
+            return num + FIRST_NUMBER
+        except ValueError:
+            pass
+        assert symbol.startswith("?")
+        return VARIABLE
+
+    return get_type
+
+
 def build_type_function(task):
-    (OBJECT, VARIABLE, PREDICATE, FUNCTION, NEGATION, FIRST_NUMBER) = range(6)
+    (OBJECT, VARIABLE, FUNCTION, NEGATION, PREDICATE, FIRST_NUMBER) = range(6)
     
     type_dict = dict()
     type_dict["!"] = NEGATION
