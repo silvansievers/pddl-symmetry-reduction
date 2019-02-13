@@ -3,7 +3,7 @@
 import normalize
 import options
 import pddl_parser
-from symmetries import SymmetryGraph, create_abstract_structure, build_type_function, build_type_function_only_object_symmetries, get_abstract_structure_graph, print_generator, write_dot_graph
+from symmetries import create_abstract_structure, build_type_function, build_type_function_only_object_symmetries, get_abstract_structure_graph, print_generator, write_dot_graph
 import sys
 
 WRITE_DOT_GRAPH = True
