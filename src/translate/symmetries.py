@@ -701,12 +701,15 @@ def compute_symmetric_object_sets(objects, transpositions):
     return symmetric_object_sets
 
 
-def create_abstract_structure(task):
+def create_abstract_structure(task, exclude_goal=False):
     counter = itertools.count()
     init = get_as_for_initial_state(task.init, task.objects)
-    goal = get_as_for_goal(task.goal)
+    if  not exclude_goal:
+        goal = get_as_for_goal(task.goal)
     axioms = get_as_for_axioms(task.axioms, counter)
     actions = get_as_for_actions(task.actions, counter)
+    if exclude_goal:
+        return (actions, axioms, init)
     return (actions, axioms, init, goal)
 
 def get_as_for_literal(literal, variable_mapping={}):

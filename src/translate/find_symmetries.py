@@ -12,10 +12,10 @@ if __name__ == "__main__":
     task = pddl_parser.open()
     normalize.normalize(task)
 #    task.dump()
-    abstract_structure = create_abstract_structure(task)
+    abstract_structure = create_abstract_structure(task, options.do_not_stabilize_goal)
     type_function = build_type_function(task)
     graph, vertex_no_to_structure = get_abstract_structure_graph(abstract_structure, type_function)
-    generators = graph.find_automorphisms(500, True)
+    generators = graph.find_automorphisms(options.bliss_time_limit, options.write_group_generators)
     for g in generators:
         print_generator(g, vertex_no_to_structure)
         print("")
