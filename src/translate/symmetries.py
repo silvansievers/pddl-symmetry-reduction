@@ -34,9 +34,10 @@ class PyblissModuleWrapper:
         timer = timers.Timer()
         print "Creating symmetry graph..."
         graph = bliss.DigraphWrapper()
-        vertices = self.get_vertices()
-        print "Size of the lifted symmetry graph: {}".format(len(vertices))
-        for vertex in range(len(vertices)): # vertices have numbers 0, 1, 2, ...
+        print "Size of the lifted symmetry graph: {}".format(len(self.vertex_to_color))
+        for vertex in range(len(self.vertex_to_color)):
+        # vertices have numbers 0, 1, 2, ... and we need to traverse them in
+        # this order
             graph.add_vertex(self.vertex_to_color[vertex])
 
         for edge in self.edges:
@@ -99,20 +100,6 @@ class PyblissModuleWrapper:
         assert vertex1 in self.vertex_to_color
         assert vertex2 in self.vertex_to_color
         self.edges.add((vertex1, vertex2))
-
-    def get_vertices(self):
-        return sorted(self.vertex_to_color.keys())
-
-    # this is unnecessary expensive but we only use it for creating dot files
-    # when debugging
-    def get_successors(self, vertex):
-        successors = []
-        for edge in self.edges:
-            assert type(edge) is tuple
-            assert len(edge) == 2
-            if edge[0] == vertex:
-                successors.append(edge[1])
-        return successors
 
 
 def get_mapped_objects(generator):
@@ -447,8 +434,7 @@ def write_dot_graph(graph, vertex_no_to_structure, file):
     all_other_colors = ("X11", "gray100")
 
     file.write("digraph g {\n")
-    for vertex in graph.get_vertices():
-        color = graph.get_color(vertex)
+    for vertex, color in graph.vertex_to_color.items():
         color_tuple = colors.get(color)
         if color_tuple is None:
             color_tuple = all_other_colors
@@ -456,7 +442,6 @@ def write_dot_graph(graph, vertex_no_to_structure, file):
         dot_color = color_tuple[1]
         file.write("\"%s\" [style=filled, label=\"%s\", colorscheme=%s, fillcolor=%s];\n" %
             (vertex, dot_label(vertex), dot_color_scheme, dot_color))
-    for vertex in graph.get_vertices():
-        for succ in graph.get_successors(vertex):
-            file.write("\"%s\" -> \"%s\";\n" % (vertex, succ))
+    for edge in graph.edges:
+        file.write("\"%s\" -> \"%s\";\n" % (edge[0], edge[1]))
     file.write("}\n")
