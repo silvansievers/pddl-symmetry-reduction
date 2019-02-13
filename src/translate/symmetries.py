@@ -162,11 +162,10 @@ class Color:
     number = None # will be set by Symmetry Graph
 
 class SymmetryGraph:
-    def __init__(self, task, only_object_symmetries, stabilize_initial_state, stabilize_goal, add_object_type_nodes):
+    def __init__(self, task, only_object_symmetries, stabilize_initial_state, stabilize_goal):
         self.only_object_symmetries = only_object_symmetries
         self.stabilize_initial_state = stabilize_initial_state
         self.stabilize_goal = stabilize_goal
-        self.add_object_type_nodes = add_object_type_nodes
         self.graph = PyblissModuleWrapper(only_object_symmetries)
         self.numbers = set()
         self.constant_functions = dict()
@@ -269,7 +268,7 @@ class SymmetryGraph:
             derived = pred.name in derived_predicates
             add_predicate(pred.name, len(pred.arguments), derived)
         for type in task.types:
-            if type.name != "object" or self.add_object_type_nodes:
+            if type.name != "object":
                 add_predicate(type.get_predicate_name(), 1, False)
 
     def _add_functions(self, task):
@@ -373,12 +372,10 @@ class SymmetryGraph:
             counter = len(init)
             for o in task.objects:
                 the_type = self.type_dict[o.type_name]
-                while the_type.name != "object" or self.add_object_type_nodes:
+                while the_type.name != "object":
                     literal = pddl.Atom(the_type.get_predicate_name(), (o.name,))
                     self._add_literal(NodeType.init, Color.init, literal, (counter,))
                     counter += 1
-                    if self.add_object_type_nodes and the_type.basetype_name is None:
-                        break
                     the_type = self.type_dict[the_type.basetype_name]
 
     def _add_goal(self, task):
@@ -419,7 +416,7 @@ class SymmetryGraph:
 
         # condition from types
         for param in params:
-            if param.type_name != "object" or self.add_object_type_nodes:
+            if param.type_name != "object":
                 pred_name = self.type_dict[param.type_name].get_predicate_name()
                 literal = pddl.Atom(pred_name, (param.name,))
                 self._add_condition(node_type, color,literal,
@@ -737,7 +734,8 @@ def get_as_for_initial_state(init, objects):
             result.append((tuple(function_term), entry.expression.value))
     
     for obj in objects:
-        result.append((obj.type_name, obj.name))
+        if obj.type_name != "object":
+            result.append((obj.type_name, obj.name))
     return frozenset(result)
 
 def get_as_for_goal(goal):
@@ -762,7 +760,8 @@ def get_as_for_actions(actions, counter):
             new_var = "?x%s" % next(counter)
             params.append(new_var)
             variable_mapping[param.name] = new_var
-            pre.append((param.type_name, new_var))
+            if param.type_name != "object":
+                pre.append((param.type_name, new_var))
         if isinstance(action.precondition, pddl.Conjunction):
             for literal in action.precondition.parts:
                 pre.append(get_as_for_literal(literal, variable_mapping))
@@ -783,7 +782,8 @@ def get_as_for_actions(actions, counter):
                 new_var = "?x%s" % next(counter)
                 effvars.append(new_var)
                 eff_var_mapping[param.name] = new_var
-                effcond.append((param.type_name, new_var))
+                if param.type_name != "object":
+                    effcond.append((param.type_name, new_var))
                  
             if isinstance(eff.condition, pddl.Conjunction):
                 for literal in action.precondition.parts:
@@ -824,7 +824,8 @@ def get_as_for_axioms(axioms, counter):
             if index < axiom.num_external_parameters:
                 effect.append(new_var)
             variable_mapping[param.name] = new_var
-            pre.add((param.type_name, new_var))
+            if param.type_name != "object":
+                pre.add((param.type_name, new_var))
         effect = tuple(effect)
         if isinstance(axiom.condition, pddl.Conjunction):
             for literal in axiom.condition.parts:

@@ -85,12 +85,8 @@ def parse_args():
         "The list is to be read as a permutation of the integers 0 to length "
         "of the list. (Set option --compute-symmetries)")
     argparser.add_argument(
-        "--add-object-type-nodes", action="store_true",
-        help="If true, add nodes representing the type 'object' in the "
-        "abstract structure graph (Set option --compute-symmetries)")
-    argparser.add_argument(
         "--stop-after-computing-symmetries", action="store_true",
-        help="If true, stop after computingn symmetries. (Set option "
+        help="If true, stop after computing symmetries. (Set option "
         "--compute-symmetries)")
 
     # Options related to grounding of symmetries
