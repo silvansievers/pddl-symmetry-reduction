@@ -18,22 +18,16 @@ import pybind11_blissmodule as bliss
 import options
 import timers
 
-# HACK
-GLOBAL_COLOR_COUNT = -1
-
 
 class PyblissModuleWrapper:
     """
-    Class that collets all vertices and edges of a symmetry graph.
+    Class that collects all vertices and edges of a symmetry graph.
     On demand, it creates the pybliss module and computes the
     automorphisms.
     """
-    def __init__(self, only_object_symmetries):
+    def __init__(self):
         self.vertex_to_color = {}
         self.edges = set()
-        # To exclude "="-predicates and all related nodes from dot output
-        self.excluded_vertices = set()
-        self.only_object_symmetries = only_object_symmetries
 
     def find_automorphisms(self, time_limit, write_group_generators):
         # Create and fill the graph
@@ -42,18 +36,12 @@ class PyblissModuleWrapper:
         graph = bliss.DigraphWrapper()
         vertices = self.get_vertices()
         print "Size of the lifted symmetry graph: {}".format(len(vertices))
-        self.id_to_vertex = []
-        self.vertex_to_id = {}
-        for id, vertex in enumerate(vertices):
+        for vertex in range(len(vertices)): # vertices have numbers 0, 1, 2, ...
             graph.add_vertex(self.vertex_to_color[vertex])
-            self.id_to_vertex.append(vertex)
-            assert len(self.id_to_vertex) - 1 == id
-            self.vertex_to_id[vertex] = id
+
         for edge in self.edges:
             assert type(edge) is tuple
-            v1 = self.vertex_to_id[edge[0]]
-            v2 = self.vertex_to_id[edge[1]]
-            graph.add_edge(v1, v2)
+            graph.add_edge(edge[0], edge[1])
         time = timer.elapsed_time();
         print "Done creating symmetry graph: %ss" % time
 
@@ -66,9 +54,9 @@ class PyblissModuleWrapper:
         print("Number of lifted generators: {}".format(len(automorphisms)))
 
         if write_group_generators:
-            # We write the "un-translated" generators on purpose because
+            # We write the "un-processed" generators because
             # these are in the right format to be processed by, e.g., sympy
-            # to compute the order. We don't do it here to exclude the
+            # to compute the order. We don't do this here to exclude the
             # computational overhead from the translator run.
             file = open('generators.py', 'w')
             for automorphism in automorphisms:
@@ -85,44 +73,26 @@ class PyblissModuleWrapper:
         print "Translating automorphisms..."
         generators = []
         for aut in automorphisms:
-            generators.append(self._translate_generator(aut))
+            generators.append(dict(enumerate(aut)))
         time = timer.elapsed_time()
         print "Done translating automorphisms: %ss" % time
 
         return generators
 
-    def _translate_generator(self, generator):
-        result = {}
-        for a,b in enumerate(generator):
-            if self.id_to_vertex[a] is not None:
-                assert (self.id_to_vertex[b] is not None)
-                result[self.id_to_vertex[a]] = self.id_to_vertex[b]
-        return result
-
     def get_color(self, vertex):
         return self.vertex_to_color[vertex]
 
-    def add_vertex(self, vertex, color, exclude=False):
+    def add_vertex(self, vertex, color):
         vertex = vertex
         # Do nothing if the vertex has already been added
         if vertex in self.vertex_to_color:
-            if not self.only_object_symmetries:
-                # This test potentially fails when using object symmetries,
-                # because the color manually gets overwritten.
-                assert color == self.vertex_to_color[vertex]
+            # TODO we could probably instead assert False because it should
+            # never happen that we add the same vertex twice
+            assert color == self.vertex_to_color[vertex]
             return
-
-        # Update color to a unique number if using object symmetries and not adding an object node
-        if self.only_object_symmetries and color not in [Color.constant, Color.init, Color.goal]:
-            global GLOBAL_COLOR_COUNT
-            assert GLOBAL_COLOR_COUNT != -1
-            color = GLOBAL_COLOR_COUNT
-            GLOBAL_COLOR_COUNT += 1
 
         # Add the vertex
         self.vertex_to_color[vertex] = color
-        if exclude:
-            self.excluded_vertices.add(vertex)
 
     def add_edge(self, vertex1, vertex2):
         assert (vertex1 != vertex2) # we do not support self-loops
@@ -133,6 +103,8 @@ class PyblissModuleWrapper:
     def get_vertices(self):
         return sorted(self.vertex_to_color.keys())
 
+    # this is unnecessary expensive but we only use it for creating dot files
+    # when debugging
     def get_successors(self, vertex):
         successors = []
         for edge in self.edges:
@@ -427,7 +399,7 @@ def get_abstract_structure_graph(abstract_structure, get_type):
         structure_to_no[struct] = no
         return no
     
-    graph = PyblissModuleWrapper(False)
+    graph = PyblissModuleWrapper()
     vertex_counter = itertools.count()
     vertex_no_to_structure = dict()
     structure_to_no = dict()
