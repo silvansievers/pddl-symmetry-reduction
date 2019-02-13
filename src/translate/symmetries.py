@@ -4,12 +4,9 @@ from __future__ import division
 
 import pddl
 
-from collections import defaultdict
-import itertools
+from itertools import count
 import os
 dir_path = os.path.dirname(os.path.realpath(__file__))
-
-import Queue
 
 import sys
 sys.path.append(os.path.join(dir_path, 'pybliss-0.73'))
@@ -284,7 +281,7 @@ def create_abstract_structure(task, exclude_goal=False, only_static_initial_stat
             result.append((frozenset(params), frozenset(pre), effect))
         return frozenset(result)
     
-    counter = itertools.count()
+    counter = count()
     
     init = as_for_initial_state()
     actions = as_for_actions()
@@ -302,7 +299,7 @@ def create_abstract_structure(task, exclude_goal=False, only_static_initial_stat
 def build_type_function_only_object_symmetries(task):
     (OBJECT, VARIABLE, NEGATION) = range(3)
    
-    counter = itertools.count(3)
+    counter = count(3)
     type_dict = dict()
     type_dict["!"] = NEGATION
     for obj in task.objects:
@@ -387,7 +384,7 @@ def get_abstract_structure_graph(abstract_structure, get_type):
         return no
     
     graph = PyblissModuleWrapper()
-    vertex_counter = itertools.count()
+    vertex_counter = count()
     vertex_no_to_structure = dict()
     structure_to_no = dict()
     process_structure(abstract_structure)
