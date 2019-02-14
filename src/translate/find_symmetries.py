@@ -3,7 +3,7 @@
 import normalize
 import options
 import pddl_parser
-from symmetries import SymmetryGraph, write_dot_graph
+from symmetries import SymmetryGraph
 import sys
 
 WRITE_DOT_GRAPH = True
@@ -20,7 +20,8 @@ if __name__ == "__main__":
         graph.print_generator(g)
         print("")
         print("")
-    f = open('out.dot', 'w')
-#    write_dot_graph(graph, vertex_no_to_structure, f)
-    f.close()
+    if WRITE_DOT_GRAPH:
+        f = open('out.dot', 'w')
+        graph.write_dot_graph(f)
+        f.close()
     sys.stdout.flush()

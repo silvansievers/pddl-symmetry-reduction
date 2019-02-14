@@ -130,6 +130,45 @@ class SymmetryGraph:
                     not isinstance(from_struct, frozenset)):
                     print ("%s => %s" % (from_struct, to_struct))
 
+    # we only properly support graphs with standard type function. For the one
+    # allowing only object symmetries, only the colors up to color 2 make sense.
+    def write_dot_graph(self, file):
+        """Write the graph into a file in the graphviz dot format."""
+        def dot_label(node):
+            structure = self.vertex_no_to_structure.get(node)
+            if structure is None or isinstance(structure, tuple) or isinstance(structure, frozenset):
+                return ""
+            return structure
+
+        colors = {
+                -3 : ("X11", "white"),
+                -2 : ("X11", "yellow"),
+                -1 : ("X11", "green3"),
+                0 : ("X11","blue"),
+                1 : ("X11", "lightyellow"),
+                2 : ("X11", "tomato"),
+                3 : ("X11", "orange4"),
+                4 : ("X11", "violetred"),
+            }
+
+        # we draw numbers with the same color albeit they are actually all
+        # different. When only searching for object symmetries, this also covers
+        # most predicates and functions (not really supported)
+        all_other_colors = ("X11", "gray100")
+
+        file.write("digraph g {\n")
+        for vertex, color in self.asg.vertex_to_color.items():
+            color_tuple = colors.get(color)
+            if color_tuple is None:
+                color_tuple = all_other_colors
+            dot_color_scheme = color_tuple[0]
+            dot_color = color_tuple[1]
+            file.write("\"%s\" [style=filled, label=\"%s\", colorscheme=%s, fillcolor=%s];\n" %
+                (vertex, dot_label(vertex), dot_color_scheme, dot_color))
+        for edge in self.asg.edges:
+            file.write("\"%s\" -> \"%s\";\n" % (edge[0], edge[1]))
+        file.write("}\n")
+
 
     def _abstract_structure_graph(self):
         SET_COLOR = -1
@@ -424,41 +463,3 @@ def compute_symmetric_object_sets(objects, transpositions):
 
 
 
-# we only support graphs with standard type function. For the one allowing only
-# object symmetries, only the colors up to color 2 make sense.
-def write_dot_graph(graph, vertex_no_to_structure, file):
-    """Write the graph into a file in the graphviz dot format."""
-    def dot_label(node):
-        structure = vertex_no_to_structure.get(node)
-        if structure is None or isinstance(structure, tuple) or isinstance(structure, frozenset):
-            return ""
-        return structure
-
-    colors = {
-            -3 : ("X11", "white"),
-            -2 : ("X11", "yellow"),
-            -1 : ("X11", "green3"),
-            0 : ("X11","blue"),
-            1 : ("X11", "lightyellow"),
-            2 : ("X11", "tomato"),
-            3 : ("X11", "orange4"),
-            4 : ("X11", "violetred"),
-        }
-
-    # we draw numbers with the same color albeit they are actually all
-    # different. When only searching for object symmetries, this also covers
-    # most predicates and functions (not really supported)
-    all_other_colors = ("X11", "gray100")
-
-    file.write("digraph g {\n")
-    for vertex, color in graph.vertex_to_color.items():
-        color_tuple = colors.get(color)
-        if color_tuple is None:
-            color_tuple = all_other_colors
-        dot_color_scheme = color_tuple[0]
-        dot_color = color_tuple[1]
-        file.write("\"%s\" [style=filled, label=\"%s\", colorscheme=%s, fillcolor=%s];\n" %
-            (vertex, dot_label(vertex), dot_color_scheme, dot_color))
-    for edge in graph.edges:
-        file.write("\"%s\" -> \"%s\";\n" % (edge[0], edge[1]))
-    file.write("}\n")
