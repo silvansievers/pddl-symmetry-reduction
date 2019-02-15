@@ -4,6 +4,7 @@ from __future__ import division
 
 import pddl
 
+from collections import defaultdict
 from itertools import count
 import os
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -106,6 +107,7 @@ class SymmetryGraph:
         self.only_object_symmetries = only_object_symmetries
         self.abstract_structure = self._abstract_structure(exclude_goal,
                                                            only_static_initial_state)
+        self.colors = None
         if only_object_symmetries:
             self.type_mapping = self._build_type_function_only_object_symmetries()
         else:
@@ -114,8 +116,36 @@ class SymmetryGraph:
 
     
     def find_automorphisms(self, time_limit, write_group_generators):
-        # TODO filter in case of object symmetries?
-        return self.asg.find_automorphisms(time_limit, write_group_generators)        
+        automorphisms = self.asg.find_automorphisms(time_limit, write_group_generators)
+        generators = []
+        for gen in automorphisms:
+            object_mapping = dict()
+            predicate_mapping = dict()
+            function_mapping = dict()
+            for from_vertex, to_vertex in gen.items():
+                from_struct = self.vertex_no_to_structure.get(from_vertex)
+                to_struct = self.vertex_no_to_structure.get(to_vertex)
+                if from_struct != to_struct:
+                    assert type(from_struct) == type(to_struct)
+                    if (not isinstance(from_struct, tuple) and 
+                        not isinstance(from_struct, frozenset)):
+                        # some symbol...
+                        assert self.type_mapping(from_struct) == self.type_mapping(to_struct)
+                        col = self.type_mapping(from_struct)
+                        if col in self.colors["object"]:
+                            object_mapping[from_struct] = to_struct 
+                        if col in self.colors["predicate"]:
+                            assert not self.only_object_symmetries
+                            predicate_mapping[from_struct] = to_struct 
+                        if col in self.colors["function"]:
+                            assert not self.only_object_symmetries
+                            function_mapping[from_struct] = to_struct
+            if object_mapping or predicate_mapping or function_mapping:
+                generator = Generator(object_mapping,
+                                      predicate_mapping,
+                                      function_mapping)
+                generators.append(generator) 
+        return generators
 
 
     def print_generator(self, generator):
@@ -209,7 +239,13 @@ class SymmetryGraph:
 
 
     def _build_type_function(self):
+        assert self.colors is None
         (OBJECT, VARIABLE, NEGATION, PREDICATE, FUNCTION, FIRST_NUMBER) = range(6)
+        self.colors = defaultdict(set)
+        self.colors["object"].add(OBJECT)
+        self.colors["variable"].add(VARIABLE)
+        self.colors["predicate"].add(PREDICATE)
+        self.colors["function"].add(FUNCTION)
         
         type_dict = dict()
         type_dict["!"] = NEGATION
@@ -240,7 +276,11 @@ class SymmetryGraph:
     # object symmetries to map actions. So we probably need to filter for symmetries
     # that do not map any object in a post-processing step.
     def _build_type_function_only_object_symmetries(self):
+        assert self.colors is None
         (OBJECT, VARIABLE, NEGATION) = range(3)
+        self.colors = defaultdict(set)
+        self.colors["object"].add(OBJECT)
+        self.colors["variable"].add(VARIABLE)
        
         counter = count(3)
         type_dict = dict()
@@ -249,10 +289,13 @@ class SymmetryGraph:
             type_dict[obj.name] = OBJECT
         for t in self.task.types:
             type_dict[t.name] = next(counter)
+            self.colors["predicate"].add(type_dict[t.name])
         for predicate in self.task.predicates:
             type_dict[predicate.name] = next(counter)
+            self.colors["predicate"].add(type_dict[predicate.name])
         for function in self.task.functions:
             type_dict[function.name] = next(counter)
+            self.colors["function"].add(type_dict[function.name])
         FIRST_NUMBER = next(counter)
 
         def get_type(symbol):
@@ -419,6 +462,21 @@ class SymmetryGraph:
         else:
             return (actions, axioms, init, as_for_goal())
 
+class Generator:
+    def __init__(self, objects, predicates, functions):
+        self.object_mapping = objects
+        self.predicate_mapping = predicates
+        self.function_mapping = functions
+
+    def apply_to_atom(self, atom):
+        # If no entry is present, use identity mapping.
+        predicate = self.predicate_mapping[0].get(atom.predicate, atom.predicate)
+        args = tuple(self.object_mapping.get(a, a) for a in atom.args)
+        return pddl.Atom(predicate, args)
+
+    def dump(self):
+        print("Mapping objects: {}; Mapping predicates: {}; Mapping functions: {}".format(self.object_mapping, self.predicate_mapping, self.function_mapping))
+
 
 def get_mapped_objects(generator):
     keys = sorted(generator.keys())
@@ -460,6 +518,3 @@ def compute_symmetric_object_sets(objects, transpositions):
     print("Time to compute symmetric object sets: {}s".format(timer.elapsed_time()))
     sys.stdout.flush()
     return symmetric_object_sets
-
-
-

@@ -530,48 +530,6 @@ def unsolvable_sas_task(msg):
     return trivial_task(solvable=False)
 
 
-class Generator:
-    def __init__(self, generator, task):
-        # Transform generator into a tuple of dicts, mapping predicates
-        # and objects, ignoring identity mappings.
-        predicates = dict()
-        objects = dict()
-        for from_node, to_node in generator.items():
-            assert isinstance(from_node, tuple)
-            if (from_node[0] == symmetries.NodeType.predicate
-                and from_node[1] != to_node[1]):
-                predicates[from_node[1]] = to_node[1]
-            if (from_node[0] == symmetries.NodeType.constant
-                and from_node[1] != to_node[1]):
-                objects[from_node[1]] = to_node[1]
-
-            if from_node != to_node and from_node[0] in [symmetries.NodeType.operator, symmetries.NodeType.axiom]:
-                print("Generator affects operator or axiom")
-                assert len(from_node) == 3
-                name = from_node[2]
-                if name in [action.name for action in task.actions] or name in [axiom.name for axiom in task.axioms]:
-                    print("Generator entirely maps operator or axioms")
-
-        if predicates or objects:
-            self.generator = (predicates, objects)
-        else:
-            self.generator = None
-
-    def is_valid(self):
-        return self.generator is not None
-
-    def apply_to_atom(self, atom):
-        assert self.is_valid()
-        # If no entry is present, use identity mapping.
-        predicate = self.generator[0].get(atom.predicate, atom.predicate)
-        args = tuple(self.generator[1].get(a, a) for a in atom.args)
-        return pddl.Atom(predicate, args)
-
-    def dump(self):
-        assert self.is_valid()
-        print("Mapping objects: {}; Mapping predicates: {}".format(self.generator[0], self.generator[1]))
-
-
 def is_permutation(sas_generator):
     # Caution! If the given sas_generator maps two keys to the same value,
     # this check may fail and loop forever.
@@ -644,30 +602,18 @@ def pddl_to_sas(task):
 
     with timers.timing("Symmetries0 computing symmetries", block=True):
         if options.compute_symmetries:
-            only_object_symmetries = options.only_object_symmetries
-            stabilize_initial_state = not options.do_not_stabilize_initial_state
-            stabilize_goal = not options.do_not_stabilize_goal
-            time_limit = options.bliss_time_limit
-            write_group_generators = options.write_group_generators
-            graph = symmetries.SymmetryGraph(task, only_object_symmetries, stabilize_initial_state, stabilize_goal)
-            generators = graph.find_automorphisms(time_limit, write_group_generators)
-            if DUMP:
-                graph.write_or_print_automorphisms(generators, dump=True)
+            graph = symmetries.SymmetryGraph(task,
+                options.do_not_stabilize_goal, 
+                options.do_not_stabilize_initial_state,
+                options.only_object_symmetries)
+            task.generators = graph.find_automorphisms(options.bliss_time_limit, 
+                options.write_group_generators)
+#            # TODO reimplement this
+#            if DUMP:
+#                graph.write_or_print_automorphisms(generators, dump=True)
+    print("Number of lifted generators mapping predicates, functions or objects: {}".format(len(task.generators)))
     if options.compute_symmetries and options.stop_after_computing_symmetries:
         sys.exit(0)
-
-    with timers.timing("Symmetries1 transforming generators into predicate object mappings", block=True):
-        if options.compute_symmetries and options.ground_symmetries:
-            # Transform generators into suitable format, mapping predicates and objects.
-            assert isinstance(task.generators, list)
-            assert not task.generators
-            for generator in generators:
-                gen = Generator(generator, task)
-                if gen.is_valid():
-                    task.generators.append(gen)
-                elif DUMP:
-                    print("Initial transformation already filtered out a generator")
-            print("Number of lifted generators mapping predicates or objects: {}".format(len(task.generators)))
 
     sas_generators = []
     with timers.timing("Symmetries2 grounding generators into SAS", block=True):

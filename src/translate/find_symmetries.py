@@ -17,9 +17,7 @@ if __name__ == "__main__":
                           options.only_object_symmetries)
     generators = graph.find_automorphisms(options.bliss_time_limit, options.write_group_generators)
     for g in generators:
-        graph.print_generator(g)
-        print("")
-        print("")
+        g.dump()
     if WRITE_DOT_GRAPH:
         f = open('out.dot', 'w')
         graph.write_dot_graph(f)
