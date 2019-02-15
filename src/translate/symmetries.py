@@ -78,9 +78,6 @@ class PyblissModuleWrapper:
 
         return generators
 
-    def get_color(self, vertex):
-        return self.vertex_to_color[vertex]
-
     def add_vertex(self, vertex, color):
         vertex = vertex
         # Do nothing if the vertex has already been added
@@ -114,7 +111,7 @@ class SymmetryGraph:
             self.type_mapping = self._build_type_function()
         self.asg, self.vertex_no_to_structure = self._abstract_structure_graph()
 
-    
+
     def find_automorphisms(self, time_limit, write_group_generators):
         automorphisms = self.asg.find_automorphisms(time_limit, write_group_generators)
         generators = []
@@ -127,16 +124,16 @@ class SymmetryGraph:
                 to_struct = self.vertex_no_to_structure.get(to_vertex)
                 if from_struct != to_struct:
                     assert type(from_struct) == type(to_struct)
-                    if (not isinstance(from_struct, tuple) and 
+                    if (not isinstance(from_struct, tuple) and
                         not isinstance(from_struct, frozenset)):
                         # some symbol...
                         assert self.type_mapping(from_struct) == self.type_mapping(to_struct)
                         col = self.type_mapping(from_struct)
                         if col in self.colors["object"]:
-                            object_mapping[from_struct] = to_struct 
+                            object_mapping[from_struct] = to_struct
                         if col in self.colors["predicate"]:
                             assert not self.only_object_symmetries
-                            predicate_mapping[from_struct] = to_struct 
+                            predicate_mapping[from_struct] = to_struct
                         if col in self.colors["function"]:
                             assert not self.only_object_symmetries
                             function_mapping[from_struct] = to_struct
@@ -144,7 +141,7 @@ class SymmetryGraph:
                 generator = Generator(object_mapping,
                                       predicate_mapping,
                                       function_mapping)
-                generators.append(generator) 
+                generators.append(generator)
         return generators
 
 
@@ -217,7 +214,7 @@ class SymmetryGraph:
             vertex_no_to_structure[no] = struct
             structure_to_no[struct] = no
             return no
-        
+
         graph = PyblissModuleWrapper()
         vertex_counter = count()
         vertex_no_to_structure = dict()
@@ -234,7 +231,7 @@ class SymmetryGraph:
         self.colors["variable"].add(VARIABLE)
         self.colors["predicate"].add(PREDICATE)
         self.colors["function"].add(FUNCTION)
-        
+
         type_dict = dict()
         type_dict["!"] = NEGATION
         for obj in self.task.objects:
@@ -269,7 +266,7 @@ class SymmetryGraph:
         self.colors = defaultdict(set)
         self.colors["object"].add(OBJECT)
         self.colors["variable"].add(VARIABLE)
-       
+
         counter = count(3)
         type_dict = dict()
         type_dict["!"] = NEGATION
@@ -322,7 +319,7 @@ class SymmetryGraph:
                     fluent_predicates.add(axiom.name)
             for entry in self.task.init:
                 if isinstance(entry, pddl.Literal):
-                    if (not only_static_initial_state or 
+                    if (not only_static_initial_state or
                         entry.predicate not in fluent_predicates):
                         result.append(as_for_literal(entry))
                 else: # numeric function
@@ -334,12 +331,12 @@ class SymmetryGraph:
                     function_term = [entry.fluent.symbol]
                     function_term.extend(entry.fluent.args)
                     result.append((tuple(function_term), entry.expression.value))
-        
+
             for obj in self.task.objects:
                 if obj.type_name != "object":
                     result.append((obj.type_name, obj.name))
             return frozenset(result)
-        
+
         def as_for_goal():
             result = []
             if isinstance(self.task.goal, pddl.Conjunction):
@@ -386,7 +383,7 @@ class SymmetryGraph:
                         eff_var_mapping[param.name] = new_var
                         if param.type_name != "object":
                             effcond.append((param.type_name, new_var))
-                         
+
                     if isinstance(eff.condition, pddl.Conjunction):
                         for literal in action.precondition.parts:
                             effcond.append(as_for_literal(literal, eff_var_mapping))
@@ -434,14 +431,14 @@ class SymmetryGraph:
                 elif isinstance(axiom.condition, pddl.Literal):
                     pre.add(as_for_literal(axiom.condition, variable_mapping))
                 elif isinstance(axiom.condition, pddl.Truth):
-                   pass 
+                   pass
                 else:
                     assert False
                 result.append((frozenset(params), frozenset(pre), effect))
             return frozenset(result)
-        
+
         counter = count()
-        
+
         init = as_for_initial_state()
         actions = as_for_actions()
         axioms = as_for_axioms()
