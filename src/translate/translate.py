@@ -603,11 +603,15 @@ def pddl_to_sas(task):
     with timers.timing("Symmetries0 computing symmetries", block=True):
         if options.compute_symmetries:
             graph = symmetries.SymmetryGraph(task,
-                options.do_not_stabilize_goal, 
+                options.do_not_stabilize_goal,
                 options.do_not_stabilize_initial_state,
                 options.only_object_symmetries)
-            task.generators = graph.find_automorphisms(options.bliss_time_limit, 
+            task.generators = graph.find_automorphisms(options.bliss_time_limit,
                 options.write_group_generators)
+            if DUMP:
+                for num, gen in enumerate(task.generators):
+                    print("Generator #{}".format(num + 1))
+                    gen.dump()
 #            # TODO reimplement this
 #            if DUMP:
 #                graph.write_or_print_automorphisms(generators, dump=True)
