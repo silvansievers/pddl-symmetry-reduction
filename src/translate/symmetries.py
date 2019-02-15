@@ -148,18 +148,6 @@ class SymmetryGraph:
         return generators
 
 
-    def print_generator(self, generator):
-        keys = sorted(generator.keys())
-        for from_vertex in keys:
-            to_vertex = generator[from_vertex]
-            from_struct = self.vertex_no_to_structure.get(from_vertex)
-            to_struct = self.vertex_no_to_structure.get(to_vertex)
-            if from_struct != to_struct:
-                assert type(from_struct) == type(to_struct)
-                if (not isinstance(from_struct, tuple) and 
-                    not isinstance(from_struct, frozenset)):
-                    print ("%s => %s" % (from_struct, to_struct))
-
     # we only properly support graphs with standard type function. For the one
     # allowing only object symmetries, only the colors up to color 2 make sense.
     def write_dot_graph(self, file):
