@@ -76,7 +76,7 @@ def main(revisions=None):
     'visitall-opt14-strips', 'woodworking-opt08-strips',
     'woodworking-opt11-strips', 'zenotravel']
 
-    environment = BaselSlurmEnvironment(email="silvan.sievers@unibas.ch", export=["PATH"])
+    environment = BaselSlurmEnvironment(email="silvan.sievers@unibas.ch", export=["PATH"], partition='infai_1')
 
     if is_test_run():
         suite = ['gripper:prob01.pddl', 'depot:p01.pddl', 'mystery:prob07.pddl', 'miconic-simpleadl:s1-0.pddl']
@@ -111,10 +111,10 @@ def main(revisions=None):
     bliss_out_of_memory = Attribute('bliss_out_of_memory', absolute=True, min_wins=True)
     bliss_out_of_time = Attribute('bliss_out_of_time', absolute=True, min_wins=True)
     translator_completed = Attribute('translator_completed', absolute=True, min_wins=False)
-    translate_out_of_memory = Attribute('translate_out_of_memory', absolute=True, min_wins=False)
+    translate_out_of_memory = Attribute('translate_out_of_memory', absolute=True, min_wins=True)
     symmetry_graph_size = Attribute('symmetry_graph_size', absolute=True, min_wins=True)
     time_symmetries = Attribute('time_symmetries', absolute=False, min_wins=True, functions=[geometric_mean])
-    symmetry_group_order = Attribute('symmetry_group_order', absolute=True, min_wins=False)
+    symmetry_group_order = Attribute('symmetry_group_order', absolute=False, min_wins=False, functions=[geometric_mean])
 
     extra_attributes = [
         generator_count_lifted,

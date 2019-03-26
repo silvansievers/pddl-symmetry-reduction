@@ -76,7 +76,7 @@ def main(revisions=None):
     'visitall-opt14-strips', 'woodworking-opt08-strips',
     'woodworking-opt11-strips', 'zenotravel']
 
-    environment = BaselSlurmEnvironment(email="silvan.sievers@unibas.ch", export=["PATH"])
+    environment = BaselSlurmEnvironment(email="silvan.sievers@unibas.ch", export=["PATH"], partition='infai_1')
 
     if is_test_run():
         suite = ['gripper:prob01.pddl', 'depot:p01.pddl', 'mystery:prob07.pddl', 'miconic-simpleadl:s1-0.pddl']
