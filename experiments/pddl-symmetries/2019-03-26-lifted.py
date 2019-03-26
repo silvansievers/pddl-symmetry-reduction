@@ -17,7 +17,7 @@ except ImportError:
     print 'matplotlib not available, scatter plots not available'
     matplotlib = False
 
-REVISION = '91a4e61ad540'
+REVISION = '8d6d1d2cda70'
 
 def main(revisions=None):
     benchmarks_dir=os.path.expanduser('~/repos/downward/benchmarks')
@@ -105,7 +105,7 @@ def main(revisions=None):
     exp.add_parser('symmetries-parser.py')
 
     generator_count_lifted = Attribute('generator_count_lifted', absolute=True, min_wins=False)
-    generator_count_lifted_mapping_objects_predicates_functions = Attribute('generator_count_lifted_mapping_objects_predicates_functions', absolute=True, min_wins=False)
+    generator_count_lifted_interesting = Attribute('generator_count_lifted_interesting', absolute=True, min_wins=False)
     time_symmetries1_symmetry_graph = Attribute('time_symmetries1_symmetry_graph', absolute=False, min_wins=True, functions=[geometric_mean])
     time_symmetries2_bliss = Attribute('time_symmetries2_bliss', absolute=False, min_wins=True, functions=[geometric_mean])
     bliss_out_of_memory = Attribute('bliss_out_of_memory', absolute=True, min_wins=True)
@@ -118,7 +118,7 @@ def main(revisions=None):
 
     extra_attributes = [
         generator_count_lifted,
-        generator_count_lifted_mapping_objects_predicates_functions,
+        generator_count_lifted_interesting,
         time_symmetries1_symmetry_graph,
         time_symmetries2_bliss,
         bliss_out_of_memory,

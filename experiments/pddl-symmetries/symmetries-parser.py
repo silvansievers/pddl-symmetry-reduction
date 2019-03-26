@@ -5,12 +5,11 @@ import re
 from lab.parser import Parser
 
 parser = Parser()
-parser.add_pattern('generator_count_lifted', 'Number of lifted generators: (\d+)', required=False, type=int)
-parser.add_pattern('generator_count_lifted_mapping_objects_predicates_functions', 'Number of lifted generators mapping predicates, functions or objects: (\d+)', required=False, type=int)
-parser.add_pattern('time_symmetries1_symmetry_graph', 'Done creating symmetry graph: (.+)s', required=False, type=float)
-parser.add_pattern('time_symmetries2_bliss', 'Done searching for automorphisms: (.+)s', required=False, type=float)
-parser.add_pattern('time_symmetries3_translate_automorphisms', 'Done translating automorphisms: (.+)s', required=False, type=float)
-parser.add_pattern('symmetry_graph_size', 'Size of the lifted symmetry graph: (\d+)', required=False, type=int)
+parser.add_pattern('generator_count_lifted', 'Number of raw generators: (\d+)', required=False, type=int)
+parser.add_pattern('generator_count_lifted_interesting', 'Number of interesting generators: (\d+)', required=False, type=int)
+parser.add_pattern('time_symmetries1_symmetry_graph', 'Done creating abstract structure graph: (.+)s', required=False, type=float)
+parser.add_pattern('time_symmetries2_bliss', 'Done searching for generators: (.+)s', required=False, type=float)
+parser.add_pattern('symmetry_graph_size', 'Size of abstract structure graph: (\d+)', required=False, type=int)
 parser.add_pattern('symmetry_group_order', 'Symmetry group order: (\d+)', required=False, type=int)
 
 def add_composed_attributes(content, props):
