@@ -5,7 +5,7 @@ from __future__ import division
 import pddl
 
 from collections import defaultdict
-from itertools import count
+from itertools import count, chain
 import os
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -27,7 +27,7 @@ class PyblissModuleWrapper:
         self.vertex_to_color = {}
         self.edges = set()
 
-    def find_automorphisms(self, time_limit, write_group_generators):
+    def find_automorphisms(self, time_limit):
         # Create and fill the graph
         timer = timers.Timer()
         print "Creating symmetry graph..."
@@ -51,22 +51,6 @@ class PyblissModuleWrapper:
         time = timer.elapsed_time()
         print "Done searching for automorphisms: %ss" % time
         print("Number of lifted generators: {}".format(len(automorphisms)))
-
-        if write_group_generators:
-            # We write the "un-processed" generators because
-            # these are in the right format to be processed by, e.g., sympy
-            # to compute the order. We don't do this here to exclude the
-            # computational overhead from the translator run.
-            file = open('generators.py', 'w')
-            for automorphism in automorphisms:
-                file.write('[')
-                for index, value in enumerate(automorphism):
-                    file.write("{}".format(value))
-                    if index != len(automorphism) - 1:
-                        file.write(', ')
-                file.write(']')
-                file.write('\n')
-            file.close()
 
         timer = timers.Timer()
         print "Translating automorphisms..."
@@ -113,12 +97,13 @@ class SymmetryGraph:
 
 
     def find_automorphisms(self, time_limit, write_group_generators):
-        automorphisms = self.asg.find_automorphisms(time_limit, write_group_generators)
+        automorphisms = self.asg.find_automorphisms(time_limit)
         generators = []
         for gen in automorphisms:
             object_mapping = dict()
             predicate_mapping = dict()
             function_mapping = dict()
+            variable_mapping = dict()
             for from_vertex, to_vertex in gen.items():
                 from_struct = self.vertex_no_to_structure.get(from_vertex)
                 to_struct = self.vertex_no_to_structure.get(to_vertex)
@@ -137,11 +122,38 @@ class SymmetryGraph:
                         if col in self.colors["function"]:
                             assert not self.only_object_symmetries
                             function_mapping[from_struct] = to_struct
-            if object_mapping or predicate_mapping or function_mapping:
+                        if col in self.colors["variable"]:
+                            assert not self.only_object_symmetries
+                            variable_mapping[from_struct] = to_struct
+            if (object_mapping or predicate_mapping or 
+                function_mapping or variable_mapping):
                 generator = Generator(object_mapping,
                                       predicate_mapping,
-                                      function_mapping)
+                                      function_mapping,
+                                      variable_mapping)
                 generators.append(generator)
+
+        if write_group_generators:
+            symbol_to_index = dict()
+            symbol_counter = count()
+            for g in generators:
+                for s in chain(g.object_mapping, g.predicate_mapping,
+                               g.function_mapping, g.variable_mapping):
+                    if s not in symbol_to_index:
+                        symbol_to_index[s] = next(symbol_counter)
+            num_symbols = len(symbol_to_index)
+            file = open('generators.py', 'w')
+            for g in generators:
+                perm = list(range(num_symbols))
+                for f,t in chain(g.object_mapping.items(),
+                    g.predicate_mapping.items(),
+                    g.function_mapping.items(), 
+                    g.variable_mapping.items()):
+                    perm[symbol_to_index[f]] = symbol_to_index[t]
+                file.write(str(perm))
+                file.write('\n')
+            file.close()
+                    
         return generators
 
 
@@ -449,10 +461,11 @@ class SymmetryGraph:
 
 
 class Generator:
-    def __init__(self, objects, predicates, functions):
+    def __init__(self, objects, predicates, functions, variables):
         self.object_mapping = objects
         self.predicate_mapping = predicates
         self.function_mapping = functions
+        self.variable_mapping = variables
 
     def apply_to_atom(self, atom):
         # If no entry is present, use identity mapping.
@@ -461,4 +474,6 @@ class Generator:
         return pddl.Atom(predicate, args)
 
     def dump(self):
-        print("Mapping objects: {}; Mapping predicates: {}; Mapping functions: {}".format(self.object_mapping, self.predicate_mapping, self.function_mapping))
+        print("Mapping objects: {}; Mapping predicates: {}; Mapping functions: {}; Mapping variables: {}".format(
+            self.object_mapping, self.predicate_mapping, self.function_mapping,
+            self.variable_mapping))
