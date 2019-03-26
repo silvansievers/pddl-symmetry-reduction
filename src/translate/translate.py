@@ -45,7 +45,6 @@ import variable_order
 # non-derived).
 
 DEBUG = False
-DUMP = False
 
 
 ## For a full list of exit codes, please see driver/returncodes.py. Here,
@@ -555,13 +554,13 @@ def filter_out_identities_or_nonpermutations(sas_generators):
     remaining_generators = []
     for sas_generator in sas_generators:
         if is_identity(sas_generator):
-            if DUMP:
+            if DEBUG:
                 print(sas_generator)
                 print("is the identiy!")
         elif not is_permutation(sas_generator):
             if not options.do_not_stabilize_initial_state:
                 assert False
-            elif DUMP:
+            elif DEBUG:
                 print(sas_generator)
                 print("is not a permutation!")
         else:
@@ -608,14 +607,14 @@ def pddl_to_sas(task):
                 options.only_object_symmetries)
             task.generators = graph.find_automorphisms(options.bliss_time_limit,
                 options.write_group_generators)
-            if DUMP:
+            if DEBUG:
                 for num, gen in enumerate(task.generators):
                     print("Generator #{}".format(num + 1))
                     gen.dump()
-#            # TODO reimplement this
-#            if DUMP:
-#                graph.write_or_print_automorphisms(generators, dump=True)
-    print("Number of lifted generators mapping predicates, functions or objects: {}".format(len(task.generators)))
+            if options.write_dot_graph:
+                f = open('out.dot', 'w')
+                graph.write_dot_graph(f)
+                f.close()
     if options.compute_symmetries and options.stop_after_computing_symmetries:
         sys.exit(0)
 
@@ -623,7 +622,7 @@ def pddl_to_sas(task):
     with timers.timing("Symmetries2 grounding generators into SAS", block=True):
         # For each generator, create its sas mapping from var-vals to var-vals
         for generator in task.generators:
-            if DUMP:
+            if DEBUG:
                 print("Considering generator: ")
                 generator.dump()
             sas_generator = {}
@@ -634,11 +633,11 @@ def pddl_to_sas(task):
                     "with --compute-symmetries is not implemented!")
                 mapped_atom = generator.apply_to_atom(atom)
                 mapped_var_val_list = strips_to_sas.get(mapped_atom, None)
-                if DUMP:
+                if DEBUG:
                     if atom != mapped_atom:
                         print("mapping atom {} to atom {}".format(atom, mapped_atom))
                 if mapped_var_val_list is None:
-                    if DUMP:
+                    if DEBUG:
                         print("need to skip generator because it maps an atom to some "
                             "atom which does not exist in the sas representation")
                     if not options.do_not_stabilize_initial_state:
@@ -652,13 +651,13 @@ def pddl_to_sas(task):
                 var_val = var_val_list[0]
                 sas_generator[var_val] = mapped_var_val
             if valid_generator:
-                if DUMP:
+                if DEBUG:
                     print("Transformed generator (without none-of-those values!): ")
                     print_sas_generator(sas_generator)
                 assert is_permutation(sas_generator)
                 if not is_identity(sas_generator):
                     sas_generators.append(sas_generator)
-                elif DUMP:
+                elif DEBUG:
                     print("need to skip generator because it is the identiy")
         if task.generators:
             print("{} out of {} generators left after grounding them".format(len(sas_generators), len(task.generators)))
@@ -722,7 +721,7 @@ def pddl_to_sas(task):
                     if from_var_val not in facts or to_var_val not in facts:
                         del sas_generator[from_var_val]
             sas_generators = filter_out_identities_or_nonpermutations(sas_generators)
-            if DUMP:
+            if DEBUG:
                 for sas_generator in sas_generators:
                     print("generator: ")
                     print_sas_generator(sas_generator)
@@ -738,7 +737,7 @@ def pddl_to_sas(task):
                 return solvable_sas_task("Simplified to empty goal")
             if sas_generators:
                 sas_generators = filter_out_identities_or_nonpermutations(sas_generators)
-                if DUMP:
+                if DEBUG:
                     for sas_generator in sas_generators:
                         print("generator: ")
                         print_sas_generator(sas_generator)
@@ -753,7 +752,7 @@ def pddl_to_sas(task):
                 options.filter_unimportant_vars)
             if sas_generators:
                 sas_generators = filter_out_identities_or_nonpermutations(sas_generators)
-                if DUMP:
+                if DEBUG:
                     for sas_generator in sas_generators:
                         print("generator: ")
                         print_sas_generator(sas_generator)
@@ -761,18 +760,6 @@ def pddl_to_sas(task):
 
     print("Number of remaining grounded generators: {}".format(len(sas_generators)))
     print("Number of removed generators: {}".format(len(task.generators) - len(sas_generators)))
-    if sas_generators:
-        order_to_generator_count = defaultdict(int)
-        order_list = []
-        for sas_generator in sas_generators:
-            order = symmetries.compute_order(sas_generator)
-            order_to_generator_count[order] += 1
-            order_list.append(order)
-        printable_order_to_count = [(order, count) for order, count in order_to_generator_count.items()]
-        print("Grounded generator orders: {}".format(printable_order_to_count))
-        print("Grounded generator orders list: {}".format(order_list))
-        for order in range(2, 10):
-            print("Grounded generator order {}: {}".format(order, order_to_generator_count[order]))
 
     with timers.timing("Symmetries4 transforming generators into search representation", block=True):
         if sas_generators:
@@ -838,7 +825,7 @@ def pddl_to_sas(task):
                     #from_fact = get_var_val_by_index(from_index)
                     #to_fact = get_var_val_by_index(to_index)
                     #assert sas_generator.get(from_fact, from_fact) == to_fact
-                if DUMP:
+                if DEBUG:
                     print("original generator number {}:".format(gen_no))
                     print_sas_generator(sas_generator)
                     print("transformed_generator number {}:".format(gen_no))

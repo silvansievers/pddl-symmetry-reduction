@@ -80,6 +80,10 @@ def parse_args():
         "The list is to be read as a permutation of the integers 0 to length "
         "of the list. (Set option --compute-symmetries)")
     argparser.add_argument(
+        "--write-dot-graph", action="store_true",
+        help="If true, write the symmetry graph in dot format to the file "
+        "out.dot. (Set option --compute-symmetries)")
+    argparser.add_argument(
         "--stop-after-computing-symmetries", action="store_true",
         help="If true, stop after computing symmetries. (Set option "
         "--compute-symmetries)")

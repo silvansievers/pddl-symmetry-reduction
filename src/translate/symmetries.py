@@ -29,10 +29,7 @@ class PyblissModuleWrapper:
 
     def find_automorphisms(self, time_limit):
         # Create and fill the graph
-        timer = timers.Timer()
-        print "Creating symmetry graph..."
         graph = bliss.DigraphWrapper()
-        print "Size of the lifted symmetry graph: {}".format(len(self.vertex_to_color))
         for vertex in range(len(self.vertex_to_color)):
         # vertices have numbers 0, 1, 2, ... and we need to traverse them in
         # this order
@@ -41,24 +38,13 @@ class PyblissModuleWrapper:
         for edge in self.edges:
             assert type(edge) is tuple
             graph.add_edge(edge[0], edge[1])
-        time = timer.elapsed_time();
-        print "Done creating symmetry graph: %ss" % time
 
         # Find automorphisms, use a time limit:
-        timer = timers.Timer()
-        print "Searching for autmorphisms..."
         automorphisms = graph.find_automorphisms(time_limit)
-        time = timer.elapsed_time()
-        print "Done searching for automorphisms: %ss" % time
-        print("Number of lifted generators: {}".format(len(automorphisms)))
 
-        timer = timers.Timer()
-        print "Translating automorphisms..."
         generators = []
         for aut in automorphisms:
             generators.append(dict(enumerate(aut)))
-        time = timer.elapsed_time()
-        print "Done translating automorphisms: %ss" % time
 
         return generators
 
@@ -84,6 +70,8 @@ class PyblissModuleWrapper:
 class SymmetryGraph:
     def __init__(self, task, exclude_goal=False,
                  only_static_initial_state=False, only_object_symmetries=False):
+        timer = timers.Timer()
+        print "Creating abstract structure graph..."
         self.task = task
         self.only_object_symmetries = only_object_symmetries
         self.abstract_structure = self._abstract_structure(exclude_goal,
@@ -94,10 +82,19 @@ class SymmetryGraph:
         else:
             self.type_mapping = self._build_type_function()
         self.asg, self.vertex_no_to_structure = self._abstract_structure_graph()
+        print "Done creating abstract structure graph: %ss" % timer.elapsed_time()
+        print "Size of abstract structure graph: {}".format(len(self.asg.vertex_to_color))
 
 
     def find_automorphisms(self, time_limit, write_group_generators):
+        timer = timers.Timer()
+        print "Searching for generators..."
         automorphisms = self.asg.find_automorphisms(time_limit)
+        time = timer.elapsed_time()
+        print "Done searching for generators: %ss" % time
+        print "Number of raw generators: {}".format(len(automorphisms))
+
+        print "Filtering for interesting generators..."
         generators = []
         for gen in automorphisms:
             object_mapping = dict()
@@ -125,13 +122,16 @@ class SymmetryGraph:
                         if col in self.colors["variable"]:
                             assert not self.only_object_symmetries
                             variable_mapping[from_struct] = to_struct
-            if (object_mapping or predicate_mapping or 
+            if (object_mapping or predicate_mapping or
                 function_mapping or variable_mapping):
                 generator = Generator(object_mapping,
                                       predicate_mapping,
                                       function_mapping,
                                       variable_mapping)
                 generators.append(generator)
+        time = timer.elapsed_time()
+        print "Done filtering for interesting generators... %s" % time
+        print "Number of interesting generators: {}".format(len(generators))
 
         if write_group_generators:
             symbol_to_index = dict()
@@ -147,7 +147,7 @@ class SymmetryGraph:
                 perm = list(range(num_symbols))
                 for f,t in chain(g.object_mapping.items(),
                     g.predicate_mapping.items(),
-                    g.function_mapping.items(), 
+                    g.function_mapping.items(),
                     g.variable_mapping.items()):
                     perm[symbol_to_index[f]] = symbol_to_index[t]
                 file.write(str(perm))
@@ -469,7 +469,7 @@ class Generator:
 
     def apply_to_atom(self, atom):
         # If no entry is present, use identity mapping.
-        predicate = self.predicate_mapping[0].get(atom.predicate, atom.predicate)
+        predicate = self.predicate_mapping.get(atom.predicate, atom.predicate)
         args = tuple(self.object_mapping.get(a, a) for a in atom.args)
         return pddl.Atom(predicate, args)
 

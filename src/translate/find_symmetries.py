@@ -6,8 +6,6 @@ import pddl_parser
 from symmetries import SymmetryGraph
 import sys
 
-WRITE_DOT_GRAPH = True
-
 if __name__ == "__main__":
     task = pddl_parser.open()
     normalize.normalize(task)
@@ -18,7 +16,7 @@ if __name__ == "__main__":
     generators = graph.find_automorphisms(options.bliss_time_limit, options.write_group_generators)
     for g in generators:
         g.dump()
-    if WRITE_DOT_GRAPH:
+    if options.write_dot_graph:
         f = open('out.dot', 'w')
         graph.write_dot_graph(f)
         f.close()
