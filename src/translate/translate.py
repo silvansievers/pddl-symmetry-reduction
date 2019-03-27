@@ -623,6 +623,9 @@ def pddl_to_sas(task):
     sas_generators = []
     with timers.timing("Symmetries grounding generators into SAS", block=True):
         if options.ground_symmetries:
+            sys.exit("Grounding of symmetries currently does not work with the "
+                     "new ASG-way of computing symmetries; need to repair the "
+                     "implementation.")
             # For each generator, create its sas mapping from var-vals to var-vals
             for generator in task.generators:
                 if DEBUG:
