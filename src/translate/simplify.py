@@ -35,7 +35,6 @@ import options
 import sas_tasks
 
 DEBUG = False
-DUMP = False
 
 # TODO:
 # This is all quite hackish and would be easier if the translator were
@@ -275,16 +274,16 @@ class VarValueRenaming(object):
             to_fact = sas_generator[from_fact]
             new_from_fact = self.translate_pair(from_fact)
             new_to_fact = self.translate_pair(to_fact)
-            if DUMP:
+            if DEBUG:
                 print("{} -> {}  ---> {} -> {}".format(from_fact, to_fact, new_from_fact, new_to_fact))
 
             # First, test whether one or both variables of the mapping are removed.
             if new_from_fact[0] is None and new_to_fact[0] is None:
-                if DUMP:
+                if DEBUG:
                     print("simplify: both from_var and to_var are removed, ignore mapping")
                 continue
             elif None in (new_from_fact[0], new_to_fact[0]):
-                if DUMP:
+                if DEBUG:
                     print("simplify: only one of from_var and to_var are removed, invalid generator")
                 if not options.do_not_stabilize_initial_state:
                     assert False
@@ -295,11 +294,11 @@ class VarValueRenaming(object):
             # always_true, then the entire variable will be removed (all other
             # values must be set to always_false then).
             if new_from_fact[1] == always_false and new_to_fact[1] == always_false:
-                if DUMP:
+                if DEBUG:
                     print("simplify: both from_val and to_val are mapped to always_false, ignore mapping")
                 continue
             elif always_false in (new_from_fact[1], new_to_fact[1]):
-                if DUMP:
+                if DEBUG:
                     print("simplify: only one of from_val and to_val are mapped always_false, invalid generator")
                 if not options.do_not_stabilize_initial_state:
                     assert False
@@ -560,7 +559,7 @@ def filter_unreachable_propositions(sas_task, sas_generators):
         sas_task.validate()
     dtgs = build_dtgs(sas_task)
     renaming = build_renaming(dtgs)
-    if DUMP:
+    if DEBUG:
         renaming.dump()
     # need to *first* transform the generators, as it accesses information
     # from the old given sas_task
