@@ -601,6 +601,8 @@ def pddl_to_sas(task):
 
     with timers.timing("Symmetries computing symmetries", block=True):
         if options.compute_symmetries:
+            if DEBUG:
+                task.dump()
             graph = symmetries.SymmetryGraph(task,
                 options.do_not_stabilize_goal,
                 options.do_not_stabilize_initial_state,
