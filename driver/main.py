@@ -2,6 +2,7 @@
 from __future__ import print_function
 
 import logging
+import os
 import sys
 
 from . import aliases
@@ -31,10 +32,13 @@ def main():
             (exitcode, continue_execution) = run_components.run_translate(args)
         elif component == "search":
             (exitcode, continue_execution) = run_components.run_search(args)
+            if not args.keep_sas_file:
+                print("Remove intermediate file {}".format(args.sas_file))
+                os.remove(args.sas_file)
         elif component == "validate":
             (exitcode, continue_execution) = run_components.run_validate(args)
         else:
-            assert False
+            assert False, "Error: unhandled component: {}".format(component)
         print()
         print("{component} exit code: {exitcode}".format(**locals()))
         if not continue_execution:

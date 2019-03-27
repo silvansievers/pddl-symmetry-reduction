@@ -4,6 +4,8 @@
 #include "../global_state.h"
 #include "../task_proxy.h"
 
+#include "../utils/hash.h"
+
 #include <cassert>
 #include <list>
 #include <map>
@@ -51,7 +53,7 @@ public:
     landmark_status status;
     bool is_derived;
 
-    std::unordered_set<FactPair> forward_orders;
+    utils::HashSet<FactPair> forward_orders;
     std::set<int> first_achievers;
     std::set<int> possible_achievers;
 
@@ -153,7 +155,7 @@ public:
     // ------------------------------------------------------------------------------
     // methods needed only by landmarkgraph-factories
     LandmarkGraph(const TaskProxy &task_proxy);
-    ~LandmarkGraph() = default;
+    ~LandmarkGraph();
 
     inline LandmarkNode &get_simple_lm_node(const FactPair &a) const {
         assert(simple_landmark_exists(a));
@@ -200,8 +202,8 @@ private:
     int reached_cost;
     int needed_cost;
     int landmarks_cost;
-    std::unordered_map<FactPair, LandmarkNode *> simple_lms_to_nodes;
-    std::unordered_map<FactPair, LandmarkNode *> disj_lms_to_nodes;
+    utils::HashMap<FactPair, LandmarkNode *> simple_lms_to_nodes;
+    utils::HashMap<FactPair, LandmarkNode *> disj_lms_to_nodes;
     std::set<LandmarkNode *> nodes;
     std::vector<LandmarkNode *> ordered_nodes;
     std::vector<std::vector<std::vector<int>>> operators_eff_lookup;
