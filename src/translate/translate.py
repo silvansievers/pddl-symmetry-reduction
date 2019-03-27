@@ -599,7 +599,7 @@ def pddl_to_sas(task):
         ranges, strips_to_sas = strips_to_sas_dictionary(
             groups, assert_partial=options.use_partial_encoding)
 
-    with timers.timing("Symmetries0 computing symmetries", block=True):
+    with timers.timing("Symmetries computing symmetries", block=True):
         if options.compute_symmetries:
             graph = symmetries.SymmetryGraph(task,
                 options.do_not_stabilize_goal,
@@ -619,48 +619,49 @@ def pddl_to_sas(task):
         sys.exit(0)
 
     sas_generators = []
-    with timers.timing("Symmetries2 grounding generators into SAS", block=True):
-        # For each generator, create its sas mapping from var-vals to var-vals
-        for generator in task.generators:
-            if DEBUG:
-                print("Considering generator: ")
-                generator.dump()
-            sas_generator = {}
-            valid_generator = True
-            for atom, var_val_list in strips_to_sas.items():
-                if not len(var_val_list) == 1:
-                    raise NotImplementedError("Using the option --full-encoding "
-                    "with --compute-symmetries is not implemented!")
-                mapped_atom = generator.apply_to_atom(atom)
-                mapped_var_val_list = strips_to_sas.get(mapped_atom, None)
+    with timers.timing("Symmetries grounding generators into SAS", block=True):
+        if options.ground_symmetries:
+            # For each generator, create its sas mapping from var-vals to var-vals
+            for generator in task.generators:
                 if DEBUG:
-                    if atom != mapped_atom:
-                        print("mapping atom {} to atom {}".format(atom, mapped_atom))
-                if mapped_var_val_list is None:
+                    print("Considering generator: ")
+                    generator.dump()
+                sas_generator = {}
+                valid_generator = True
+                for atom, var_val_list in strips_to_sas.items():
+                    if not len(var_val_list) == 1:
+                        raise NotImplementedError("Using the option --full-encoding "
+                        "with --compute-symmetries is not implemented!")
+                    mapped_atom = generator.apply_to_atom(atom)
+                    mapped_var_val_list = strips_to_sas.get(mapped_atom, None)
                     if DEBUG:
-                        print("need to skip generator because it maps an atom to some "
-                            "atom which does not exist in the sas representation")
-                    if not options.do_not_stabilize_initial_state:
-                        assert False
-                    valid_generator = False
-                    break
-                if not len(mapped_var_val_list) == 1:
-                    raise NotImplementedError("Using the option --full-encoding "
-                    "with --compute-symmetries is not implemented!")
-                mapped_var_val = mapped_var_val_list[0]
-                var_val = var_val_list[0]
-                sas_generator[var_val] = mapped_var_val
-            if valid_generator:
-                if DEBUG:
-                    print("Transformed generator (without none-of-those values!): ")
-                    print_sas_generator(sas_generator)
-                assert is_permutation(sas_generator)
-                if not is_identity(sas_generator):
-                    sas_generators.append(sas_generator)
-                elif DEBUG:
-                    print("need to skip generator because it is the identiy")
-        if task.generators:
-            print("{} out of {} generators left after grounding them".format(len(sas_generators), len(task.generators)))
+                        if atom != mapped_atom:
+                            print("mapping atom {} to atom {}".format(atom, mapped_atom))
+                    if mapped_var_val_list is None:
+                        if DEBUG:
+                            print("need to skip generator because it maps an atom to some "
+                                "atom which does not exist in the sas representation")
+                        if not options.do_not_stabilize_initial_state:
+                            assert False
+                        valid_generator = False
+                        break
+                    if not len(mapped_var_val_list) == 1:
+                        raise NotImplementedError("Using the option --full-encoding "
+                        "with --compute-symmetries is not implemented!")
+                    mapped_var_val = mapped_var_val_list[0]
+                    var_val = var_val_list[0]
+                    sas_generator[var_val] = mapped_var_val
+                if valid_generator:
+                    if DEBUG:
+                        print("Transformed generator (without none-of-those values!): ")
+                        print_sas_generator(sas_generator)
+                    assert is_permutation(sas_generator)
+                    if not is_identity(sas_generator):
+                        sas_generators.append(sas_generator)
+                    elif DEBUG:
+                        print("need to skip generator because it is the identiy")
+            if task.generators:
+                print("{} out of {} generators left after grounding them".format(len(sas_generators), len(task.generators)))
 
 
     with timers.timing("Building dictionary for full mutex groups"):
@@ -689,7 +690,7 @@ def pddl_to_sas(task):
     print("%d implied preconditions added" %
           added_implied_precondition_counter)
 
-    with timers.timing("Symmetries3 add none-of-those mappings and remove deleted facts", block=True):
+    with timers.timing("Symmetries add none-of-those mappings and remove deleted facts", block=True):
         if sas_generators:
             # Go over all facts of the sas task and all generators:
             # 1) If the option is set, add mappings for none-of-those values.
@@ -761,7 +762,7 @@ def pddl_to_sas(task):
     print("Number of remaining grounded generators: {}".format(len(sas_generators)))
     print("Number of removed generators: {}".format(len(task.generators) - len(sas_generators)))
 
-    with timers.timing("Symmetries4 transforming generators into search representation", block=True):
+    with timers.timing("Symmetries transforming generators into search representation", block=True):
         if sas_generators:
             # Transform the sas generators into the format used by the search
             # component, i.e. [0...n-1; 0...range(var-1)-1, ..., 0...range(var-n)-1]

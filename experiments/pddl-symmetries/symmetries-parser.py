@@ -55,7 +55,7 @@ def parse_memory_error(content, props):
 parser.add_function(parse_memory_error, file='run.err')
 
 def duplicate_attribute(content, props):
-    props['time_symmetries'] = props.get('translator_time_symmetries0_computing_symmetries', None)
+    props['time_symmetries'] = props.get('translator_time_symmetries_computing_symmetries', None)
 
 parser.add_function(duplicate_attribute)
 
