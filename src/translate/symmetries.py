@@ -92,9 +92,9 @@ class SymmetryGraph:
         automorphisms = self.asg.find_automorphisms(time_limit)
         time = timer.elapsed_time()
         print "Done searching for generators: %ss" % time
-        print "Number of raw generators: {}".format(len(automorphisms))
+        print "Number of generators: {}".format(len(automorphisms))
 
-        print "Filtering for interesting generators..."
+        print "Translating generators..."
         generators = []
         for gen in automorphisms:
             object_mapping = dict()
@@ -122,18 +122,21 @@ class SymmetryGraph:
                         if col in self.colors["variable"]:
                             assert not self.only_object_symmetries
                             variable_mapping[from_struct] = to_struct
-            if (object_mapping or predicate_mapping or
-                function_mapping or variable_mapping):
-                generator = Generator(object_mapping,
-                                      predicate_mapping,
-                                      function_mapping,
-                                      variable_mapping)
-                generators.append(generator)
+            assert (object_mapping or predicate_mapping or
+                function_mapping or variable_mapping)
+            generator = Generator(object_mapping,
+                                  predicate_mapping,
+                                  function_mapping,
+                                  variable_mapping)
+            generators.append(generator)
         time = timer.elapsed_time()
-        print "Done filtering for interesting generators... %s" % time
-        print "Number of interesting generators: {}".format(len(generators))
+        print "Done translating generators: %ss" % time
+        assert len(generators) == len(automorphisms)
 
         if write_group_generators:
+            # To avoid writing large generators, we first compute the set of
+            # symbols that is actually affected by any generator and assign
+            # them consecutive numbers.
             symbol_to_index = dict()
             symbol_counter = count()
             for g in generators:
@@ -141,6 +144,9 @@ class SymmetryGraph:
                                g.function_mapping, g.variable_mapping):
                     if s not in symbol_to_index:
                         symbol_to_index[s] = next(symbol_counter)
+
+            # Then we go over all generators again, writing them out as
+            # permutations using the symbol-to-id mapping.
             num_symbols = len(symbol_to_index)
             file = open('generators.py', 'w')
             for g in generators:
@@ -153,7 +159,7 @@ class SymmetryGraph:
                 file.write(str(perm))
                 file.write('\n')
             file.close()
-                    
+
         return generators
 
 
