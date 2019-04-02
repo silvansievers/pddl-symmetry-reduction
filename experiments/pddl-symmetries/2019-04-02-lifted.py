@@ -109,7 +109,7 @@ def main(revisions=None):
     bliss_out_of_time = Attribute('bliss_out_of_time', absolute=True, min_wins=True)
     symmetry_graph_size = Attribute('symmetry_graph_size', absolute=True, min_wins=True)
     time_symmetries = Attribute('time_symmetries', absolute=False, min_wins=True, functions=[geometric_mean])
-    symmetry_group_order = Attribute('symmetry_group_order', absolute=False, min_wins=False, functions=[geometric_mean])
+    symmetry_group_order = Attribute('symmetry_group_order', absolute=False, min_wins=False, functions=[sum])
     symmetries_only_affect_objects = Attribute('symmetries_only_affect_objects', absolute=True, min_wins=False)
     symmetries_only_affect_predicates = Attribute('symmetries_only_affect_predicates', absolute=True, min_wins=False)
     symmetries_only_affect_functions = Attribute('symmetries_only_affect_functions', absolute=True, min_wins=False)
