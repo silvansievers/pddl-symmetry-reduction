@@ -24,6 +24,9 @@ parser.add_function(add_composed_attributes)
 def parse_boolean_flags(content, props):
     bliss_memory_out = False
     bliss_timeout = False
+    symmetries_only_affect_objects = False
+    symmetries_only_affect_predicates = False
+    symmetries_only_affect_functions = False
     lines = content.split('\n')
     for line in lines:
         if 'Bliss memory out' in line:
@@ -32,8 +35,18 @@ def parse_boolean_flags(content, props):
         if 'Bliss timeout' in line:
             bliss_timeout = True
 
+        if line == 'Symmetries only affect objects':
+            symmetries_only_affect_objects = True
+        if line == 'Symmetries only affect predicates':
+            symmetries_only_affect_predicates = True
+        if line == 'Symmetries only affect functions':
+            symmetries_only_affect_functions = True
+
     props['bliss_out_of_memory'] = bliss_memory_out
     props['bliss_out_of_time'] = bliss_timeout
+    props['symmetries_only_affect_objects'] = symmetries_only_affect_objects
+    props['symmetries_only_affect_predicates'] = symmetries_only_affect_predicates
+    props['symmetries_only_affect_functions'] = symmetries_only_affect_functions
 
 parser.add_function(parse_boolean_flags)
 
