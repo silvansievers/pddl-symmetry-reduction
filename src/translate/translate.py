@@ -617,25 +617,26 @@ def pddl_to_sas(task):
                 f = open('out.dot', 'w')
                 graph.write_dot_graph(f)
                 f.close()
-            symmetries_only_affect_objects = True
-            symmetries_only_affect_predicates = True
-            symmetries_only_affect_functions = True
-            for generator in task.generators:
-                if generator.object_mapping:
-                    symmetries_only_affect_predicates = False
-                    symmetries_only_affect_functions = False
-                if generator.predicate_mapping:
-                    symmetries_only_affect_objects = False
-                    symmetries_only_affect_functions = False
-                if generator.function_mapping:
-                    symmetries_only_affect_objects = False
-                    symmetries_only_affect_predicates = False
-            if symmetries_only_affect_objects:
-                print("Symmetries only affect objects")
-            if symmetries_only_affect_predicates:
-                print("Symmetries only affect predicates")
-            if symmetries_only_affect_functions:
-                print("Symmetries only affect functions")
+            if task.generators:
+                symmetries_only_affect_objects = True
+                symmetries_only_affect_predicates = True
+                symmetries_only_affect_functions = True
+                for generator in task.generators:
+                    if generator.object_mapping:
+                        symmetries_only_affect_predicates = False
+                        symmetries_only_affect_functions = False
+                    if generator.predicate_mapping:
+                        symmetries_only_affect_objects = False
+                        symmetries_only_affect_functions = False
+                    if generator.function_mapping:
+                        symmetries_only_affect_objects = False
+                        symmetries_only_affect_predicates = False
+                if symmetries_only_affect_objects:
+                    print("Symmetries only affect objects")
+                if symmetries_only_affect_predicates:
+                    print("Symmetries only affect predicates")
+                if symmetries_only_affect_functions:
+                    print("Symmetries only affect functions")
     if options.compute_symmetries and options.stop_after_computing_symmetries:
         sys.exit(0)
 
