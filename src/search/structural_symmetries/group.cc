@@ -28,8 +28,8 @@ Group::Group(const options::Options &opts)
       use_color_for_stabilizing_goal(opts.get<bool>("use_color_for_stabilizing_goal")),
       time_bound(opts.get<int>("time_bound")),
       dump_symmetry_graph(opts.get<bool>("dump_symmetry_graph")),
-      search_symmetries(SearchSymmetries(opts.get_enum("search_symmetries"))),
-      sos(static_cast<SourceOfSymmetries>(opts.get_enum("source_of_symmetries"))),
+      search_symmetries(opts.get<SearchSymmetries>("search_symmetries")),
+      sos(opts.get<SourceOfSymmetries>("source_of_symmetries")),
       dump_permutations(opts.get<bool>("dump_permutations")),
       write_search_generators(opts.get<bool>("write_search_generators")),
       write_all_generators(opts.get<bool>("write_all_generators")),
@@ -117,8 +117,8 @@ void Group::write_generators() const {
     }
 
     /*
-      Then we go over all generators again, writing them out in permutations
-      (python-style lists) using the vertex to id mapping.
+      Then we go over all generators again, writing them out as permutations
+      (python-style lists) using the vertex-to-id mapping.
     */
     ofstream file;
     file.open("generators.py", std::ios_base::out);
@@ -181,19 +181,19 @@ void Group::dump_generators() const {
     }
 
     for (int i = 0; i < get_num_generators(); i++) {
-        cout << "Generator " << i << endl;
+        utils::g_log << "Generator " << i << endl;
         get_permutation(i).print_cycle_notation();
         get_permutation(i).dump_var_vals();
     }
 
     int num_vars = tasks::g_root_task->get_num_variables();
-    cout << "Extra group info:" << endl;
-    cout << "Number of identity on states generators: " << num_identity_generators << endl;
-    cout << "Permutation length: " << get_permutation_length() << endl;
-    cout << "Permutation variables by values (" << num_vars << "): " << endl;
+    utils::g_log << "Extra group info:" << endl;
+    utils::g_log << "Number of identity on states generators: " << num_identity_generators << endl;
+    utils::g_log << "Permutation length: " << get_permutation_length() << endl;
+    utils::g_log << "Permutation variables by values (" << num_vars << "): " << endl;
     for (int i = num_vars; i < get_permutation_length(); i++)
-        cout << get_var_by_index(i) << "  " ;
-    cout << endl;
+        utils::g_log << get_var_by_index(i) << "  " ;
+    utils::g_log << endl;
 }
 
 void Group::dump_variables_equivalence_classes() const {
@@ -223,7 +223,7 @@ void Group::dump_variables_equivalence_classes() const {
             }
         }
     }
-    cout << "Equivalence relation:" << endl;
+    utils::g_log << "Equivalence relation:" << endl;
     for (int i=0; i < num_vars; ++i) {
         vector<int> eqiv_class;
         for (int j=0; j < num_vars; ++j)
@@ -231,21 +231,21 @@ void Group::dump_variables_equivalence_classes() const {
                 eqiv_class.push_back(j);
         if (eqiv_class.size() <= 1)
             continue;
-        cout << "[";
+        utils::g_log << "[";
         for (int var : eqiv_class)
-            cout << " " << tasks::g_root_task->get_fact_name(FactPair(var, 0));
-        cout << " ]" << endl;
+            utils::g_log << " " << tasks::g_root_task->get_fact_name(FactPair(var, 0));
+        utils::g_log << " ]" << endl;
     }
 }
 
 void Group::statistics() const {
-    cout << "Size of the grounded symmetry graph: "
+    utils::g_log << "Size of the grounded symmetry graph: "
          << graph_size << endl;
-    cout << "Number of search generators (affecting facts): "
+    utils::g_log << "Number of search generators (affecting facts): "
          << get_num_generators() << endl;
-    cout << "Number of identity generators (on facts, not on operators): "
+    utils::g_log << "Number of identity generators (on facts, not on operators): "
          << get_num_identity_generators() << endl;
-    cout << "Total number of generators: "
+    utils::g_log << "Total number of generators: "
          << get_num_generators() + get_num_identity_generators() << endl;
 
     if (dump_permutations) {
@@ -348,7 +348,7 @@ RawPermutation Group::create_permutation_from_state_to_state(
 int Group::get_var_by_index(int ind) const {
     // In case of ind < num_vars, returns the index itself, as this is the variable part of the permutation.
     if (ind < num_vars) {
-        cout << "=====> WARNING!!!! Check that this is done on purpose!" << endl;
+        utils::g_log << "=====> WARNING!!!! Check that this is done on purpose!" << endl;
         return ind;
     }
     return var_by_val[ind-num_vars];
@@ -391,7 +391,7 @@ static shared_ptr<Group> _parse(OptionParser &parser) {
     search_symmetries.push_back("NONE");
     search_symmetries.push_back("OSS");
     search_symmetries.push_back("DKS");
-    parser.add_enum_option("search_symmetries",
+    parser.add_enum_option<SearchSymmetries>("search_symmetries",
                            search_symmetries,
                            "Choose the type of structural symmetries that "
                            "should be used for pruning: OSS for orbit space "
@@ -404,7 +404,7 @@ static shared_ptr<Group> _parse(OptionParser &parser) {
     source_of_symmetries.push_back("nosource");
     source_of_symmetries.push_back("graphcreator");
     source_of_symmetries.push_back("translator");
-    parser.add_enum_option(
+    parser.add_enum_option<SourceOfSymmetries>(
         "source_of_symmetries",
         source_of_symmetries,
         "the source of symmetries",

@@ -25,7 +25,7 @@ vector<int> MergeScoringFunctionDFP::compute_label_ranks(
     // Irrelevant (and inactive, i.e. reduced) labels have a dummy rank of -1
     vector<int> label_ranks(num_labels, -1);
 
-    for (const GroupAndTransitions &gat : ts) {
+    for (GroupAndTransitions gat : ts) {
         const LabelGroup &label_group = gat.label_group;
         const vector<Transition> &transitions = gat.transitions;
         // Relevant labels with no transitions have a rank of infinity.
@@ -109,14 +109,15 @@ static shared_ptr<MergeScoringFunction>_parse(options::OptionParser &parser) {
         "This scoring function computes the 'DFP' score as descrdibed in the "
         "paper \"Directed model checking with distance-preserving abstractions\" "
         "by Draeger, Finkbeiner and Podelski (SPIN 2006), adapted to planning in "
-        "the following paper:" + utils::format_paper_reference(
+        "the following paper:" + utils::format_conference_reference(
             {"Silvan Sievers", "Martin Wehrle", "Malte Helmert"},
             "Generalized Label Reduction for Merge-and-Shrink Heuristics",
             "https://ai.dmi.unibas.ch/papers/sievers-et-al-aaai2014.pdf",
             "Proceedings of the 28th AAAI Conference on Artificial"
             " Intelligence (AAAI 2014)",
             "2358-2366",
-            "AAAI Press 2014"));
+            "AAAI Press",
+            "2014"));
 
     if (parser.dry_run())
         return nullptr;
