@@ -816,7 +816,7 @@ def pddl_to_sas(task):
                 val = index - var_to_start_index[var]
                 return (var, val)
 
-            def get_index_by_var_val((var, val)):
+            def get_index_by_var_val(var, val):
                 index = var_to_start_index[var] + val
                 assert num_vars <= index < num_indices
                 return index
@@ -832,8 +832,8 @@ def pddl_to_sas(task):
                     to_fact = sas_generator.get(from_fact, None)
                     if to_fact is None:
                         continue
-                    from_index = get_index_by_var_val(from_fact)
-                    to_index = get_index_by_var_val(to_fact)
+                    from_index = get_index_by_var_val(*from_fact)
+                    to_index = get_index_by_var_val(*yto_fact)
                     transformed_generator[from_index] = to_index
 
                     from_var = from_fact[0]

@@ -71,7 +71,7 @@ class SymmetryGraph:
     def __init__(self, task, exclude_goal=False,
                  only_static_initial_state=False, only_object_symmetries=False):
         timer = timers.Timer()
-        print "Creating abstract structure graph..."
+        print("Creating abstract structure graph...")
         self.task = task
         self.only_object_symmetries = only_object_symmetries
         self.abstract_structure = self._abstract_structure(exclude_goal,
@@ -82,19 +82,19 @@ class SymmetryGraph:
         else:
             self.type_mapping = self._build_type_function()
         self.asg, self.vertex_no_to_structure = self._abstract_structure_graph()
-        print "Done creating abstract structure graph: %ss" % timer.elapsed_time()
-        print "Size of abstract structure graph: {}".format(len(self.asg.vertex_to_color))
+        print("Done creating abstract structure graph: %ss" % timer.elapsed_time())
+        print("Size of abstract structure graph: {}".format(len(self.asg.vertex_to_color)))
 
 
     def find_automorphisms(self, time_limit, write_group_generators):
         timer = timers.Timer()
-        print "Searching for generators..."
+        print("Searching for generators...")
         automorphisms = self.asg.find_automorphisms(time_limit)
         time = timer.elapsed_time()
-        print "Done searching for generators: %ss" % time
-        print "Number of generators: {}".format(len(automorphisms))
+        print("Done searching for generators: %ss" % time)
+        print("Number of generators: {}".format(len(automorphisms)))
 
-        print "Translating generators..."
+        print("Translating generators...")
         generators = []
         for gen in automorphisms:
             object_mapping = dict()
@@ -130,7 +130,7 @@ class SymmetryGraph:
                                   variable_mapping)
             generators.append(generator)
         time = timer.elapsed_time()
-        print "Done translating generators: %ss" % time
+        print("Done translating generators: %ss" % time)
         assert len(generators) == len(automorphisms)
 
         if write_group_generators:
