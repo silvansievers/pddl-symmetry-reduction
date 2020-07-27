@@ -47,7 +47,7 @@ vector<vector<int> > DigraphWrapper::find_automorphisms(double time_limit) {
 
 void DigraphWrapper::add_automorphism(
     unsigned int automorphism_size, const unsigned int *automorphism) {
-    assert(automorphisms_size == graph->get_nof_vertices());
+    assert(automorphism_size == graph->get_nof_vertices());
     //cout << "DigraphWrapper: found generator" << endl;
     // Copy the array to the vector (do not just store a pointer to the array!)
     vector<int> new_aut;

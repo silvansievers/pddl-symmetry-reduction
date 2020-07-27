@@ -1,0 +1,6 @@
+This module requires pybind11 version 2.5.0 to be installed:
+pip3 install pybind11==2.5.0
+
+We recommend to use a virtual environment to do so.
+
+You can compile the module typing "make".

@@ -12,7 +12,7 @@ BLISS_HEADERS = $(BLISS_DIR)/defs.h \
 BLISS_SOURCES = $(BLISS_HEADERS:%.h=%.cc)
 
 pybind11_blissmodule.so: $(BLISS_HEADERS) $(BLISS_SOURCES) pybind11_blissmodule.cc
-	c++ -O3 -shared -std=c++11 -fPIC -Ipybind11-include `python-config --cflags --ldflags` $(BLISS_SOURCES) pybind11_blissmodule.cc -o pybind11_blissmodule.so
+	c++ -O3 -Wall -shared -std=c++11 -fPIC `python3 -m pybind11 --includes`  $(BLISS_SOURCES) pybind11_blissmodule.cc -o pybind11_blissmodule.so
 
 clean:
 	rm -rf pybind11_blissmodule.so
