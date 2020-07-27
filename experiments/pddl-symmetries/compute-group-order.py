@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import Queue
+import queue
 
 from sympy.combinatorics.permutations import Permutation
 from sympy.combinatorics.perm_groups import PermutationGroup
@@ -25,7 +25,7 @@ def permute(automorphism, gen):
 
 def compute_group_order_manual(generators):
     closed = set()
-    open_list = Queue.Queue()
+    open_list = queue.Queue()
     for gen in generators:
         closed.add(tuple(gen))
         open_list.put(tuple(gen))
@@ -41,7 +41,7 @@ def compute_group_order_manual(generators):
 
 if __name__ == "__main__":
     file_name = "generators.py"
-    print "Running symmetry group order computation..."
+    print("Running symmetry group order computation...")
     order = 0
     gens = []
     try:
@@ -57,7 +57,7 @@ if __name__ == "__main__":
                 line = [int(x) for x in line]
                 gens.append(line)
     except IOError as err:
-        print "%s does not exist" % file_name
+        print("%s does not exist" % file_name)
     if gens:
         order = compute_group_order_sympy(gens)
-    print "Symmetry group order: %d" % order
+    print("Symmetry group order: %d" % order)
