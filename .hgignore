@@ -15,3 +15,4 @@
 ^src/translate/pybliss-0.73/pybind11_blissmodule.so
 ^src/translate/pybliss-0.73/pyext_blissmodule.so
 ^experiments/pddl-symmetries/data
+^experiments/pddl-symmetries/.venv.*/
