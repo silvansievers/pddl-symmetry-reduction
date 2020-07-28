@@ -18,7 +18,9 @@ except ImportError:
     print('matplotlib not available, scatter plots not available')
     matplotlib = False
 
-OLD_REV = '53f445ff77b9'
+# For some reason, the archived experimental data contains a different revision
+# than what the exeriment script suggests.
+OLD_REV = '59b3b7eb06e7'
 NEW_REV = '8c80a8a82b48'
 
 def main(revisions=None):
@@ -144,14 +146,22 @@ def main(revisions=None):
     ]
 
     exp.add_absolute_report_step(
-        attributes=attributes,filter_algorithm=['{}-{}'.format(NEW_REV, x) for x in algorithm_nicks])
+        attributes=attributes,
+        filter_algorithm=['{}-{}'.format(NEW_REV, x) for x in algorithm_nicks])
 
-    exp.add_fetcher('data/2019-04-02-lifted-eval',filter_algorithm=['{}-{}'.format(OLD_REV, x) for x in algorithm_nicks], merge=True)
+    exp.add_fetcher(
+        'data/2019-04-02-lifted-eval',
+        filter_algorithm=['{}-{}'.format(OLD_REV, x) for x in algorithm_nicks],
+        merge=True)
+
+    def ignore_pathways(run):
+        return 'pathway' not in run['domain']
 
     exp.add_report(
         ComparativeReport(
             algorithm_pairs=[('{}-{}'.format(OLD_REV, algorithm_nicks[i]), '{}-{}'.format(NEW_REV, algorithm_nicks[i])) for i in range(len(algorithm_nicks))],
             attributes=attributes,
+            filter=[ignore_pathways],
         ),
         outfile=os.path.join(exp.eval_dir, exp.name + '-compare.html'),
     )
