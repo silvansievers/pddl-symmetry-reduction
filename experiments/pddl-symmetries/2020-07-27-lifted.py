@@ -3,6 +3,7 @@
 
 import os
 import suites
+import sys
 
 from lab.environments import LocalEnvironment, BaselSlurmEnvironment
 from lab.reports import Attribute, geometric_mean
@@ -100,7 +101,7 @@ def main(revisions=None):
     exp.add_parser(exp.EXITCODE_PARSER)
     exp.add_parser(exp.TRANSLATOR_PARSER)
     exp.add_resource(name='compute_group_order', source='compute-group-order.py')
-    exp.add_command('compute-group-order', ['{compute_group_order}'], time_limit=600, memory_limit=3584)
+    exp.add_command('compute-group-order', [sys.executable, '{compute_group_order}'], time_limit=600, memory_limit=3584)
     exp.add_parser('symmetries-parser.py')
 
     num_lifted_generators = Attribute('num_lifted_generators', absolute=True, min_wins=False)
