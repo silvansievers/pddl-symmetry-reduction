@@ -14,8 +14,6 @@ from downward.reports.absolute import AbsoluteReport
 from downward.reports.compare import ComparativeReport
 from downward.reports.scatter import ScatterPlotReport
 
-#from relativescatter import RelativeScatterPlotReport
-
 
 def parse_args():
     ARGPARSER.add_argument(
@@ -31,52 +29,62 @@ ARGS = parse_args()
 
 
 DEFAULT_OPTIMAL_SUITE = [
-    'airport', 'barman-opt11-strips', 'barman-opt14-strips', 'blocks',
-    'childsnack-opt14-strips', 'depot', 'driverlog',
+    'agricola-opt18-strips', 'airport', 'barman-opt11-strips',
+    'barman-opt14-strips', 'blocks', 'childsnack-opt14-strips',
+    'data-network-opt18-strips', 'depot', 'driverlog',
     'elevators-opt08-strips', 'elevators-opt11-strips',
     'floortile-opt11-strips', 'floortile-opt14-strips', 'freecell',
     'ged-opt14-strips', 'grid', 'gripper', 'hiking-opt14-strips',
     'logistics00', 'logistics98', 'miconic', 'movie', 'mprime',
     'mystery', 'nomystery-opt11-strips', 'openstacks-opt08-strips',
     'openstacks-opt11-strips', 'openstacks-opt14-strips',
-    'openstacks-strips', 'parcprinter-08-strips',
+    'openstacks-strips', 'organic-synthesis-opt18-strips',
+    'organic-synthesis-split-opt18-strips', 'parcprinter-08-strips',
     'parcprinter-opt11-strips', 'parking-opt11-strips',
-    'parking-opt14-strips', 'pathways-noneg', 'pegsol-08-strips',
-    'pegsol-opt11-strips', 'pipesworld-notankage',
-    'pipesworld-tankage', 'psr-small', 'rovers', 'satellite',
-    'scanalyzer-08-strips', 'scanalyzer-opt11-strips',
-    'sokoban-opt08-strips', 'sokoban-opt11-strips', 'storage',
-    'tetris-opt14-strips', 'tidybot-opt11-strips',
-    'tidybot-opt14-strips', 'tpp', 'transport-opt08-strips',
-    'transport-opt11-strips', 'transport-opt14-strips',
-    'trucks-strips', 'visitall-opt11-strips', 'visitall-opt14-strips',
-    'woodworking-opt08-strips', 'woodworking-opt11-strips',
-    'zenotravel']
+    'parking-opt14-strips', 'pathways', 'pegsol-08-strips',
+    'pegsol-opt11-strips', 'petri-net-alignment-opt18-strips',
+    'pipesworld-notankage', 'pipesworld-tankage', 'psr-small', 'rovers',
+    'satellite', 'scanalyzer-08-strips', 'scanalyzer-opt11-strips',
+    'snake-opt18-strips', 'sokoban-opt08-strips',
+    'sokoban-opt11-strips', 'spider-opt18-strips', 'storage',
+    'termes-opt18-strips', 'tetris-opt14-strips',
+    'tidybot-opt11-strips', 'tidybot-opt14-strips', 'tpp',
+    'transport-opt08-strips', 'transport-opt11-strips',
+    'transport-opt14-strips', 'trucks-strips', 'visitall-opt11-strips',
+    'visitall-opt14-strips', 'woodworking-opt08-strips',
+    'woodworking-opt11-strips', 'zenotravel']
 
 DEFAULT_SATISFICING_SUITE = [
-    'airport', 'assembly', 'barman-sat11-strips',
-    'barman-sat14-strips', 'blocks', 'cavediving-14-adl',
-    'childsnack-sat14-strips', 'citycar-sat14-adl', 'depot',
-    'driverlog', 'elevators-sat08-strips', 'elevators-sat11-strips',
-    'floortile-sat11-strips', 'floortile-sat14-strips', 'freecell',
-    'ged-sat14-strips', 'grid', 'gripper', 'hiking-sat14-strips',
-    'logistics00', 'logistics98', 'maintenance-sat14-adl', 'miconic',
-    'miconic-fulladl', 'miconic-simpleadl', 'movie', 'mprime',
-    'mystery', 'nomystery-sat11-strips', 'openstacks',
+    'agricola-sat18-strips', 'airport', 'assembly',
+    'barman-sat11-strips', 'barman-sat14-strips', 'blocks',
+    'caldera-sat18-adl', 'caldera-split-sat18-adl', 'cavediving-14-adl',
+    'childsnack-sat14-strips', 'citycar-sat14-adl',
+    'data-network-sat18-strips', 'depot', 'driverlog',
+    'elevators-sat08-strips', 'elevators-sat11-strips',
+    'flashfill-sat18-adl', 'floortile-sat11-strips',
+    'floortile-sat14-strips', 'freecell', 'ged-sat14-strips', 'grid',
+    'gripper', 'hiking-sat14-strips', 'logistics00', 'logistics98',
+    'maintenance-sat14-adl', 'miconic', 'miconic-fulladl',
+    'miconic-simpleadl', 'movie', 'mprime', 'mystery',
+    'nomystery-sat11-strips', 'nurikabe-sat18-adl', 'openstacks',
     'openstacks-sat08-adl', 'openstacks-sat08-strips',
     'openstacks-sat11-strips', 'openstacks-sat14-strips',
-    'openstacks-strips', 'optical-telegraphs', 'parcprinter-08-strips',
+    'openstacks-strips', 'optical-telegraphs',
+    'organic-synthesis-sat18-strips',
+    'organic-synthesis-split-sat18-strips', 'parcprinter-08-strips',
     'parcprinter-sat11-strips', 'parking-sat11-strips',
-    'parking-sat14-strips', 'pathways', 'pathways-noneg',
+    'parking-sat14-strips', 'pathways',
     'pegsol-08-strips', 'pegsol-sat11-strips', 'philosophers',
     'pipesworld-notankage', 'pipesworld-tankage', 'psr-large',
     'psr-middle', 'psr-small', 'rovers', 'satellite',
     'scanalyzer-08-strips', 'scanalyzer-sat11-strips', 'schedule',
-    'sokoban-sat08-strips', 'sokoban-sat11-strips', 'storage',
-    'tetris-sat14-strips', 'thoughtful-sat14-strips',
-    'tidybot-sat11-strips', 'tpp', 'transport-sat08-strips',
-    'transport-sat11-strips', 'transport-sat14-strips', 'trucks',
-    'trucks-strips', 'visitall-sat11-strips', 'visitall-sat14-strips',
+    'settlers-sat18-adl', 'snake-sat18-strips', 'sokoban-sat08-strips',
+    'sokoban-sat11-strips', 'spider-sat18-strips', 'storage',
+    'termes-sat18-strips', 'tetris-sat14-strips',
+    'thoughtful-sat14-strips', 'tidybot-sat11-strips', 'tpp',
+    'transport-sat08-strips', 'transport-sat11-strips',
+    'transport-sat14-strips', 'trucks', 'trucks-strips',
+    'visitall-sat11-strips', 'visitall-sat14-strips',
     'woodworking-sat08-strips', 'woodworking-sat11-strips',
     'zenotravel']
 
@@ -99,10 +107,9 @@ def get_experiment_name():
     Derived from the absolute filename of the main script, e.g.
     "/ham/spam/eggs.py" => "spam-eggs"."""
     script = os.path.abspath(get_script())
-    #script_dir = os.path.basename(os.path.dirname(script))
+    # script_dir = os.path.basename(os.path.dirname(script))
     script_base = os.path.splitext(os.path.basename(script))[0]
-    #return "%s-%s" % (script_dir, script_base)
-    return script_base
+    return "%s" % script_base
 
 
 def get_data_dir():
@@ -117,12 +124,12 @@ def get_repo_base():
     """Get base directory of the repository, as an absolute path.
 
     Search upwards in the directory tree from the main script until a
-    directory with a subdirectory named ".hg" is found.
+    directory with a subdirectory named ".git" is found.
 
     Abort if the repo base cannot be found."""
     path = os.path.abspath(get_script_dir())
     while os.path.dirname(path) != path:
-        if os.path.exists(os.path.join(path, ".hg")):
+        if os.path.exists(os.path.join(path, ".git")):
             return path
         path = os.path.dirname(path)
     sys.exit("repo base could not be found")
@@ -160,7 +167,7 @@ class IssueConfig(object):
 class IssueExperiment(FastDownwardExperiment):
     """Subclass of FastDownwardExperiment with some convenience features."""
 
-    DEFAULT_TEST_SUITE = ["depot:p01.pddl", "gripper:prob01.pddl"]
+    DEFAULT_TEST_SUITE = ['depot:p01.pddl', 'gripper:prob01.pddl', 'mystery:prob07.pddl', 'parcprinter-opt11-strips:p01.pddl']
 
     DEFAULT_TABLE_ATTRIBUTES = [
         "cost",
@@ -171,6 +178,8 @@ class IssueExperiment(FastDownwardExperiment):
         "expansions_until_last_jump",
         "generated",
         "memory",
+        "planner_memory",
+        "planner_time",
         "quality",
         "run_dir",
         "score_evaluations",
@@ -293,7 +302,7 @@ class IssueExperiment(FastDownwardExperiment):
         self.add_step(
             'publish-absolute-report', subprocess.call, ['publish', outfile])
 
-    def add_comparison_table_step(self, **kwargs):
+    def add_comparison_table_step(self, name="make-comparison-tables", revisions=[], **kwargs):
         """Add a step that makes pairwise revision comparisons.
 
         Create comparative reports for all pairs of Fast Downward
@@ -309,9 +318,11 @@ class IssueExperiment(FastDownwardExperiment):
 
         """
         kwargs.setdefault("attributes", self.DEFAULT_TABLE_ATTRIBUTES)
+        if not revisions:
+            revisions = self._revisions
 
         def make_comparison_tables():
-            for rev1, rev2 in itertools.combinations(self._revisions, 2):
+            for rev1, rev2 in itertools.combinations(revisions, 2):
                 compared_configs = []
                 for config in self._configs:
                     config_nick = config.nick
@@ -327,17 +338,17 @@ class IssueExperiment(FastDownwardExperiment):
                 report(self.eval_dir, outfile)
 
         def publish_comparison_tables():
-            for rev1, rev2 in itertools.combinations(self._revisions, 2):
+            for rev1, rev2 in itertools.combinations(revisions, 2):
                 outfile = os.path.join(
                     self.eval_dir,
                     "%s-%s-%s-compare.html" % (self.name, rev1, rev2))
                 subprocess.call(["publish", outfile])
 
-        self.add_step("make-comparison-tables", make_comparison_tables)
+        self.add_step(name, make_comparison_tables)
         self.add_step(
-            "publish-comparison-tables", publish_comparison_tables)
+            f"publish-{name}", publish_comparison_tables)
 
-    def add_scatter_plot_step(self, relative=False, attributes=None):
+    def add_scatter_plot_step(self, relative=False, attributes=None, additional=[]):
         """Add step creating (relative) scatter plots for all revision pairs.
 
         Create a scatter plot for each combination of attribute,
@@ -350,26 +361,26 @@ class IssueExperiment(FastDownwardExperiment):
 
         """
         if relative:
-            report_class = RelativeScatterPlotReport
             scatter_dir = os.path.join(self.eval_dir, "scatter-relative")
             step_name = "make-relative-scatter-plots"
         else:
-            report_class = ScatterPlotReport
             scatter_dir = os.path.join(self.eval_dir, "scatter-absolute")
             step_name = "make-absolute-scatter-plots"
         if attributes is None:
             attributes = self.DEFAULT_SCATTER_PLOT_ATTRIBUTES
 
-        def make_scatter_plot(config_nick, rev1, rev2, attribute):
+        def make_scatter_plot(config_nick, rev1, rev2, attribute, config_nick2=None):
             name = "-".join([self.name, rev1, rev2, attribute, config_nick])
+            if config_nick2 is not None:
+                name += "-" + config_nick2
             print("Make scatter plot for", name)
-            algo1 = "{}-{}".format(rev1, config_nick)
-            algo2 = "{}-{}".format(rev2, config_nick)
-            report = report_class(
-                filter_config=[algo1, algo2],
+            algo1 = get_algo_nick(rev1, config_nick)
+            algo2 = get_algo_nick(rev2, config_nick if config_nick2 is None else config_nick2)
+            report = ScatterPlotReport(
+                filter_algorithm=[algo1, algo2],
                 attributes=[attribute],
-                get_category=lambda run1, run2: run1["domain"],
-                legend_location=(1.3, 0.5))
+                relative=relative,
+                get_category=lambda run1, run2: run1["domain"])
             report(
                 self.eval_dir,
                 os.path.join(scatter_dir, rev1 + "-" + rev2, name))
@@ -380,5 +391,7 @@ class IssueExperiment(FastDownwardExperiment):
                     for attribute in self.get_supported_attributes(
                             config.nick, attributes):
                         make_scatter_plot(config.nick, rev1, rev2, attribute)
+            for nick1, nick2, rev1, rev2, attribute in additional:
+                make_scatter_plot(nick1, rev1, rev2, attribute, config_nick2=nick2)
 
         self.add_step(step_name, make_scatter_plots)
