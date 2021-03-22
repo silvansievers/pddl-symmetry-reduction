@@ -151,13 +151,7 @@ def main(revisions=None):
         filter_algorithm=['{}-{}'.format(OLD_REV, x) for x in algorithm_nicks],
         merge=True)
 
-    exp.add_report(
-        ComparativeReport(
-            algorithm_pairs=[('{}-{}'.format(OLD_REV, algorithm_nicks[i]), '{}-{}'.format(NEW_REV, algorithm_nicks[i])) for i in range(len(algorithm_nicks))],
-            attributes=attributes,
-        ),
-        outfile=os.path.join(exp.eval_dir, exp.name + '-compare.html'),
-    )
+    exp.add_comparison_table_step(revisions=[OLD_REV, NEW_REV], attributes=attributes)
 
     exp.run_steps()
 
