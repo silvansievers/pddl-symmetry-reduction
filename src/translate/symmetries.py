@@ -16,6 +16,8 @@ import pybind11_blissmodule as bliss
 import options
 import timers
 
+DEBUG = False
+
 
 class PyblissModuleWrapper:
     """
@@ -120,8 +122,16 @@ class SymmetryGraph:
                             assert not self.only_object_symmetries
                             function_mapping[from_struct] = to_struct
                         if col in self.colors["variable"]:
-                            assert not self.only_object_symmetries
+                            # This assertion does not hold because
+                            # symmetries mapping constants also need to
+                            # map actions and therefore variables.
+                            # assert not self.only_object_symmetries
                             variable_mapping[from_struct] = to_struct
+            if self.only_object_symmetries and not object_mapping:
+                # We filter symmetries that map actions (and therefore
+                # variables) but do not map objects.
+                print(f"skipping generator {gen}")
+                continue
             assert (object_mapping or predicate_mapping or
                 function_mapping or variable_mapping)
             generator = Generator(object_mapping,
@@ -131,7 +141,8 @@ class SymmetryGraph:
             generators.append(generator)
         time = timer.elapsed_time()
         print("Done translating generators: %ss" % time)
-        assert len(generators) == len(automorphisms)
+        if not self.only_object_symmetries:
+            assert len(generators) == len(automorphisms)
 
         if write_group_generators:
             # To avoid writing large generators, we first compute the set of
@@ -274,10 +285,12 @@ class SymmetryGraph:
 
         return get_type
 
-    # TODO this type function prevent predicates to be mapped but it can for example
-    # not filter swaps duplicate operators. However, we also want to allow
-    # object symmetries to map actions. So we probably need to filter for symmetries
-    # that do not map any object in a post-processing step.
+    # NOTE: This type function prevents predicates to be mapped, but it
+    # does not prevent actions from being mapped. This is necessary to
+    # be able to find symmetries that map constants, which occur in
+    # actions that hence also must be mapped. We therefore need to
+    # filter out any symmetries that do not map any objects in a
+    # post-processing step.
     def _build_type_function_only_object_symmetries(self):
         assert self.colors is None
         (OBJECT, VARIABLE, NEGATION) = range(3)
@@ -483,3 +496,250 @@ class Generator:
         print("Mapping objects: {}; Mapping predicates: {}; Mapping functions: {}; Mapping variables: {}".format(
             self.object_mapping, self.predicate_mapping, self.function_mapping,
             self.variable_mapping))
+
+
+def compute_generators(task, actions):
+    if DEBUG:
+        task.dump()
+    graph = SymmetryGraph(task,
+        exclude_goal=options.do_not_stabilize_goal,
+        only_static_initial_state=options.do_not_stabilize_initial_state,
+        only_object_symmetries=options.only_object_symmetries)
+    generators = graph.find_automorphisms(options.bliss_time_limit,
+        options.write_group_generators)
+    if DEBUG:
+        for num, gen in enumerate(task.generators):
+            print("Generator #{}".format(num + 1))
+            gen.dump()
+    if options.write_dot_graph:
+        f = open('out.dot', 'w')
+        graph.write_dot_graph(f)
+        f.close()
+    if generators:
+        symmetries_only_affect_objects = True
+        symmetries_only_affect_predicates = True
+        symmetries_only_affect_functions = True
+        for generator in generators:
+            if generator.object_mapping:
+                symmetries_only_affect_predicates = False
+                symmetries_only_affect_functions = False
+            if generator.predicate_mapping:
+                symmetries_only_affect_objects = False
+                symmetries_only_affect_functions = False
+            if generator.function_mapping:
+                symmetries_only_affect_objects = False
+                symmetries_only_affect_predicates = False
+        if symmetries_only_affect_objects:
+            print("Symmetries only affect objects")
+        if symmetries_only_affect_predicates:
+            print("Symmetries only affect predicates")
+        if symmetries_only_affect_functions:
+            print("Symmetries only affect functions")
+    return generators
+
+################# Code related to grounding symmetries ################
+
+def is_identity(sas_generator):
+    for key in sas_generator.keys():
+        if sas_generator[key] != key:
+            return False
+    return True
+
+
+def is_permutation(sas_generator):
+    # Caution! If the given sas_generator maps two keys to the same value,
+    # this check may fail and loop forever.
+    for start_key in sas_generator.keys():
+        current_key = sas_generator[start_key]
+        while current_key != start_key:
+            if not current_key in sas_generator.keys():
+                return False
+            current_key = tuple(sas_generator[current_key])
+    return True
+
+
+def print_sas_generator(sas_generator):
+    for from_fact in sorted(sas_generator.keys()):
+        to_fact = sas_generator[from_fact]
+        if from_fact != to_fact:
+            print("{} -> {}".format(from_fact, sas_generator[from_fact]))
+
+
+def filter_out_identities_or_nonpermutations(sas_generators):
+    # Return an updated list of generators, containing only "valid" generators,
+    # i.e. generators that are a permutation and not the identity.
+    remaining_generators = []
+    for sas_generator in sas_generators:
+        if is_identity(sas_generator):
+            if DEBUG:
+                print(sas_generator)
+                print("is the identiy!")
+        elif not is_permutation(sas_generator):
+            if not options.do_not_stabilize_initial_state:
+                assert False
+            elif DEBUG:
+                print(sas_generator)
+                print("is not a permutation!")
+        else:
+            remaining_generators.append(sas_generator)
+    if DEBUG:
+        for sas_generator in sas_generators:
+            print("generator: ")
+            print_sas_generator(sas_generator)
+    return remaining_generators
+
+
+def ground_generators(generators):
+    # For each generator, create its sas mapping from var-vals to var-vals
+    sas_generators = []
+    for generator in generators:
+        if DEBUG:
+            print("Considering generator: ")
+            generator.dump()
+        sas_generator = {}
+        valid_generator = True
+        for atom, var_val_list in strips_to_sas.items():
+            if not len(var_val_list) == 1:
+                raise NotImplementedError("Using the option --full-encoding "
+                "with --compute-symmetries is not implemented!")
+            mapped_atom = generator.apply_to_atom(atom)
+            mapped_var_val_list = strips_to_sas.get(mapped_atom, None)
+            if DEBUG:
+                if atom != mapped_atom:
+                    print("mapping atom {} to atom {}".format(atom, mapped_atom))
+            if mapped_var_val_list is None:
+                if DEBUG:
+                    print("need to skip generator because it maps an atom to some "
+                        "atom which does not exist in the sas representation")
+                if not options.do_not_stabilize_initial_state:
+                    assert False
+                valid_generator = False
+                break
+            if not len(mapped_var_val_list) == 1:
+                raise NotImplementedError("Using the option --full-encoding "
+                "with --compute-symmetries is not implemented!")
+            mapped_var_val = mapped_var_val_list[0]
+            var_val = var_val_list[0]
+            sas_generator[var_val] = mapped_var_val
+        if valid_generator:
+            if DEBUG:
+                print("Transformed generator (without none-of-those values!): ")
+                print_sas_generator(sas_generator)
+            assert is_permutation(sas_generator)
+            if not is_identity(sas_generator):
+                sas_generators.append(sas_generator)
+            elif DEBUG:
+                print("need to skip generator because it is the identiy")
+    return sas_generators
+
+
+def add_none_of_those_and_filter_sas_generators(sas_task, sas_generators):
+    # Go over all facts of the sas task and all generators:
+    # 1) If the option is set, add mappings for none-of-those values.
+    # 2) Remove all facts from the generators that are not present in
+    # the task anymore.
+    facts = []
+    for var, var_range in enumerate(sas_task.variables.ranges):
+        for val in range(var_range):
+            facts.append((var, val))
+    for sas_generator in sas_generators:
+        if options.add_none_of_those_mappings:
+            # 1) For each var, set the mapping for the none-of-those value.
+            # If the var is mapped to another var, map to the other var's
+            # none-of-those value. Otherwise, map to itself.
+            for from_var, var_range in enumerate(sas_task.variables.ranges):
+                from_fact = (from_var, 0) # some fact for var
+                to_fact = sas_generator.get(from_fact, None)
+                assert to_fact is not None
+                to_var = to_fact[0]
+
+                none_of_those_from_fact = (from_var, var_range - 1)
+                assert sas_generator.get(none_of_those_from_fact, None) is None
+                assert sas_task.variables.ranges[from_var] == sas_task.variables.ranges[to_var]
+                none_of_those_to_fact = (to_var, var_range - 1)
+
+                sas_generator[none_of_those_from_fact] = none_of_those_to_fact
+        # 2) remove facts that have been removed
+        for from_var_val, to_var_val in sas_generator.items():
+            if from_var_val not in facts or to_var_val not in facts:
+                del sas_generator[from_var_val]
+    sas_generators = filter_out_identities_or_nonpermutations(sas_generators)
+    if DEBUG:
+        for sas_generator in sas_generators:
+            print("generator: ")
+            print_sas_generator(sas_generator)
+    return sas_generators
+
+
+def compute_search_generators(sas_task, sas_generators):
+    # Transform the sas generators into the format used by the search
+    # component, i.e. [0...n-1; 0...range(var-1)-1, ..., 0...range(var-n)-1]
+    # where the first n entries represent the mapping on variables, and
+    # successive block represent the mapping of each variable's values.
+    # For none-of-those-values, we use -1 to denote that the symmetry
+    # is not defined for these.
+
+    # Precompute some data structures to ease mapping from facts to indices
+    # of the above representation.
+    var_by_shifted_index = []
+    var_to_start_index = []
+    num_vars = len(sas_task.variables.ranges)
+    num_indices = num_vars
+    for var in range(num_vars):
+        var_to_start_index.append(num_indices)
+        num_indices += sas_task.variables.ranges[var]
+        for val in range(sas_task.variables.ranges[var]):
+            var_by_shifted_index.append(var)
+
+    def get_var_val_by_index(index):
+        assert index >= num_vars
+        var =  var_by_shifted_index[index - num_vars]
+        val = index - var_to_start_index[var]
+        return (var, val)
+
+    def get_index_by_var_val(var, val):
+        index = var_to_start_index[var] + val
+        assert num_vars <= index < num_indices
+        return index
+
+    facts = []
+    for var, var_range in enumerate(sas_task.variables.ranges):
+        for val in range(var_range):
+            facts.append((var, val))
+    search_generators = []
+    for gen_no, sas_generator in enumerate(sas_generators):
+        transformed_generator = [-1 for x in range(num_indices)]
+        for from_fact in facts:
+            to_fact = sas_generator.get(from_fact, None)
+            if to_fact is None:
+                continue
+            from_index = get_index_by_var_val(*from_fact)
+            to_index = get_index_by_var_val(*yto_fact)
+            transformed_generator[from_index] = to_index
+
+            from_var = from_fact[0]
+            to_var = to_fact[0]
+            if transformed_generator[from_var] == -1:
+                transformed_generator[from_var] = to_var
+            else:
+                assert transformed_generator[from_var] == to_var
+        if -1 in transformed_generator:
+            print("Transformed generator contains -1")
+            assert not options.add_none_of_those_mappings
+
+        search_generators.append(transformed_generator)
+        #for from_index, to_index in enumerate(transformed_generator):
+            #if from_index < num_vars:
+                #continue
+            #from_fact = get_var_val_by_index(from_index)
+            #to_fact = get_var_val_by_index(to_index)
+            #assert sas_generator.get(from_fact, from_fact) == to_fact
+        if DEBUG:
+            print("original generator number {}:".format(gen_no))
+            print_sas_generator(sas_generator)
+            print("transformed_generator number {}:".format(gen_no))
+            print(transformed_generator)
+    # Append the transformed generators to the task so that they are
+    # written to the output.sas file.
+    sas_task.search_generators = sas_tasks.SearchGenerators(
+        var_by_shifted_index, var_to_start_index, search_generators)
