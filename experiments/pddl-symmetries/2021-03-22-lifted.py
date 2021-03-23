@@ -87,7 +87,10 @@ def main(revisions=None):
     # NOTE: computation time of symmetries does not include computation of orders
     # because it is an extra command.
     configs = {
-        IssueConfig('translate-symm-stabgoal-stabinit', ['--translate-options', '--compute-symmetries', '--bliss-time-limit', '300', '--stop-after-computing-symmetries', '--write-group-generators'], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '3584M']),
+        IssueConfig('translate-symm', ['--translate-options', '--compute-symmetries', '--do-not-stabilize-initial-state', '--do-not-stabilize-goal', '--bliss-time-limit', '300', '--stop-after-computing-symmetries', '--write-group-generators'], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '3584M']),
+        IssueConfig('translate-symm-stabgoal-stabinit', ['--translate-options', '--compute-symmetries', '--bliss-time-limit', '300', '--stop-after-computing-symmetries'], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '3584M']),
+        IssueConfig('translate-symm-objsymms', ['--translate-options', '--compute-symmetries', '--do-not-stabilize-initial-state', '--do-not-stabilize-goal', '--only-object-symmetries', '--bliss-time-limit', '300', '--stop-after-computing-symmetries', '--write-group-generators'], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '3584M']),
+        IssueConfig('translate-symm-objsymms-stabgoal-stabinit', ['--translate-options', '--compute-symmetries', '--only-object-symmetries', '--bliss-time-limit', '300', '--stop-after-computing-symmetries', '--write-group-generators'], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '3584M']),
     }
 
     exp = IssueExperiment(
@@ -139,7 +142,10 @@ def main(revisions=None):
     exp.add_fetcher(name='fetch')
 
     algorithm_nicks = [
+        'translate-symm',
         'translate-symm-stabgoal-stabinit',
+        'translate-symm-objsymms',
+        'translate-symm-objsymms-stabgoal-stabinit',
     ]
 
     exp.add_absolute_report_step(
