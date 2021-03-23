@@ -153,7 +153,7 @@ def main(revisions=None):
         filter_algorithm=['{}-{}'.format(NEW_REV, x) for x in algorithm_nicks])
 
     exp.add_fetcher(
-        'data/2020-07-07-lifted-eval',
+        'data/2020-07-27-lifted-eval',
         filter_algorithm=['{}-{}'.format(OLD_REV, x) for x in algorithm_nicks],
         merge=True)
 
