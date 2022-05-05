@@ -99,6 +99,15 @@ class Action:
         else:
             return None
 
+    def objects(self):
+        result = self.precondition.objects()
+        if self.cost:
+            result |= self.cost.objects()
+        for effect in self.effects:
+            result |= effect.condition.objects()
+            result |= effect.literal.objects()
+        return result
+
 
 class PropositionalAction:
     def __init__(self, name, precondition, effects, cost):

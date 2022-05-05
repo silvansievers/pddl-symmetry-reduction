@@ -473,10 +473,11 @@ class SymmetryGraph:
         init = as_for_initial_state()
         actions = as_for_actions()
         axioms = as_for_axioms()
-        if exclude_goal:
-            return (actions, axioms, init)
-        else:
-            return (actions, axioms, init, as_for_goal())
+        result = [actions, axioms, init]
+        if not exclude_goal:
+            result.append(as_for_goal())
+
+        return tuple(result)
 
 
 class Generator:
@@ -498,7 +499,7 @@ class Generator:
             self.variable_mapping))
 
 
-def compute_generators(task, actions):
+def compute_generators(task):
     if DEBUG:
         task.dump()
     graph = SymmetryGraph(task,
@@ -508,7 +509,7 @@ def compute_generators(task, actions):
     generators = graph.find_automorphisms(options.bliss_time_limit,
         options.write_group_generators)
     if DEBUG:
-        for num, gen in enumerate(task.generators):
+        for num, gen in enumerate(generators):
             print("Generator #{}".format(num + 1))
             gen.dump()
     if options.write_dot_graph:
@@ -536,6 +537,58 @@ def compute_generators(task, actions):
         if symmetries_only_affect_functions:
             print("Symmetries only affect functions")
     return generators
+
+
+def compute_transpositions(generators):
+    transpositions = []
+    for generator in generators:
+        if not generator.predicate_mapping and not generator.function_mapping and len(generator.object_mapping) == 2:
+            transpositions.append(generator)
+    return transpositions
+
+
+def compute_symmetric_object_sets(objects, transpositions, atoms):
+    print("Number of transpositions: {}".format(len(transpositions)))
+    symmetric_object_sets = set([frozenset([obj.name]) for obj in objects])
+    for transposition in transpositions:
+        mapped_objects = list(transposition.object_mapping.keys())
+        assert len(mapped_objects) == 2
+        # print(mapped_objects)
+
+        set1 = None
+        for symm_obj_set in symmetric_object_sets:
+            if mapped_objects[0] in symm_obj_set:
+                set1 = frozenset(symm_obj_set)
+                symmetric_object_sets.remove(symm_obj_set)
+                break
+        assert set1 is not None
+
+        set2 = None
+        for symm_obj_set in symmetric_object_sets:
+            if mapped_objects[1] in symm_obj_set:
+                set2 = frozenset(symm_obj_set)
+                symmetric_object_sets.remove(symm_obj_set)
+                break
+        assert set2 is not None
+
+        union = set1 | set2
+        symmetric_object_sets.add(union)
+
+    # print(f"Symmetric object sets: {symmetric_object_sets}")
+
+    # Filter symmetric object sets that consist of only
+    # one object or whose objects are not part of any
+    # reachable atom.
+    non_trivial_symmetric_object_sets = []
+    for symmetric_object_set in symmetric_object_sets:
+        if len(symmetric_object_set) > 1:
+            for atom in atoms:
+                if any(obj in symmetric_object_set for obj in atom.args):
+                    non_trivial_symmetric_object_sets.append(sorted(symmetric_object_set))
+                    break
+    print(f"Number of non-trivial symmetric object sets: {len(non_trivial_symmetric_object_sets)}")
+    print(f"Non-trivial symmetric object sets: {non_trivial_symmetric_object_sets}")
+    return non_trivial_symmetric_object_sets
 
 ################# Code related to grounding symmetries ################
 
@@ -743,3 +796,21 @@ def compute_search_generators(sas_task, sas_generators):
     # written to the output.sas file.
     sas_task.search_generators = sas_tasks.SearchGenerators(
         var_by_shifted_index, var_to_start_index, search_generators)
+
+
+import normalize
+import pddl_parser
+
+if __name__ == "__main__":
+    task = pddl_parser.open()
+    normalize.normalize(task)
+#    task.dump()
+    generators = compute_generators(task)
+    for num, gen in enumerate(generators):
+        print("Generator #{}".format(num + 1))
+        gen.dump()
+    if options.write_dot_graph:
+        f = open('out.dot', 'w')
+        graph.write_dot_graph(f)
+        f.close()
+    sys.stdout.flush()

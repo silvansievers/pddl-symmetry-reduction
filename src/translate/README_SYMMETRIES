@@ -1,7 +1,8 @@
-External usage with find_symmetries.py:
-./find_symmetries.py ../../benchmarks/simple-drive/domain.pddl ../../benchmarks/simple-drive/p01.pddl [--only-object-symmetries] [--blis-time-limit] [--write-dot-graph]
-
 Usage from within the translator:
-./translate.py ../../benchmarks/simple-drive/domain.pddl ../../benchmarks/simple-drive/p01.pddl --compute-symmetries [--only-object-symmetries] [--blis-time-limit] [--write-dot-graph]
+./translate.py ../../../../benchmarks/downward/gripper/{domain,prob01}.pddl --compute-symmetries [--only-object-symmetries] [--compute-symmetric-object-sets-from-symmetries]
+
+or with symmetries.py:
+./symmetries.py ../../../../benchmarks/downward/gripper/{domain,prob01}.pddl --compute-symmetries --compute-symmetric-object-sets-from-symmetries
+
 Or with fast-downward.py:
-./fast-downward.py --translate benchmarks/simple-drive/domain.pddl benchmarks/simple-drive/p01.pddl --translate-options --compute-symmetries [--only-object-symmetries] [--blis-time-limit] [--write-dot-graph]
+./fast-downward.py --translate ../../benchmarks/downward/gripper/prob01.pddl --translate-options --compute-symmetries [--only-object-symmetries] [--compute-symmetric-object-sets-from-symmetries]

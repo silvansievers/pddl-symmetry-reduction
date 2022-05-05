@@ -58,7 +58,7 @@ def parse_args():
         "many variables into the same layer as possible, while 'max' puts each variable "
         "into its own layer unless it is part of a cycle.")
 
-    #### Options related to symmetries
+    # Options related to symmetries (computed via abstract structure graph)
     argparser.add_argument(
         "--compute-symmetries", action="store_true",
         help="compute symmetries on the normalized taks using bliss, dump "
@@ -94,7 +94,20 @@ def parse_args():
         help="If true, stop after computing symmetries. (Set option "
         "--compute-symmetries)")
 
-    # Options related to grounding of symmetries
+    # Options related to computing symmetric object sets
+    argparser.add_argument(
+        "--compute-symmetric-object-sets-from-symmetries", action="store_true",
+        help="If true, compute symmetric object sets of object symmetry "
+        "generators. (Set options --compute-symmetries and "
+        "--only-object-symmetries and do not set option "
+        "--compute-symmetric-object-sets-directly)")
+    argparser.add_argument(
+        "--compute-symmetric-object-sets-directly", action="store_true",
+        help="If true, compute all object symmetries brute force and "
+        "symmetric object sets based on these object symemtries. (Do not "
+        "set option --compute-symmetric-object-sets-from-symmetries)")
+
+    # Options related to grounding of symmetries (computed via abstract structure graph)
     argparser.add_argument(
         "--preserve-symmetries-during-grounding", action="store_true",
         help="If true, grounding preserves unreachable structures (axioms, "

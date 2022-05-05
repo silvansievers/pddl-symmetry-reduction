@@ -9,6 +9,12 @@ class FunctionalExpression:
         return self.__class__.__name__
     def instantiate(self, var_mapping, init_facts):
         raise ValueError("Cannot instantiate condition: not normalized")
+    def objects(self):
+        result = set()
+        for part in self.parts:
+            result |= part.objects()
+        return result
+
 
 class NumericConstant(FunctionalExpression):
     parts = ()
@@ -24,6 +30,9 @@ class NumericConstant(FunctionalExpression):
         return str(self)
     def instantiate(self, var_mapping, init_facts):
         return self
+    def objects(self):
+        return set()
+
 
 class PrimitiveNumericExpression(FunctionalExpression):
     parts = ()
@@ -51,6 +60,9 @@ class PrimitiveNumericExpression(FunctionalExpression):
         result = init_assignments.get(pne)
         assert result is not None, "Could not find instantiation for PNE: %r" % (str(pne),)
         return result
+    def objects(self):
+        return {arg for arg in self.args if arg[0] != "?"}
+
 
 class FunctionAssignment:
     def __init__(self, fluent, expression):
@@ -75,6 +87,9 @@ class FunctionAssignment:
         fluent = self.fluent
         expression = self.expression.instantiate(var_mapping, init_facts)
         return self.__class__(fluent, expression)
+    def objects(self):
+        return self.expression.objects()
+
 
 class Assign(FunctionAssignment):
     def __str__(self):

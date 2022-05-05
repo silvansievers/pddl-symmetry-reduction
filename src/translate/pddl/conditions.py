@@ -7,7 +7,7 @@
 class Condition:
     def __init__(self, parts):
         self.parts = tuple(parts)
-        self.hash = hash((self.__class__, self.parts))
+        self.hash = hash((self.__class__.__name__, self.parts))
     def __hash__(self):
         return self.hash
     def __ne__(self, other):
@@ -53,6 +53,11 @@ class Condition:
         for part in self.parts:
             result |= part.free_variables()
         return result
+    def objects(self):
+        result = set()
+        for part in self.parts:
+            result |= part.objects()
+        return result
     def has_disjunction(self):
         for part in self.parts:
             if part.has_disjunction():
@@ -74,7 +79,7 @@ class ConstantCondition(Condition):
     __hash__ = Condition.__hash__
     parts = ()
     def __init__(self):
-        self.hash = hash(self.__class__)
+        self.hash = hash(self.__class__.__name__)
     def change_parts(self, parts):
         return self
     def __eq__(self, other):
@@ -161,7 +166,7 @@ class QuantifiedCondition(Condition):
     def __init__(self, parameters, parts):
         self.parameters = tuple(parameters)
         self.parts = tuple(parts)
-        self.hash = hash((self.__class__, self.parameters, self.parts))
+        self.hash = hash((self.__class__.__name__, self.parameters, self.parts))
     def __eq__(self, other):
         # Compare hash first for speed reasons.
         return (self.hash == other.hash and
@@ -223,7 +228,7 @@ class Literal(Condition):
     def __init__(self, predicate, args):
         self.predicate = predicate
         self.args = tuple(args)
-        self.hash = hash((self.__class__, self.predicate, self.args))
+        self.hash = hash((self.__class__.__name__, self.predicate, self.args))
     def __eq__(self, other):
         # Compare hash first for speed reasons.
         return (self.hash == other.hash and
@@ -259,6 +264,8 @@ class Literal(Condition):
         return self.__class__(self.predicate, new_args)
     def free_variables(self):
         return {arg for arg in self.args if arg[0] == "?"}
+    def objects(self):
+        return {arg for arg in self.args if arg[0] != "?"}
 
 class Atom(Literal):
     negated = False

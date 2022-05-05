@@ -20,6 +20,7 @@ import axiom_rules
 import fact_groups
 import instantiate
 import normalize
+import object_symmetries
 import options
 import pddl
 import pddl_parser
@@ -541,9 +542,30 @@ def pddl_to_sas(task):
         groups, mutex_groups, translation_key = fact_groups.compute_groups(
             task, atoms, reachable_action_params)
 
+    if options.compute_symmetric_object_sets_directly:
+        if options.compute_symmetric_object_sets_from_symmetries:
+            sys.exit("--compute-symmetric-object-sets-from-symmetries and "
+                "--compute-symmetric-object-sets-directly may not be used "
+                "together. You need only one of them.")
+        with timers.timing("Computing object symmetries directly", block=True):
+            non_trivial_symmetric_object_sets = object_symmetries.compute_symmetric_object_sets(
+            task, actions, mutex_groups, atoms)
+
     if options.compute_symmetries:
         with timers.timing("Symmetries computing symmetries", block=True):
-            generators = symmetries.compute_generators(task, actions)
+            generators = symmetries.compute_generators(task)
+
+    if options.compute_symmetric_object_sets_from_symmetries:
+        assert(options.compute_symmetries)
+        assert(options.only_object_symmetries)
+        if options.compute_symmetric_object_sets_directly:
+            sys.exit("--compute-symmetric-object-sets-from-symmetries and "
+                "--compute-symmetric-object-sets-directly may not be used "
+                "together. You need only one of them.")
+        with timers.timing("Computing object symmetries from symmetries", block=True):
+            transpositions = symmetries.compute_transpositions(generators)
+            non_trivial_symmetric_object_sets = symmetries.compute_symmetric_object_sets(
+                task.objects, transpositions, atoms)
 
     if options.compute_symmetries and options.stop_after_computing_symmetries:
         sys.exit(0)
