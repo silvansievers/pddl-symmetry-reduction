@@ -17,6 +17,9 @@ def duplicate_attribute(content, props):
             props['time_symm_obj_sets'] = from_sym
         if directly is not None:
             props['time_symm_obj_sets'] = directly
+    # set default values
+    props['num_object_symmetries'] = props.get('num_object_symmetries', 0)
+    props['number_symmetric_object_sets'] = props.get('number_symmetric_object_sets', 0)
 
 parser.add_function(duplicate_attribute)
 
