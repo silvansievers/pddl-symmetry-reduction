@@ -18,12 +18,14 @@ from itertools import product
 
 import axiom_rules
 import fact_groups
+import h2_mutexes
 import instantiate
 import normalize
 import object_symmetries
 import options
 import pddl
 import pddl_parser
+import reduction
 import sas_tasks
 import signal
 import simplify
@@ -524,8 +526,63 @@ def unsolvable_sas_task(msg):
 
 def pddl_to_sas(task):
     with timers.timing("Instantiating", block=True):
-        (relaxed_reachable, atoms, actions, axioms,
-         reachable_action_params) = instantiate.explore(task)
+        if options.symmetry_reduced_grounding or options.symmetry_reduced_grounding_for_h2_mutexes:
+            assert options.compute_symmetric_object_sets_from_symmetries or options.compute_symmetric_object_sets_directly
+            if options.compute_symmetric_object_sets_directly:
+                # Need to instantiate the task and compute fact groups
+                # for the direct computation of symmetric object sets.
+                # The following therefore copies the regular program flow
+                # of this method below.
+                (relaxed_reachable, atoms, actions, axioms,
+                    reachable_action_params) = instantiate.explore(task)
+
+                if not relaxed_reachable:
+                    return unsolvable_sas_task("No relaxed solution")
+
+                # HACK! Goals should be treated differently.
+                if isinstance(task.goal, pddl.Conjunction):
+                    goal_list = task.goal.parts
+                else:
+                    goal_list = [task.goal]
+                for item in goal_list:
+                    assert isinstance(item, pddl.Literal)
+
+                with timers.timing("Computing fact groups", block=True):
+                    groups, mutex_groups, translation_key = fact_groups.compute_groups(
+                        task, atoms, reachable_action_params)
+
+                with timers.timing("Computing object symmetries directly", block=True):
+                    non_trivial_symmetric_object_sets = object_symmetries.compute_symmetric_object_sets(
+                    task, actions, mutex_groups, atoms)
+            else:
+                assert options.compute_symmetries
+                assert options.only_object_symmetries
+
+                with timers.timing("Symmetries computing symmetries", block=True):
+                    generators = symmetries.compute_generators(task)
+
+                with timers.timing("Computing object symmetries from symmetries", block=True):
+                    transpositions = symmetries.compute_transpositions(generators)
+                    non_trivial_symmetric_object_sets = symmetries.compute_symmetric_object_sets(
+                        task.objects, transpositions)
+
+            object_sets_and_preserved_subsets = reduction.compute_selected_object_sets_and_preserved_subsets(task, non_trivial_symmetric_object_sets)
+            (relaxed_reachable, atoms, actions, axioms,
+             reachable_action_params) = instantiate.explore(task, object_sets_and_preserved_subsets)
+            if options.assert_equal_grounding:
+                assert options.expand_reduced_task
+                # Perform regular grounding in addition to the above symmetry-
+                # reduced one to compare the results.
+                print("Grounding again to assert equal grounding...")
+                (relaxed_reachable2, atoms2, actions2, axioms2,
+                 reachable_action_params2) = instantiate.explore(task)
+                reduction.assert_equal_grounding(relaxed_reachable, atoms, actions, axioms,
+                reachable_action_params, relaxed_reachable2, atoms2, actions2, axioms2,
+                reachable_action_params2)
+                print("Done asserting equal grounding")
+        else:
+            (relaxed_reachable, atoms, actions, axioms,
+             reachable_action_params) = instantiate.explore(task)
 
     if not relaxed_reachable:
         return unsolvable_sas_task("No relaxed solution")
@@ -538,37 +595,68 @@ def pddl_to_sas(task):
     for item in goal_list:
         assert isinstance(item, pddl.Literal)
 
+    with timers.timing("Computing h2 mutex groups", block=True):
+        if options.h2_mutexes:
+            mutex_pairs = h2_mutexes.compute_mutex_pairs(task, atoms, actions,
+            axioms, reachable_action_params, options.only_positive_literals)
+        if options.expand_reduced_h2_mutexes:
+            assert options.h2_mutexes and options.symmetry_reduced_grounding_for_h2_mutexes
+            timer = timers.Timer()
+            for symm_obj_set, subset in object_sets_and_preserved_subsets:
+                reduction.expand(mutex_pairs, symm_obj_set, contains_pairs=True)
+            print("Expanded h2 mutex pairs to {}".format(len(mutex_pairs)))
+            print("Time to expand h2 mutexes: {}s".format(timer.elapsed_time()))
+            sys.stdout.flush()
+        if options.assert_equal_h2_mutexes:
+            assert options.h2_mutexes and options.symmetry_reduced_grounding_for_h2_mutexes and options.expand_reduced_h2_mutexes
+            print("Grounding again to assert equal h2 mutex pairs...")
+            (relaxed_reachable, atoms, actions, axioms,
+             reachable_action_params) = instantiate.explore(task)
+            mutex_pairs2 = h2_mutexes.compute_mutex_pairs(task, atoms, actions,
+            axioms, reachable_action_params, options.only_positive_literals)
+            for mutex_pair in mutex_pairs:
+                assert mutex_pair in mutex_pairs2, "no match for {} from expanded-after-reduced mutex pairs in regular mutex pairs".format(mutex_pair)
+            for mutex_pair in mutex_pairs2:
+                assert mutex_pair in mutex_pairs, "no match for {} from regular mutex pairs in expanded-after-reduced mutex pairs".format(mutex_pair)
+            assert len(mutex_pairs) == len(mutex_pairs2)
+            print("Done asserting equal h2 mutex pairs")
+
     with timers.timing("Computing fact groups", block=True):
         groups, mutex_groups, translation_key = fact_groups.compute_groups(
             task, atoms, reachable_action_params)
 
-    if options.compute_symmetric_object_sets_directly:
-        if options.compute_symmetric_object_sets_from_symmetries:
-            sys.exit("--compute-symmetric-object-sets-from-symmetries and "
-                "--compute-symmetric-object-sets-directly may not be used "
-                "together. You need only one of them.")
-        with timers.timing("Computing object symmetries directly", block=True):
-            non_trivial_symmetric_object_sets = object_symmetries.compute_symmetric_object_sets(
-            task, actions, mutex_groups, atoms)
-
-    if options.compute_symmetries:
-        with timers.timing("Symmetries computing symmetries", block=True):
-            generators = symmetries.compute_generators(task)
-
-    if options.compute_symmetric_object_sets_from_symmetries:
-        assert(options.compute_symmetries)
-        assert(options.only_object_symmetries)
+    if not options.symmetry_reduced_grounding and not options.symmetry_reduced_grounding_for_h2_mutexes:
+        # We assume that there currently is no use in computing symmetries
+        # if the task has been reduced (and possibly expanded back) using
+        # symmetries before. In any case, we don't want to compute symmetries
+        # again here if we already computed them above.
         if options.compute_symmetric_object_sets_directly:
-            sys.exit("--compute-symmetric-object-sets-from-symmetries and "
-                "--compute-symmetric-object-sets-directly may not be used "
-                "together. You need only one of them.")
-        with timers.timing("Computing object symmetries from symmetries", block=True):
-            transpositions = symmetries.compute_transpositions(generators)
-            non_trivial_symmetric_object_sets = symmetries.compute_symmetric_object_sets(
-                task.objects, transpositions, atoms)
+            if options.compute_symmetric_object_sets_from_symmetries:
+                sys.exit("--compute-symmetric-object-sets-from-symmetries and "
+                    "--compute-symmetric-object-sets-directly may not be used "
+                    "together. You need only one of them.")
+            with timers.timing("Computing object symmetries directly", block=True):
+                non_trivial_symmetric_object_sets = object_symmetries.compute_symmetric_object_sets(
+                task, actions, mutex_groups, atoms)
 
-    if options.compute_symmetries and options.stop_after_computing_symmetries:
-        sys.exit(0)
+        if options.compute_symmetries:
+            with timers.timing("Symmetries computing symmetries", block=True):
+                generators = symmetries.compute_generators(task)
+
+        if options.compute_symmetric_object_sets_from_symmetries:
+            assert(options.compute_symmetries)
+            assert(options.only_object_symmetries)
+            if options.compute_symmetric_object_sets_directly:
+                sys.exit("--compute-symmetric-object-sets-from-symmetries and "
+                    "--compute-symmetric-object-sets-directly may not be used "
+                    "together. You need only one of them.")
+            with timers.timing("Computing object symmetries from symmetries", block=True):
+                transpositions = symmetries.compute_transpositions(generators)
+                non_trivial_symmetric_object_sets = symmetries.compute_symmetric_object_sets(
+                    task.objects, transpositions, atoms)
+
+        if options.compute_symmetries and options.stop_after_computing_symmetries:
+            sys.exit(0)
 
     with timers.timing("Building STRIPS to SAS dictionary"):
         ranges, strips_to_sas = strips_to_sas_dictionary(

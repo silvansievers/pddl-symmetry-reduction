@@ -2,10 +2,13 @@
 
 
 from collections import defaultdict
+import sys
 
 import build_model
+import options
 import pddl_to_prolog
 import pddl
+import reduction
 import timers
 
 def get_fluent_facts(task, model):
@@ -18,18 +21,20 @@ def get_fluent_facts(task, model):
     return {fact for fact in model
             if fact.predicate in fluent_predicates}
 
-def get_objects_by_type(typed_objects, types):
+def get_objects_by_type(typed_objects, types, objects_to_remove):
     result = defaultdict(list)
     supertypes = {}
     for type in types:
         supertypes[type.name] = type.supertype_names
     for obj in typed_objects:
+        if obj.name in objects_to_remove:
+            continue
         result[obj.type_name].append(obj.name)
         for type in supertypes[obj.type_name]:
             result[type].append(obj.name)
     return result
 
-def instantiate(task, model):
+def instantiate(task, model, objects_to_remove=frozenset()):
     relaxed_reachable = False
     fluent_facts = get_fluent_facts(task, model)
     init_facts = set()
@@ -40,7 +45,7 @@ def instantiate(task, model):
         else:
             init_facts.add(element)
 
-    type_to_objects = get_objects_by_type(task.objects, task.types)
+    type_to_objects = get_objects_by_type(task.objects, task.types, objects_to_remove)
 
     instantiated_actions = []
     instantiated_axioms = []
@@ -77,11 +82,27 @@ def instantiate(task, model):
     return (relaxed_reachable, fluent_facts, instantiated_actions,
             sorted(instantiated_axioms), reachable_action_parameters)
 
-def explore(task):
-    prog = pddl_to_prolog.translate(task)
+def explore(task, object_sets_and_preserved_subsets = []):
+    timer = timers.Timer()
+    objects_to_remove = set()
+    for obj_set, preserved_subset in object_sets_and_preserved_subsets:
+        objects_to_remove |= (obj_set - preserved_subset)
+    prog = pddl_to_prolog.translate(task, objects_to_remove)
+    print("Time to generate prolog program: {}s".format(timer.elapsed_time()))
+    sys.stdout.flush()
+    timer = timers.Timer()
     model = build_model.compute_model(prog)
+    print("Time to compute model of prolog program: {}s".format(timer.elapsed_time()))
+    sys.stdout.flush()
+    if options.expand_reduced_task:
+        timer = timers.Timer()
+        assert options.symmetry_reduced_grounding
+        for symm_obj_set, subset in object_sets_and_preserved_subsets:
+            reduction.expand(model, symm_obj_set)
+        print("Time to expand reduced model: {}s".format(timer.elapsed_time()))
+        sys.stdout.flush()
     with timers.timing("Completing instantiation"):
-        return instantiate(task, model)
+        return instantiate(task, model, objects_to_remove)
 
 if __name__ == "__main__":
     import pddl_parser

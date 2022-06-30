@@ -127,6 +127,50 @@ def parse_args():
         "If this option is used, generators that map none-of-those values to "
         "none-of-those values of other variables are *not* filtered out as "
         "they would otherwise be.")
+
+    # Options related to computation of h2 mutexes
+    argparser.add_argument(
+        "--h2-mutexes", action="store_true",
+        help="If true, compute h2 mutex groups.")
+    argparser.add_argument(
+        "--only-positive-literals", action="store_true",
+        help="If true, relax the computation of h2 mutexes by not considering "
+        "negative literals. (Set option --h2-mutexes)")
+
+    # Options related to symmetry-based reduction and expansion
+    argparser.add_argument(
+        "--symmetry-reduced-grounding", action="store_true",
+        help="If true, compute a task reduction based on all large enough "
+        "symemtric object sets. (Set option "
+        "--compute-symmetric-object-sets-from-symmetries or "
+        "--compute-symmetric-object-sets-directly)")
+    argparser.add_argument(
+        "--symmetry-reduced-grounding-for-h2-mutexes", action="store_true",
+        help="If true, compute a task reduction based on all large enough "
+        "symemtric object sets, computing the minimum size as required for "
+        "computing h2 mutexes on the reduction. (Set option "
+        "--compute-symmetric-object-sets-from-symmetries or "
+        "--compute-symmetric-object-sets-directly)")
+    argparser.add_argument(
+        "--expand-reduced-task", action="store_true",
+        help="If true, expand the model of a symmetry-reduced task before "
+        "instantiating it. (Set option --symmetry-reduced-grounding)")
+    argparser.add_argument(
+        "--expand-reduced-h2-mutexes", action="store_true",
+        help="If true, expand the set of h2 mutexes computed on a "
+        "symmetry-reduced task. (Set options "
+        "--symmetry-reduced-grounding-for-h2-mutexes and --h2-mutexes)")
+    argparser.add_argument(
+        "--assert-equal-grounding", action="store_true",
+        help="If true, assert that using --symmetry-reduced-grounding + "
+        "--expand-reduced-task yields the same result as regular grounding. "
+        "(Set the two obvious options.)")
+    argparser.add_argument(
+        "--assert-equal-h2-mutexes", action="store_true",
+        help="If true, assert that using --symmetry-reduced-grounding-for-h2-mutexes "
+        "+ --expand-reduced-h2-mutexes yields the same result as regular "
+        "computation of h2-mutexes. (Set the two obvious options.)")
+
     return argparser.parse_args()
 
 

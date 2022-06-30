@@ -148,17 +148,19 @@ def translate_typed_object(prog, obj, type_dict):
     for type_name in [obj.type_name] + supertypes:
         prog.add_fact(pddl.TypedObject(obj.name, type_name).get_atom())
 
-def translate_facts(prog, task):
+def translate_facts(prog, task, objects_to_remove=frozenset()):
     type_dict = {type.name: type for type in task.types}
     for obj in task.objects:
-        translate_typed_object(prog, obj, type_dict)
+        if obj.name not in objects_to_remove:
+            translate_typed_object(prog, obj, type_dict)
     init = task.init
     if options.preserve_symmetries_during_grounding:
         init = all_symmetric_atoms(init, task.generators)
     for fact in init:
         assert isinstance(fact, pddl.Atom) or isinstance(fact, pddl.Assign)
         if isinstance(fact, pddl.Atom):
-            prog.add_fact(fact)
+            if not fact.get_constants() & objects_to_remove:
+                prog.add_fact(fact)
 
 def all_symmetric_atoms(init, generators):
     open_list = list(init)
@@ -173,12 +175,15 @@ def all_symmetric_atoms(init, generators):
             closed.add(atom)
     return closed
 
-def translate(task):
+def translate(task, objects_to_remove=frozenset()):
     # Note: The function requires that the task has been normalized.
-    with timers.timing("Generating Datalog program"):
+    with timers.timing("Generating Datalog program", block=True):
         prog = PrologProgram()
-        translate_facts(prog, task)
+        translate_facts(prog, task, objects_to_remove)
         for conditions, effect in normalize.build_exploration_rules(task):
+            if objects_to_remove:
+                conditions = [cond for cond in conditions
+                              if not cond.get_constants() & objects_to_remove]
             prog.add_rule(Rule(conditions, effect))
     with timers.timing("Normalizing Datalog program", block=True):
         # Using block=True because normalization can output some messages

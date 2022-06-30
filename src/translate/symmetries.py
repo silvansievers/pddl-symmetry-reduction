@@ -547,7 +547,7 @@ def compute_transpositions(generators):
     return transpositions
 
 
-def compute_symmetric_object_sets(objects, transpositions, atoms):
+def compute_symmetric_object_sets(objects, transpositions, atoms=[]):
     print("Number of transpositions: {}".format(len(transpositions)))
     symmetric_object_sets = set([frozenset([obj.name]) for obj in objects])
     for transposition in transpositions:
@@ -582,10 +582,13 @@ def compute_symmetric_object_sets(objects, transpositions, atoms):
     non_trivial_symmetric_object_sets = []
     for symmetric_object_set in symmetric_object_sets:
         if len(symmetric_object_set) > 1:
-            for atom in atoms:
-                if any(obj in symmetric_object_set for obj in atom.args):
-                    non_trivial_symmetric_object_sets.append(sorted(symmetric_object_set))
-                    break
+            if atoms:
+                for atom in atoms:
+                    if any(obj in symmetric_object_set for obj in atom.args):
+                        non_trivial_symmetric_object_sets.append(symmetric_object_set)
+                        break
+            else:
+                non_trivial_symmetric_object_sets.append(symmetric_object_set)
     print(f"Number of non-trivial symmetric object sets: {len(non_trivial_symmetric_object_sets)}")
     print(f"Non-trivial symmetric object sets: {non_trivial_symmetric_object_sets}")
     return non_trivial_symmetric_object_sets

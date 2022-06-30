@@ -259,10 +259,8 @@ def compute_symmetric_object_sets(task, ground_actions, mutex_groups, reachable_
     if DEBUG:
         print("after processing mutex groups:", candidate_sets)
 
-    non_trivial_symmetric_object_sets = [sorted(symmetric_object_set)
-            for symmetric_object_set in candidate_sets]
-    print(f"Number of non-trivial symmetric object sets: {len(non_trivial_symmetric_object_sets)}")
-    print(f"Non-trivial symmetric object sets: {non_trivial_symmetric_object_sets}")
+    print(f"Number of non-trivial symmetric object sets: {len(candidate_sets)}")
+    print(f"Non-trivial symmetric object sets: {candidate_sets}")
 
-    return non_trivial_symmetric_object_sets
+    return candidate_sets
 

@@ -73,6 +73,13 @@ class Condition:
             if part.has_universal_part():
                 return True
         return False
+    def get_constants(self):
+        result = set()
+        self._get_constants(result)
+        return result
+    def _get_constants(self, result):
+        for part in self.parts:
+            part._get_constants(result)
 
 class ConstantCondition(Condition):
     # Defining __eq__ blocks inheritance of __hash__, so must set it explicitly.
@@ -251,6 +258,8 @@ class Literal(Condition):
         return '<%s>' % self
     def _dump(self):
         return str(self)
+    def _get_constants(self, result):
+        result.update(arg for arg in self.args if arg[0] != "?")
     def change_parts(self, parts):
         return self
     def uniquify_variables(self, type_map, renamings={}):
