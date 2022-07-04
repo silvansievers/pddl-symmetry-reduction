@@ -9,5 +9,7 @@ __pycache__/
 /experiments/structural-symmetries-pruning/data/
 /experiments/pddl-symmetries/.venv/
 /experiments/pddl-symmetries/data
+/experiments/pddl-symmetry-reduction/.venv/
+/experiments/pddl-symmetry-reduction/data/
 /misc/.tox/
 /misc/autodoc/downward-xmlrpc.secret
