@@ -16,11 +16,14 @@ class Effect:
         self.parameters = parameters
         self.condition = condition
         self.literal = literal
+        self.hash = hash((self.__class__.__name__, tuple(self.parameters), self.condition, self.literal))
     def __eq__(self, other):
         return (self.__class__ is other.__class__ and
                 self.parameters == other.parameters and
                 self.condition == other.condition and
                 self.literal == other.literal)
+    def __hash__(self):
+        return self.hash
     def dump(self):
         indent = "  "
         if self.parameters:
