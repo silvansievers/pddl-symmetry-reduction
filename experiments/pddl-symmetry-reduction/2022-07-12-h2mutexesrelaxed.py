@@ -3,7 +3,6 @@
 
 import os
 from pathlib import Path
-import subprocess
 import sys
 
 from lab.environments import LocalEnvironment, BaselSlurmEnvironment
@@ -104,9 +103,9 @@ def main(revisions=None):
         environment = LocalEnvironment(processes=4)
 
     configs = {
-        IssueConfig('translate', [], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '3584M']),
-        IssueConfig('translate-reduced-grounding-stabinit', ['--translate-options', '--compute-symmetries', '--bliss-time-limit', '300', '--only-object-symmetries', '--compute-symmetric-object-sets-from-symmetries', '--symmetry-reduced-grounding', '--do-not-stabilize-goal'], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '3584M']),
-        IssueConfig('translate-reduced-grounding-expand-stabinit', ['--translate-options', '--compute-symmetries', '--bliss-time-limit', '300', '--only-object-symmetries', '--compute-symmetric-object-sets-from-symmetries', '--symmetry-reduced-grounding', '--expand-reduced-task', '--do-not-stabilize-goal'], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '3584M']),
+        IssueConfig('translate-h2mutexesrelaxed', ['--translate-options', '--h2-mutexes', '--only-positive-literals'], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '3584M']),
+        IssueConfig('translate-reduced-h2mutexesrelaxed-stabinit', ['--translate-options', '--compute-symmetries', '--bliss-time-limit', '300', '--only-object-symmetries', '--compute-symmetric-object-sets-from-symmetries', '--symmetry-reduced-grounding-for-h2-mutexes','--h2-mutexes', '--only-positive-literals', '--do-not-stabilize-goal'], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '3584M']),
+        IssueConfig('translate-reduced-h2mutexesrelaxed-expand-stabinit', ['--translate-options', '--compute-symmetries', '--bliss-time-limit', '300', '--only-object-symmetries', '--compute-symmetric-object-sets-from-symmetries', '--symmetry-reduced-grounding-for-h2-mutexes','--h2-mutexes', '--only-positive-literals', '--expand-reduced-h2-mutexes', '--do-not-stabilize-goal'], driver_options=['--translate', '--translate-time-limit', '30m', '--translate-memory-limit', '3584M']),
     }
 
     exp = IssueExperiment(
@@ -192,9 +191,9 @@ def main(revisions=None):
     exp.add_fetcher(name='fetch')
 
     algorithm_nicks = [
-        'translate',
-        'translate-reduced-grounding-stabinit',
-        'translate-reduced-grounding-expand-stabinit',
+        'translate-h2mutexesrelaxed',
+        'translate-reduced-h2mutexesrelaxed-stabinit',
+        'translate-reduced-h2mutexesrelaxed-expand-stabinit',
     ]
 
     exp.add_absolute_report_step(
@@ -204,12 +203,12 @@ def main(revisions=None):
     # data from the zenodo entry of roeger-et-al-icaps2018, file
     # roeger-et-al-icaps2018-data.zip
     old_algorithm_nicks = [
-        'translate',
-        'translate-reduced-grounding-nogoal',
-        'translate-reduced-grounding-expand-nogoal',
+        'translate-h2mutexesrelaxed',
+        'translate-reduced-h2mutexesrelaxed-nogoal',
+        'translate-reduced-h2mutexesrelaxed-expand-nogoal',
     ]
     exp.add_fetcher(
-        'data/2018-03-13-grounding-eval',
+        'data/2018-03-13-h2mutexesrelaxed-eval',
         filter_algorithm=['{}-{}'.format(OLD_REV, x) for x in old_algorithm_nicks],
         merge=True)
 
