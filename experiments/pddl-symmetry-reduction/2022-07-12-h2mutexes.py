@@ -3,6 +3,7 @@
 
 import os
 from pathlib import Path
+import subprocess
 import sys
 
 from lab.environments import LocalEnvironment, BaselSlurmEnvironment
