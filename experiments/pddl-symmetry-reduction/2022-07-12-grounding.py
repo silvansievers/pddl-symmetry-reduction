@@ -92,8 +92,9 @@ def main(revisions=None):
         # echo $LD_LIBRARY_PATH
         setup='export PATH=/scicore/soft/apps/CMake/3.15.3-GCCcore-8.3.0/bin:/scicore/soft/apps/cURL/7.66.0-GCCcore-8.3.0/bin:/scicore/soft/apps/Python/3.7.4-GCCcore-8.3.0/bin:/scicore/soft/apps/XZ/5.2.4-GCCcore-8.3.0/bin:/scicore/soft/apps/SQLite/3.29.0-GCCcore-8.3.0/bin:/scicore/soft/apps/Tcl/8.6.9-GCCcore-8.3.0/bin:/scicore/soft/apps/ncurses/6.1-GCCcore-8.3.0/bin:/scicore/soft/apps/bzip2/1.0.8-GCCcore-8.3.0/bin:/scicore/soft/apps/binutils/2.32-GCCcore-8.3.0/bin:/scicore/soft/apps/GCCcore/8.3.0/bin:/infai/sieverss/repos/bin:/infai/sieverss/local:/export/soft/lua_lmod/centos7/lmod/lmod/libexec:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:$PATH\nexport LD_LIBRARY_PATH=/scicore/soft/apps/cURL/7.66.0-GCCcore-8.3.0/lib:/scicore/soft/apps/Python/3.7.4-GCCcore-8.3.0/lib:/scicore/soft/apps/libffi/3.2.1-GCCcore-8.3.0/lib64:/scicore/soft/apps/libffi/3.2.1-GCCcore-8.3.0/lib:/scicore/soft/apps/GMP/6.1.2-GCCcore-8.3.0/lib:/scicore/soft/apps/XZ/5.2.4-GCCcore-8.3.0/lib:/scicore/soft/apps/SQLite/3.29.0-GCCcore-8.3.0/lib:/scicore/soft/apps/Tcl/8.6.9-GCCcore-8.3.0/lib:/scicore/soft/apps/libreadline/8.0-GCCcore-8.3.0/lib:/scicore/soft/apps/ncurses/6.1-GCCcore-8.3.0/lib:/scicore/soft/apps/bzip2/1.0.8-GCCcore-8.3.0/lib:/scicore/soft/apps/binutils/2.32-GCCcore-8.3.0/lib:/scicore/soft/apps/zlib/1.2.11-GCCcore-8.3.0/lib:/scicore/soft/apps/GCCcore/8.3.0/lib64:/scicore/soft/apps/GCCcore/8.3.0/lib')
 
+    report_suite = suite
     if is_test_run():
-        suite = suite = [
+        suite = [
             'gripper:prob01.pddl',
             # 'depot:p01.pddl',
             'transport-opt08-strips:p01.pddl',
@@ -139,13 +140,13 @@ def main(revisions=None):
     number_symmetric_object_sets = Attribute('number_symmetric_object_sets', absolute=True, min_wins=False)
     time_symm_obj_sets = Attribute('time_symm_obj_sets', absolute=False, min_wins=True, function=geometric_mean)
 
-    time_bounds_and_subsets = Attribute('time_bounds_and_subsets', absolute=True, min_wins=True)
-    time_grounding_program = Attribute('time_grounding_program', absolute=True, min_wins=True)
-    time_grounding_model = Attribute('time_grounding_model', absolute=True, min_wins=True)
-    time_grounding_expand = Attribute('time_grounding_expand', absolute=True, min_wins=True)
-    time_h2mutexes_program = Attribute('time_h2mutexes_program', absolute=True, min_wins=True)
-    time_h2mutexes_model = Attribute('time_h2mutexes_model', absolute=True, min_wins=True)
-    time_h2mutexes_expand = Attribute('time_h2mutexes_expand', absolute=True, min_wins=True)
+    time_bounds_and_subsets = Attribute('time_bounds_and_subsets', absolute=False, min_wins=True)
+    time_grounding_program = Attribute('time_grounding_program', absolute=False, min_wins=True)
+    time_grounding_model = Attribute('time_grounding_model', absolute=False, min_wins=True)
+    time_grounding_expand = Attribute('time_grounding_expand', absolute=False, min_wins=True)
+    time_h2mutexes_program = Attribute('time_h2mutexes_program', absolute=False, min_wins=True)
+    time_h2mutexes_model = Attribute('time_h2mutexes_model', absolute=False, min_wins=True)
+    time_h2mutexes_expand = Attribute('time_h2mutexes_expand', absolute=False, min_wins=True)
     num_used_symmetric_object_sets = Attribute('num_used_symmetric_object_sets', absolute=True, min_wins=False)
     num_reachable_pairs = Attribute('num_reachable_pairs', absolute=True, min_wins=False)
     num_unreachable_pairs = Attribute('num_unreachable_pairs', absolute=True, min_wins=False)
@@ -222,6 +223,7 @@ def main(revisions=None):
         ComparativeReport(
             attributes=attributes,
             algorithm_pairs=algorithm_pairs,
+            filter_domain=report_suite,
         ),
         name=report_name,
         outfile=report_file,
